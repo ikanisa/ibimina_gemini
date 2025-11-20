@@ -1,0 +1,8 @@
+{
+  "name": "SACCO+ Admin Portal",
+  "description": "A minimalist, high-performance PWA for SACCO management, featuring member KYC, loans, savings, and AI-driven mobile money reconciliation.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
