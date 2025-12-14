@@ -2,8 +2,27 @@
 // SUPABASE CLIENT SETUP (Native Fetch)
 // ============================================================================
 
-const SUPABASE_URL = 'https://wadhydemushqqtcrrlwm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI';
+// Use environment variables for Supabase credentials, with fallbacks for development
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://wadhydemushqqtcrrlwm.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI';
+
+// Helper to safely access localStorage (handles SSR)
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(key);
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(key, value);
+    }
+  },
+  removeItem: (key: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(key);
+    }
+  }
+};
 
 class SupabaseClient {
   private url: string;
@@ -13,8 +32,8 @@ class SupabaseClient {
   constructor(url: string, key: string) {
     this.url = url;
     this.key = key;
-    // Try to restore session from localStorage
-    const savedToken = localStorage.getItem('supabase_token');
+    // Try to restore session from localStorage (safe for SSR)
+    const savedToken = safeLocalStorage.getItem('supabase_token');
     if (savedToken) {
       this.accessToken = savedToken;
     }
@@ -48,22 +67,22 @@ class SupabaseClient {
       }
 
       this.accessToken = data.access_token;
-      localStorage.setItem('supabase_token', data.access_token);
-      localStorage.setItem('supabase_user', JSON.stringify(data.user));
+      safeLocalStorage.setItem('supabase_token', data.access_token);
+      safeLocalStorage.setItem('supabase_user', JSON.stringify(data.user));
 
       return { data: { user: data.user, session: data }, error: null };
     },
 
     signOut: async () => {
       this.accessToken = null;
-      localStorage.removeItem('supabase_token');
-      localStorage.removeItem('supabase_user');
+      safeLocalStorage.removeItem('supabase_token');
+      safeLocalStorage.removeItem('supabase_user');
       return { error: null };
     },
 
     getSession: async () => {
-      const token = localStorage.getItem('supabase_token');
-      const userStr = localStorage.getItem('supabase_user');
+      const token = safeLocalStorage.getItem('supabase_token');
+      const userStr = safeLocalStorage.getItem('supabase_user');
       
       if (token && userStr) {
         const user = JSON.parse(userStr);
@@ -103,7 +122,8 @@ class SupabaseQueryBuilder {
 
   constructor(url: string, headers: Record<string, string>, table: string) {
     this.url = url;
-    this.headers = headers;
+    // Create a copy of headers to avoid mutations affecting other queries
+    this.headers = { ...headers };
     this.table = table;
   }
 
@@ -149,8 +169,13 @@ class SupabaseQueryBuilder {
       }
       
       this.query.forEach(q => {
-        const [key, value] = q.split('=');
-        queryParams.append(key, value);
+        // Use indexOf to handle values that may contain '=' characters
+        const eqIndex = q.indexOf('=');
+        if (eqIndex !== -1) {
+          const key = q.substring(0, eqIndex);
+          const value = q.substring(eqIndex + 1);
+          queryParams.append(key, value);
+        }
       });
 
       if (this.orderByValue) {

@@ -47,16 +47,24 @@ const SupabaseDashboard: React.FC = () => {
     if (!institutionId) return;
 
     try {
+      // Calculate month start date once for efficiency
+      const now = new Date();
+      const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
       // Get counts
       const [groups, members, contributions, payments] = await Promise.all([
         supabase.from('groups').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'ACTIVE'),
         supabase.from('members').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'ACTIVE'),
-        supabase.from('contributions').select('amount').eq('institution_id', institutionId).gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+        supabase.from('contributions').select('amount').eq('institution_id', institutionId).gte('date', monthStartDate),
         supabase.from('incoming_payments').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'UNRECONCILED')
       ]);
 
-      const contributionData = contributions.data as { amount: number }[] | null;
-      const monthlyTotal = contributionData?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
+      // Safely process contribution data with proper type checking
+      const contributionData = Array.isArray(contributions.data) ? contributions.data : [];
+      const monthlyTotal = contributionData.reduce((sum, c) => {
+        const amount = typeof c === 'object' && c !== null && 'amount' in c ? Number(c.amount) : 0;
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0);
 
       setStats({
         totalGroups: groups.count || 0,
