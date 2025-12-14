@@ -40,6 +40,18 @@ export interface Group {
   nextMeeting: string;
 }
 
+// Supabase schema type for groups table
+export interface SupabaseGroup {
+  id: string;
+  group_name: string;
+  status: 'ACTIVE' | 'PAUSED' | 'CLOSED';
+  expected_amount: number;
+  currency: string;
+  frequency: string;
+  created_at: string;
+  institution_id: string;
+}
+
 export interface GroupMember {
   memberId: string;
   name: string;
