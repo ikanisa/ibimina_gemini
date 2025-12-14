@@ -2,8 +2,22 @@
 // SUPABASE CLIENT SETUP (Native Fetch)
 // ============================================================================
 
-const SUPABASE_URL = 'https://wadhydemushqqtcrrlwm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI';
+// Environment variable interface for Vite
+interface ImportMetaEnv {
+  VITE_SUPABASE_URL?: string;
+  VITE_SUPABASE_ANON_KEY?: string;
+}
+
+// Get environment variables with fallback for development
+const getEnvVar = (key: keyof ImportMetaEnv, fallback: string): string => {
+  if (typeof window !== 'undefined' && (window as unknown as { __env?: ImportMetaEnv }).__env?.[key]) {
+    return (window as unknown as { __env: ImportMetaEnv }).__env[key] || fallback;
+  }
+  return fallback;
+};
+
+const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL', 'https://wadhydemushqqtcrrlwm.supabase.co');
+const SUPABASE_ANON_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI');
 
 class SupabaseClient {
   private url: string;

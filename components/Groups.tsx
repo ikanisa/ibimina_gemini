@@ -26,10 +26,28 @@ import {
   Trash2
 } from 'lucide-react';
 import { MOCK_GROUPS, MOCK_GROUP_MEMBERS, MOCK_MEETINGS, MOCK_CONTRIBUTIONS, MOCK_TRANSACTIONS, MOCK_SMS, MOCK_NFC_LOGS } from '../constants';
-import { Group, ViewState } from '../types';
+import { Group, ViewState, SupabaseGroup } from '../types';
 import { supabase } from '../lib/supabase';
 
 type DetailTab = 'Overview' | 'Members' | 'Contributions' | 'Loans' | 'Meetings' | 'MoMo' | 'Settings';
+
+// Helper function to map Supabase group data to local Group type
+const mapSupabaseGroupToGroup = (item: SupabaseGroup): Group => ({
+  id: item.id,
+  name: item.group_name,
+  code: item.id.substring(0, 8).toUpperCase(),
+  saccoId: item.institution_id,
+  branch: 'Main',
+  status: item.status === 'ACTIVE' ? 'Active' : item.status === 'PAUSED' ? 'Suspended' : 'Completed',
+  cycleLabel: 'Current Cycle',
+  memberCount: 0,
+  meetingDay: 'Monday',
+  contributionAmount: item.expected_amount,
+  contributionFrequency: item.frequency === 'Weekly' ? 'Weekly' : 'Monthly',
+  fundBalance: 0,
+  activeLoansCount: 0,
+  nextMeeting: 'TBD'
+});
 
 interface GroupsProps {
   onNavigate?: (view: ViewState) => void;
@@ -55,18 +73,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
 
       setLoading(true);
       try {
-        // Define the Supabase group data type
-        type SupabaseGroupData = { 
-          id: string; 
-          group_name: string; 
-          status: string; 
-          expected_amount: number; 
-          currency: string; 
-          frequency: string; 
-          created_at: string; 
-          institution_id: string 
-        };
-        
         const { data, error } = await supabase
           .from('groups')
           .select('*')
@@ -77,23 +83,8 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
           console.error('Error loading groups:', error);
           setGroups(MOCK_GROUPS); // Fallback to mock data
         } else if (data && Array.isArray(data) && data.length > 0) {
-          // Map Supabase data to Group type
-          const mappedGroups: Group[] = (data as SupabaseGroupData[]).map(item => ({
-            id: item.id,
-            name: item.group_name,
-            code: item.id.substring(0, 8).toUpperCase(),
-            saccoId: item.institution_id,
-            branch: 'Main',
-            status: item.status === 'ACTIVE' ? 'Active' : item.status === 'PAUSED' ? 'Suspended' : 'Completed',
-            cycleLabel: 'Current Cycle',
-            memberCount: 0,
-            meetingDay: 'Monday',
-            contributionAmount: item.expected_amount,
-            contributionFrequency: item.frequency === 'Weekly' ? 'Weekly' : 'Monthly',
-            fundBalance: 0,
-            activeLoansCount: 0,
-            nextMeeting: 'TBD'
-          }));
+          // Map Supabase data to Group type using the helper function
+          const mappedGroups: Group[] = (data as SupabaseGroup[]).map(mapSupabaseGroupToGroup);
           setGroups(mappedGroups);
         } else {
           setGroups(MOCK_GROUPS); // Fallback to mock data if no data returned

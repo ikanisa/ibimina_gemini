@@ -47,12 +47,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     checkSession();
 
+    // Type guard to validate session data has user property
+    const isValidSession = (data: unknown): data is { user: User } => {
+      return (
+        typeof data === 'object' &&
+        data !== null &&
+        'user' in data &&
+        typeof (data as { user: unknown }).user === 'object' &&
+        (data as { user: unknown }).user !== null
+      );
+    };
+
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const sessionData = session as { user?: User } | null;
-      if (sessionData?.user) {
-        setUser(sessionData.user);
-        setInstitutionId(sessionData.user.user_metadata?.institution_id || null);
+      if (isValidSession(session)) {
+        setUser(session.user);
+        setInstitutionId(session.user.user_metadata?.institution_id || null);
         setRole('Staff');
       } else {
         setUser(null);
