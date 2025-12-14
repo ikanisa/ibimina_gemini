@@ -1,3 +1,98 @@
+// ============================================================================
+// SUPABASE AUTH TYPES
+// ============================================================================
+
+export type UserRole = 'PLATFORM_ADMIN' | 'INSTITUTION_ADMIN' | 'INSTITUTION_STAFF' | 'INSTITUTION_TREASURER' | 'INSTITUTION_AUDITOR';
+export type InstitutionType = 'BANK' | 'MFI' | 'SACCO';
+export type GroupStatus = 'ACTIVE' | 'PAUSED' | 'CLOSED';
+export type ContributionStatus = 'RECORDED' | 'RECONCILED' | 'FLAGGED';
+export type PaymentStatus = 'UNRECONCILED' | 'RECONCILED' | 'FLAGGED';
+export type WithdrawalStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CANCELLED';
+
+export interface AuthUser {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    institutionId?: string;
+    role?: UserRole;
+  };
+}
+
+export interface Institution {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  status: string;
+  created_at: string;
+}
+
+export interface SupabaseGroup {
+  id: string;
+  institution_id: string;
+  group_name: string;
+  status: GroupStatus;
+  expected_amount: number;
+  frequency: string;
+  grace_days: number;
+  bank_name?: string;
+  account_ref?: string;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupabaseMember {
+  id: string;
+  institution_id: string;
+  full_name: string;
+  phone: string;
+  status: string;
+  created_at: string;
+}
+
+export interface SupabaseContribution {
+  id: string;
+  institution_id: string;
+  group_id: string;
+  member_id: string;
+  date: string;
+  amount: number;
+  method: string;
+  reference: string;
+  status: ContributionStatus;
+  created_by: string;
+  created_at: string;
+}
+
+export interface IncomingPayment {
+  id: string;
+  institution_id: string;
+  received_date: string;
+  amount: number;
+  payer_ref: string;
+  reference: string;
+  raw_text?: string;
+  status: PaymentStatus;
+  created_at: string;
+}
+
+export interface Withdrawal {
+  id: string;
+  institution_id: string;
+  group_id: string;
+  member_id?: string;
+  request_date: string;
+  amount: number;
+  status: WithdrawalStatus;
+  payment_reference?: string;
+  notes?: string;
+  created_by: string;
+  created_at: string;
+}
+
+// ============================================================================
+// EXISTING APPLICATION TYPES
+// ============================================================================
 
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',
