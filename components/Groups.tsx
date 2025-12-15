@@ -26,18 +26,85 @@ import {
   Trash2
 } from 'lucide-react';
 import { MOCK_GROUPS, MOCK_GROUP_MEMBERS, MOCK_MEETINGS, MOCK_CONTRIBUTIONS, MOCK_TRANSACTIONS, MOCK_SMS, MOCK_NFC_LOGS } from '../constants';
-import { Group, ViewState } from '../types';
+import { Group, ViewState, SupabaseGroup } from '../types';
+import { supabase } from '../lib/supabase';
 
 type DetailTab = 'Overview' | 'Members' | 'Contributions' | 'Loans' | 'Meetings' | 'MoMo' | 'Settings';
 
+// Helper function to map Supabase group data to local Group type
+const mapSupabaseGroupToGroup = (item: SupabaseGroup): Group => ({
+  id: item.id,
+  name: item.group_name,
+  code: item.id.substring(0, 8).toUpperCase(),
+  saccoId: item.institution_id,
+  branch: 'Main',
+  status: item.status === 'ACTIVE' ? 'Active' : item.status === 'PAUSED' ? 'Suspended' : 'Completed',
+  cycleLabel: 'Current Cycle',
+  memberCount: 0,
+  meetingDay: 'Monday',
+  contributionAmount: item.expected_amount,
+  contributionFrequency: item.frequency === 'Weekly' ? 'Weekly' : 'Monthly',
+  fundBalance: 0,
+  activeLoansCount: 0,
+  nextMeeting: 'TBD'
+});
+
 interface GroupsProps {
   onNavigate?: (view: ViewState) => void;
+  institutionId?: string | null;
 }
 
-const Groups: React.FC<GroupsProps> = ({ onNavigate }) => {
+const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>('Overview');
   const [viewMode, setViewMode] = useState<'Grid' | 'List'>('List');
+  const [groups, setGroups] = useState<Group[]>(MOCK_GROUPS);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Load groups from Supabase when institutionId is provided
+  useEffect(() => {
+    const loadGroups = async () => {
+      if (!institutionId) {
+        // Use mock data when no institutionId
+        setGroups(MOCK_GROUPS);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('groups')
+          .select('*')
+          .eq('institution_id', institutionId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading groups:', error);
+          setGroups(MOCK_GROUPS); // Fallback to mock data
+        } else if (data && Array.isArray(data) && data.length > 0) {
+          // Map Supabase data to Group type using the helper function
+          const mappedGroups: Group[] = (data as SupabaseGroup[]).map(mapSupabaseGroupToGroup);
+          setGroups(mappedGroups);
+        } else {
+          setGroups(MOCK_GROUPS); // Fallback to mock data if no data returned
+        }
+      } catch (err) {
+        console.error('Error loading groups:', err);
+        setGroups(MOCK_GROUPS); // Fallback to mock data
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGroups();
+  }, [institutionId]);
+
+  // Filter groups based on search term
+  const filteredGroups = groups.filter(g => 
+    g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    g.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
   // Contribution View State
   const [contributionViewMode, setContributionViewMode] = useState<'Matrix' | 'Period'>('Matrix');
@@ -121,6 +188,8 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate }) => {
                <input 
                  type="text" 
                  placeholder="Search by name or code..." 
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
                  className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
                />
              </div>
@@ -135,7 +204,15 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
         {/* Groups Table */}
+        {!loading && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -150,7 +227,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOCK_GROUPS.map((group) => (
+              {filteredGroups.map((group) => (
                 <tr 
                   key={group.id} 
                   onClick={() => setSelectedGroup(group)}
@@ -205,7 +282,14 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate }) => {
               ))}
             </tbody>
           </table>
+          {filteredGroups.length === 0 && (
+            <div className="p-12 text-center text-slate-400">
+              <Briefcase size={48} className="mx-auto mb-4 opacity-20" />
+              <p>No groups found</p>
+            </div>
+          )}
         </div>
+        )}
       </div>
     );
   }
