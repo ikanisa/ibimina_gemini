@@ -2,9 +2,18 @@
 // SUPABASE CLIENT SETUP (Native Fetch)
 // ============================================================================
 
-// Use environment variables for Supabase credentials, with fallbacks for development
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://wadhydemushqqtcrrlwm.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI';
+// Use environment variables for Supabase credentials
+// These MUST be set via environment variables - see .env.example
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Validate required environment variables
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error(
+    'Missing required environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY. ' +
+    'Please create a .env.local file with these values. See .env.example for reference.'
+  );
+}
 
 // Helper to safely access localStorage (handles SSR)
 const safeLocalStorage = {
@@ -24,23 +33,6 @@ const safeLocalStorage = {
   }
 };
 
-// Environment variable interface for Vite
-interface ImportMetaEnv {
-  VITE_SUPABASE_URL?: string;
-  VITE_SUPABASE_ANON_KEY?: string;
-}
-
-// Get environment variables with fallback for development
-const getEnvVar = (key: keyof ImportMetaEnv, fallback: string): string => {
-  if (typeof window !== 'undefined' && (window as unknown as { __env?: ImportMetaEnv }).__env?.[key]) {
-    return (window as unknown as { __env: ImportMetaEnv }).__env[key] || fallback;
-  }
-  return fallback;
-};
-
-const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL', 'https://wadhydemushqqtcrrlwm.supabase.co');
-const SUPABASE_ANON_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI');
-
 class SupabaseClient {
   private url: string;
   private key: string;
@@ -56,17 +48,13 @@ class SupabaseClient {
     }
   }
 
-  private getHeaders() {
-    // Try to restore session from localStorage
-    if (typeof window !== 'undefined') {
-      const savedToken = localStorage.getItem('supabase_token');
-      if (savedToken) {
-        this.accessToken = savedToken;
-      }
-    }
-  }
-
   private getHeaders(): Record<string, string> {
+    // Try to restore session from localStorage
+    const savedToken = safeLocalStorage.getItem('supabase_token');
+    if (savedToken) {
+      this.accessToken = savedToken;
+    }
+    
     return {
       'apikey': this.key,
       'Authorization': `Bearer ${this.accessToken || this.key}`,
@@ -96,8 +84,6 @@ class SupabaseClient {
       this.accessToken = data.access_token;
       safeLocalStorage.setItem('supabase_token', data.access_token);
       safeLocalStorage.setItem('supabase_user', JSON.stringify(data.user));
-      localStorage.setItem('supabase_token', data.access_token);
-      localStorage.setItem('supabase_user', JSON.stringify(data.user));
 
       return { data: { user: data.user, session: data }, error: null };
     },
@@ -106,20 +92,16 @@ class SupabaseClient {
       this.accessToken = null;
       safeLocalStorage.removeItem('supabase_token');
       safeLocalStorage.removeItem('supabase_user');
-      localStorage.removeItem('supabase_token');
-      localStorage.removeItem('supabase_user');
       return { error: null };
     },
 
     getSession: async () => {
-      const token = safeLocalStorage.getItem('supabase_token');
-      const userStr = safeLocalStorage.getItem('supabase_user');
       if (typeof window === 'undefined') {
         return { data: { session: null }, error: null };
       }
       
-      const token = localStorage.getItem('supabase_token');
-      const userStr = localStorage.getItem('supabase_user');
+      const token = safeLocalStorage.getItem('supabase_token');
+      const userStr = safeLocalStorage.getItem('supabase_user');
       
       if (token && userStr) {
         const user = JSON.parse(userStr);
@@ -128,7 +110,6 @@ class SupabaseClient {
       return { data: { session: null }, error: null };
     },
 
-    onAuthStateChange: (_callback: (event: string, session: { user: unknown } | null) => void) => {
     onAuthStateChange: (_callback: (event: string, session: unknown) => void) => {
       // Simple implementation - in production you'd want proper event handling
       return {
@@ -162,10 +143,6 @@ class SupabaseQueryBuilder {
     this.url = url;
     // Create a copy of headers to avoid mutations affecting other queries
     this.headers = { ...headers };
-
-  constructor(url: string, headers: Record<string, string>, table: string) {
-    this.url = url;
-    this.headers = headers;
     this.table = table;
   }
 
@@ -177,8 +154,6 @@ class SupabaseQueryBuilder {
     }
     if (options?.head) {
       this.headMode = true;
-    }
-      this.headers['Prefer'] = `count=${options.count}`;
     }
     return this;
   }
@@ -220,15 +195,6 @@ class SupabaseQueryBuilder {
           const value = q.substring(eqIndex + 1);
           queryParams.append(key, value);
         }
-  async then<T>(resolve: (value: { data: T | null; error: Error | null; count?: number }) => void, reject?: (error: Error) => void) {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      queryParams.append('select', this.selectQuery);
-      
-      this.query.forEach(q => {
-        const [key, value] = q.split('=');
-        queryParams.append(key, value);
       });
 
       if (this.orderByValue) {
@@ -269,31 +235,6 @@ class SupabaseQueryBuilder {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       return resolve({ data: null, error: { message }, count: null });
-      const response = await fetch(
-        `${this.url}/rest/v1/${this.table}?${queryParams.toString()}`,
-        {
-          method: 'GET',
-          headers: this.headers
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        resolve({ data: null, error: new Error(errorData.message || 'Request failed') });
-        return;
-      }
-
-      const data = await response.json();
-      const countHeader = response.headers.get('content-range');
-      const count = countHeader ? parseInt(countHeader.split('/')[1], 10) : undefined;
-
-      resolve({ data, error: null, count });
-    } catch (error) {
-      if (reject) {
-        reject(error as Error);
-      } else {
-        resolve({ data: null, error: error as Error });
-      }
     }
   }
 
@@ -378,4 +319,4 @@ class SupabaseQueryBuilder {
   }
 }
 
-export const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = new SupabaseClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
