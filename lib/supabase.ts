@@ -4,16 +4,11 @@
 
 // Use environment variables for Supabase credentials
 // These MUST be set via environment variables - see .env.example
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-// Validate required environment variables
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error(
-    'Missing required environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY. ' +
-    'Please create a .env.local file with these values. See .env.example for reference.'
-  );
-}
+// Flag to track if we've already warned about missing env vars
+let hasWarnedAboutMissingEnv = false;
 
 // Helper to safely access localStorage (handles SSR)
 const safeLocalStorage = {
@@ -37,10 +32,22 @@ class SupabaseClient {
   private url: string;
   private key: string;
   private accessToken: string | null = null;
+  private isConfigured: boolean;
 
-  constructor(url: string, key: string) {
-    this.url = url;
-    this.key = key;
+  constructor(url: string | undefined, key: string | undefined) {
+    this.isConfigured = Boolean(url && key);
+    this.url = url || '';
+    this.key = key || '';
+    
+    // Validate and warn about missing configuration
+    if (!this.isConfigured && !hasWarnedAboutMissingEnv) {
+      hasWarnedAboutMissingEnv = true;
+      console.error(
+        'Missing required environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY. ' +
+        'Please create a .env.local file with these values. See .env.example for reference.'
+      );
+    }
+    
     // Try to restore session from localStorage (safe for SSR)
     const savedToken = safeLocalStorage.getItem('supabase_token');
     if (savedToken) {
@@ -49,12 +56,6 @@ class SupabaseClient {
   }
 
   private getHeaders(): Record<string, string> {
-    // Try to restore session from localStorage
-    const savedToken = safeLocalStorage.getItem('supabase_token');
-    if (savedToken) {
-      this.accessToken = savedToken;
-    }
-    
     return {
       'apikey': this.key,
       'Authorization': `Bearer ${this.accessToken || this.key}`,
@@ -66,6 +67,10 @@ class SupabaseClient {
   // Auth methods
   auth = {
     signInWithPassword: async (credentials: { email: string; password: string }) => {
+      if (!this.isConfigured) {
+        throw new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+      }
+      
       const response = await fetch(`${this.url}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
@@ -104,6 +109,7 @@ class SupabaseClient {
       const userStr = safeLocalStorage.getItem('supabase_user');
       
       if (token && userStr) {
+        this.accessToken = token;
         const user = JSON.parse(userStr);
         return { data: { session: { user, access_token: token } }, error: null };
       }
@@ -124,6 +130,9 @@ class SupabaseClient {
 
   // Database methods
   from(table: string) {
+    if (!this.isConfigured) {
+      console.error('Supabase is not configured. Database operations will fail.');
+    }
     return new SupabaseQueryBuilder(this.url, this.getHeaders(), table);
   }
 }
@@ -319,4 +328,4 @@ class SupabaseQueryBuilder {
   }
 }
 
-export const supabase = new SupabaseClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
+export const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
