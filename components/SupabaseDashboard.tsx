@@ -38,15 +38,27 @@ const SupabaseDashboard: React.FC = () => {
   });
   const [recentActivity, setRecentActivity] = useState<ContributionWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const emptyStats: DashboardStats = {
+    totalGroups: 0,
+    activeMembers: 0,
+    monthlyContributions: 0,
+    unreconciledPayments: 0
+  };
 
   useEffect(() => {
     loadDashboard();
   }, [institutionId]);
 
   const loadDashboard = async () => {
-    if (!institutionId) return;
+    if (!institutionId) {
+      setStats(emptyStats);
+      setRecentActivity([]);
+      setLoading(false);
+      return;
+    }
 
     try {
+      setLoading(true);
       // Calculate month start date once for efficiency
       const now = new Date();
       const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();

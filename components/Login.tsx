@@ -17,14 +17,11 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    try {
-      await signIn(email, password);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Invalid credentials';
-      setError(message);
-    } finally {
-      setLoading(false);
+    const { error: signInError } = await signIn(email, password);
+    if (signInError) {
+      setError(signInError.message);
     }
+    setLoading(false);
   };
 
   return (
@@ -79,10 +76,6 @@ const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
-          <p>Demo Credentials:</p>
-          <p className="font-mono text-xs mt-1">admin@demo.com / demo123</p>
-        </div>
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
 
 import { KpiStats, Member, NfcLog, Sacco, SmsMessage, StaffMember, Transaction, Group, GroupMember, Meeting, Contribution, Loan } from './types';
 
-export const MOCK_STATS: KpiStats = {
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+export const MOCK_STATS: KpiStats = USE_MOCK_DATA ? {
   totalMembers: 1240,
   activeMembers: 1150,
   activeGroups: 45,
@@ -11,9 +13,19 @@ export const MOCK_STATS: KpiStats = {
   tokenSupply: 5000, // USD Pegged
   dailyDeposits: 2500000, // RWF
   reconciliationStatus: 'Issues',
+} : {
+  totalMembers: 0,
+  activeMembers: 0,
+  activeGroups: 0,
+  totalGroupFunds: 0,
+  totalSavings: 0,
+  outstandingLoans: 0,
+  tokenSupply: 0,
+  dailyDeposits: 0,
+  reconciliationStatus: 'Pending',
 };
 
-export const MOCK_GROUPS: Group[] = [
+export const MOCK_GROUPS: Group[] = USE_MOCK_DATA ? [
   {
     id: 'G-101',
     name: "Ibimina y'Urubyiruko",
@@ -62,30 +74,30 @@ export const MOCK_GROUPS: Group[] = [
     activeLoansCount: 0,
     nextMeeting: 'N/A'
   }
-];
+] : [];
 
-export const MOCK_GROUP_MEMBERS: GroupMember[] = [
+export const MOCK_GROUP_MEMBERS: GroupMember[] = USE_MOCK_DATA ? [
   { memberId: 'M-1001', name: 'Jean-Paul Mugenzi', role: 'Chairperson', status: 'Good Standing', joinedDate: '2022-01-01', contributionsPaid: 40, contributionsMissed: 0 },
   { memberId: 'M-1002', name: 'Grace Uwase', role: 'Treasurer', status: 'Good Standing', joinedDate: '2022-02-15', contributionsPaid: 38, contributionsMissed: 2 },
   { memberId: 'M-1004', name: 'Divine Keza', role: 'Member', status: 'In Arrears', joinedDate: '2023-05-01', contributionsPaid: 15, contributionsMissed: 5 },
   { memberId: 'M-1003', name: 'Eric Ndayisaba', role: 'Member', status: 'Good Standing', joinedDate: '2023-01-10', contributionsPaid: 35, contributionsMissed: 0 },
-];
+] : [];
 
-export const MOCK_MEETINGS: Meeting[] = [
+export const MOCK_MEETINGS: Meeting[] = USE_MOCK_DATA ? [
   { id: 'MT-501', groupId: 'G-101', date: '2023-10-20', type: 'Regular', attendanceCount: 11, totalCollected: 55000, notes: 'Routine contributions collected.', status: 'Completed' },
   { id: 'MT-502', groupId: 'G-101', date: '2023-10-13', type: 'Loan Approval', attendanceCount: 12, totalCollected: 60000, notes: 'Approved loan for Member M-1002.', status: 'Completed' },
   { id: 'MT-503', groupId: 'G-101', date: '2023-10-27', type: 'Regular', attendanceCount: 0, totalCollected: 0, notes: '', status: 'Scheduled' },
-];
+] : [];
 
-export const MOCK_CONTRIBUTIONS: Contribution[] = [
+export const MOCK_CONTRIBUTIONS: Contribution[] = USE_MOCK_DATA ? [
   // Matrix data for group G-101
   { id: 'C-1', memberId: 'M-1001', groupId: 'G-101', meetingId: 'MT-501', periodLabel: 'Wk 42', expectedAmount: 5000, paidAmount: 5000, status: 'Paid', channel: 'MoMo' },
   { id: 'C-2', memberId: 'M-1002', groupId: 'G-101', meetingId: 'MT-501', periodLabel: 'Wk 42', expectedAmount: 5000, paidAmount: 5000, status: 'Paid', channel: 'Cash' },
   { id: 'C-3', memberId: 'M-1004', groupId: 'G-101', meetingId: 'MT-501', periodLabel: 'Wk 42', expectedAmount: 5000, paidAmount: 0, status: 'Missed', channel: 'Cash' },
   { id: 'C-4', memberId: 'M-1001', groupId: 'G-101', meetingId: 'MT-502', periodLabel: 'Wk 41', expectedAmount: 5000, paidAmount: 5000, status: 'Paid', channel: 'Token' },
-];
+] : [];
 
-export const MOCK_SACCOS: Sacco[] = [
+export const MOCK_SACCOS: Sacco[] = USE_MOCK_DATA ? [
   {
     id: 'S-001',
     name: 'Kigali Teachers SACCO',
@@ -116,9 +128,9 @@ export const MOCK_SACCOS: Sacco[] = [
     totalAssets: 0,
     supervisor: 'Pending'
   }
-];
+] : [];
 
-export const MOCK_MEMBERS: Member[] = [
+export const MOCK_MEMBERS: Member[] = USE_MOCK_DATA ? [
   {
     id: 'M-1001',
     name: 'Jean-Paul Mugenzi',
@@ -189,9 +201,9 @@ export const MOCK_MEMBERS: Member[] = [
     avatarUrl: 'https://picsum.photos/100/100?random=5',
     groups: ['Tuzamurane Traders']
   }
-];
+] : [];
 
-export const MOCK_TRANSACTIONS: Transaction[] = [
+export const MOCK_TRANSACTIONS: Transaction[] = USE_MOCK_DATA ? [
   {
     id: 'TX-9001',
     date: '2023-10-26 14:30',
@@ -241,9 +253,9 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     status: 'Pending',
     reference: 'CSH-TELLER-01'
   },
-];
+] : [];
 
-export const MOCK_SMS: SmsMessage[] = [
+export const MOCK_SMS: SmsMessage[] = USE_MOCK_DATA ? [
   {
     id: 'SMS-001',
     sender: 'M-Money',
@@ -293,9 +305,9 @@ export const MOCK_SMS: SmsMessage[] = [
     },
     // No linked transaction ID implies this needs reconciliation
   }
-];
+] : [];
 
-export const MOCK_NFC_LOGS: NfcLog[] = [
+export const MOCK_NFC_LOGS: NfcLog[] = USE_MOCK_DATA ? [
   {
     id: 'NFC-001',
     timestamp: '14:28:10',
@@ -325,9 +337,9 @@ export const MOCK_NFC_LOGS: NfcLog[] = [
     status: 'Pending SMS',
     linkedSms: false
   }
-];
+] : [];
 
-export const MOCK_STAFF: StaffMember[] = [
+export const MOCK_STAFF: StaffMember[] = USE_MOCK_DATA ? [
   {
     id: 'ST-001',
     name: 'Alice M.',
@@ -378,9 +390,9 @@ export const MOCK_STAFF: StaffMember[] = [
     lastLogin: '3 hours ago',
     avatarUrl: 'https://ui-avatars.com/api/?name=David+L&background=6366F1&color=fff'
   }
-];
+] : [];
 
-export const MOCK_LOANS: Loan[] = [
+export const MOCK_LOANS: Loan[] = USE_MOCK_DATA ? [
   {
     id: 'L-2201',
     borrowerId: 'M-1002',
@@ -417,4 +429,4 @@ export const MOCK_LOANS: Loan[] = [
     interestRate: 1.5,
     termMonths: 6
   }
-];
+] : [];

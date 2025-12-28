@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { 
   LayoutDashboard, 
   Users, 
@@ -34,22 +35,116 @@ import Staff from './components/Staff';
 import Profile from './components/Profile';
 import Loans from './components/Loans';
 import SettingsPage from './components/Settings';
+import Login from './components/Login';
+import SupabaseDashboard from './components/SupabaseDashboard';
 import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
-import { ViewState, StaffRole, StaffMember } from './types';
+import { ViewState, StaffRole, StaffMember, KpiStats } from './types';
+import { useAuth } from './contexts/AuthContext';
+
+const EMPTY_STATS: KpiStats = {
+  totalMembers: 0,
+  activeMembers: 0,
+  activeGroups: 0,
+  totalGroupFunds: 0,
+  totalSavings: 0,
+  outstandingLoans: 0,
+  tokenSupply: 0,
+  dailyDeposits: 0,
+  reconciliationStatus: 'Pending'
+};
+
+const buildInitialsAvatar = (name: string) => {
+  const initials = name
+    .split(' ')
+    .map((part) => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'S';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" fill="#2563eb"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" fill="#ffffff" font-weight="700">${initials}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
+const mapUserToStaffMember = (user: User, role: StaffRole | null): StaffMember => {
+  const metadata = user.user_metadata as Record<string, unknown> | null;
+  const name =
+    (typeof metadata?.full_name === 'string' && metadata.full_name) ||
+    (typeof metadata?.name === 'string' && metadata.name) ||
+    user.email ||
+    'Staff';
+  const email = user.email ?? 'unknown';
+  const branch = (typeof metadata?.branch === 'string' && metadata.branch) || 'HQ';
+  const avatarUrl =
+    (typeof metadata?.avatar_url === 'string' && metadata.avatar_url) ||
+    buildInitialsAvatar(name);
+  const lastLogin = user.last_sign_in_at
+    ? new Date(user.last_sign_in_at).toLocaleString()
+    : '—';
+
+  return {
+    id: user.id,
+    name,
+    email,
+    role: role ?? 'Teller',
+    branch,
+    status: 'Active',
+    lastLogin,
+    avatarUrl
+  };
+};
+
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="flex flex-col items-center gap-3 text-slate-500">
+      <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
+      <p className="text-sm font-medium">Loading session...</p>
+    </div>
+  </div>
+);
+
+const MissingConfig: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+      <h1 className="text-2xl font-bold text-slate-900">Supabase configuration required</h1>
+      <p className="text-sm text-slate-600">
+        Set <span className="font-mono">VITE_SUPABASE_URL</span> and <span className="font-mono">VITE_SUPABASE_ANON_KEY</span> in <span className="font-mono">.env.local</span> to continue.
+      </p>
+      <div className="text-left text-xs bg-slate-100 border border-slate-200 rounded-lg p-3 font-mono text-slate-600">
+        VITE_SUPABASE_URL=https://your-project.supabase.co<br />
+        VITE_SUPABASE_ANON_KEY=your-anon-key
+      </div>
+    </div>
+  </div>
+);
 
 const App: React.FC = () => {
-  // AUTH STATE MANAGEMENT
-  const [originalUser, setOriginalUser] = useState<StaffMember>(MOCK_STAFF[0]); 
+  const { user, role, institutionId, loading, signOut, isConfigured } = useAuth();
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const demoUser = useMockData ? (MOCK_STAFF[0] ?? null) : null;
+  const baseUser = useMockData ? demoUser : (user ? mapUserToStaffMember(user, role) : null);
   const [viewingAsUser, setViewingAsUser] = useState<StaffMember | null>(null);
 
+  const originalUser = baseUser ?? demoUser;
   const currentUser = viewingAsUser || originalUser;
-  const isImpersonating = viewingAsUser !== null;
+  const isImpersonating = Boolean(viewingAsUser);
 
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    setViewingAsUser(null);
+    setIsProfileMenuOpen(false);
+    setIsRoleSwitcherOpen(false);
+    await signOut();
+  };
+
+  const dashboardStats = useMockData ? MOCK_STATS : EMPTY_STATS;
+  const dashboardTransactions = useMockData ? MOCK_TRANSACTIONS : [];
+  const memberData = useMockData ? MOCK_MEMBERS : [];
+  const transactionData = useMockData ? MOCK_TRANSACTIONS : [];
+  const showSupabaseDashboard = !useMockData && Boolean(institutionId);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -63,8 +158,30 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    setCurrentView(ViewState.DASHBOARD);
-  }, [currentUser.id]);
+    setViewingAsUser(null);
+  }, [baseUser?.id]);
+
+  useEffect(() => {
+    if (currentUser) {
+      setCurrentView(ViewState.DASHBOARD);
+    }
+  }, [currentUser?.id]);
+
+  if (!useMockData) {
+    if (!isConfigured) {
+      return <MissingConfig />;
+    }
+    if (loading) {
+      return <LoadingScreen />;
+    }
+    if (!user || !baseUser) {
+      return <Login />;
+    }
+  }
+
+  if (!currentUser) {
+    return <LoadingScreen />;
+  }
 
   // RBAC Permission Map
   const canAccess = (view: ViewState): boolean => {
@@ -119,6 +236,7 @@ const App: React.FC = () => {
   };
 
   const RoleSwitcher = () => {
+    if (!useMockData) return null;
     if (isImpersonating) return null;
     if (originalUser.role !== 'Super Admin') return null;
 
@@ -206,7 +324,10 @@ const App: React.FC = () => {
         <RoleSwitcher />
 
         <div className="p-4 border-t border-slate-800">
-           <button className="flex items-center gap-3 text-slate-400 hover:text-white text-sm w-full px-4 py-2 rounded hover:bg-slate-800 transition-colors">
+           <button
+             onClick={handleSignOut}
+             className="flex items-center gap-3 text-slate-400 hover:text-white text-sm w-full px-4 py-2 rounded hover:bg-slate-800 transition-colors"
+           >
              <LogOut size={18} /> Sign Out
            </button>
         </div>
@@ -230,6 +351,12 @@ const App: React.FC = () => {
                Exit View
              </button>
            </div>
+        )}
+
+        {useMockData && (
+          <div className="bg-amber-100 text-amber-800 px-4 py-2 text-xs font-medium flex items-center justify-between">
+            <span>Demo mode enabled: showing mock data and roles.</span>
+          </div>
         )}
 
         {/* Header */}
@@ -298,7 +425,10 @@ const App: React.FC = () => {
                      >
                        <UserCircle size={16} /> My Profile
                      </button>
-                     <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                     <button
+                       onClick={handleSignOut}
+                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                     >
                        <LogOut size={16} /> Sign Out
                      </button>
                    </div>
@@ -311,16 +441,26 @@ const App: React.FC = () => {
         {/* View Area */}
         <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
            {currentView === ViewState.DASHBOARD && (
-             <Dashboard 
-               stats={MOCK_STATS} 
-               recentTransactions={MOCK_TRANSACTIONS} 
-               onNavigate={setCurrentView}
-             />
+             showSupabaseDashboard ? (
+               <SupabaseDashboard />
+             ) : (
+               <Dashboard 
+                 stats={dashboardStats} 
+                 recentTransactions={dashboardTransactions} 
+                 onNavigate={setCurrentView}
+               />
+             )
            )}
-           {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && <Groups onNavigate={setCurrentView} />}
+           {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
+             <Groups onNavigate={setCurrentView} institutionId={institutionId} />
+           )}
            {currentView === ViewState.SACCOS && canAccess(ViewState.SACCOS) && <Saccos onNavigate={setCurrentView} />}
-           {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && <Members members={MOCK_MEMBERS} onNavigate={setCurrentView} />}
-           {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && <Transactions transactions={MOCK_TRANSACTIONS} onNavigate={setCurrentView} />}
+           {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
+             <Members members={memberData} onNavigate={setCurrentView} />
+           )}
+           {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
+             <Transactions transactions={transactionData} onNavigate={setCurrentView} />
+           )}
            
            {/* Split Mobile Money Views */}
            {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations mode="sms" />}

@@ -32,6 +32,7 @@ A group savings and group savings-backed loans management system for SACCOs (Sav
    - `VITE_SUPABASE_URL` - Your Supabase project URL
    - `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
    - `GEMINI_API_KEY` - (Optional) Your Gemini API key for AI features
+   - `VITE_USE_MOCK_DATA` - (Optional) Set to `true` to run the UI with demo data
 
 3. Run the app:
    ```bash
@@ -45,6 +46,7 @@ A group savings and group savings-backed loans management system for SACCOs (Sav
 | `VITE_SUPABASE_URL` | Yes | Your Supabase project URL (e.g., `https://yourproject.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Your Supabase anonymous/public API key |
 | `GEMINI_API_KEY` | No | Google Gemini API key for AI features |
+| `VITE_USE_MOCK_DATA` | No | Set to `true` to run the UI in demo mode without Supabase data |
 
 > **Note:** Never commit `.env.local` to version control. The `.gitignore` is configured to exclude `*.local` files.
 
