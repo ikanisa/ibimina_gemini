@@ -50,7 +50,7 @@ const BulkGroupUpload: React.FC<BulkGroupUploadProps> = ({ onClose, onSuccess })
         e.preventDefault();
     };
 
-    // Process file with Gemini OCR
+    // Process file with Edge Function (secure, uses server-side API key)
     const processWithGemini = async () => {
         if (!file) return;
 
@@ -60,64 +60,24 @@ const BulkGroupUpload: React.FC<BulkGroupUploadProps> = ({ onClose, onSuccess })
         try {
             // Convert file to base64
             const base64 = await fileToBase64(file);
-            const mimeType = file.type || 'image/png';
 
-            // Call Gemini API for OCR
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            if (!apiKey) {
-                throw new Error('Gemini API key not configured. Add VITE_GEMINI_API_KEY to your .env file.');
-            }
-
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                {
-                                    inline_data: {
-                                        mime_type: mimeType,
-                                        data: base64.split(',')[1] // Remove data:mime;base64, prefix
-                                    }
-                                },
-                                {
-                                    text: `Extract savings group (Ibimina) information from this document. Return a JSON array of objects with these fields:
-- group_name: the group/ibimina name (required)
-- meeting_day: day of week (Monday, Tuesday, etc.) if mentioned
-- frequency: contribution frequency - must be one of: "Daily", "Weekly", "Monthly"
-- expected_amount: the contribution amount if mentioned (number only, no currency)
-
-Return ONLY valid JSON array, no other text. Example:
-[{"group_name": "Ibimina ya Gasabo", "meeting_day": "Monday", "frequency": "Weekly", "expected_amount": 5000}]
-
-If you cannot extract valid data, return an empty array: []`
-                                }
-                            ]
-                        }],
-                        generationConfig: {
-                            temperature: 0.1,
-                            maxOutputTokens: 4096
-                        }
-                    })
+            // Call Edge Function for OCR
+            const { data, error: fnError } = await supabase.functions.invoke('ocr-extract', {
+                body: {
+                    image: base64,
+                    extractType: 'groups'
                 }
-            );
+            });
 
-            if (!response.ok) {
-                throw new Error(`Gemini API error: ${response.status}`);
+            if (fnError) {
+                throw new Error(fnError.message || 'Failed to process document');
             }
 
-            const data = await response.json();
-            const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-
-            // Parse the JSON from Gemini response
-            const jsonMatch = textContent.match(/\[[\s\S]*\]/);
-            if (!jsonMatch) {
-                throw new Error('Could not extract group data from document');
+            if (data?.error) {
+                throw new Error(data.error);
             }
 
-            const groups: ParsedGroup[] = JSON.parse(jsonMatch[0]);
+            const groups: ParsedGroup[] = data?.data || [];
 
             if (groups.length === 0) {
                 setError('No group data found in document. Please upload a document with group names.');
