@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { 
   LayoutDashboard, 
@@ -23,23 +23,24 @@ import {
   UserCircle,
   Eye
 } from 'lucide-react';
-import Dashboard from './components/Dashboard';
-import Groups from './components/Groups';
-import Members from './components/Members';
-import Transactions from './components/Transactions';
-import MoMoOperations from './components/MoMoOperations';
-import Saccos from './components/Saccos';
-import TokenWallet from './components/TokenWallet';
-import Reconciliation from './components/Reconciliation';
-import Staff from './components/Staff';
-import Profile from './components/Profile';
-import Loans from './components/Loans';
-import SettingsPage from './components/Settings';
-import Login from './components/Login';
-import SupabaseDashboard from './components/SupabaseDashboard';
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Groups = lazy(() => import('./components/Groups'));
+const Members = lazy(() => import('./components/Members'));
+const Transactions = lazy(() => import('./components/Transactions'));
+const MoMoOperations = lazy(() => import('./components/MoMoOperations'));
+const Saccos = lazy(() => import('./components/Saccos'));
+const TokenWallet = lazy(() => import('./components/TokenWallet'));
+const Reconciliation = lazy(() => import('./components/Reconciliation'));
+const Staff = lazy(() => import('./components/Staff'));
+const Profile = lazy(() => import('./components/Profile'));
+const Loans = lazy(() => import('./components/Loans'));
+const SettingsPage = lazy(() => import('./components/Settings'));
+const Login = lazy(() => import('./components/Login'));
+const SupabaseDashboard = lazy(() => import('./components/SupabaseDashboard'));
 import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
-import { ViewState, StaffRole, StaffMember, KpiStats } from './types';
+import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
+import { buildInitialsAvatar } from './lib/avatars';
 
 const EMPTY_STATS: KpiStats = {
   totalMembers: 0,
@@ -53,32 +54,27 @@ const EMPTY_STATS: KpiStats = {
   reconciliationStatus: 'Pending'
 };
 
-const buildInitialsAvatar = (name: string) => {
-  const initials = name
-    .split(' ')
-    .map((part) => part.charAt(0))
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'S';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" fill="#2563eb"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" fill="#ffffff" font-weight="700">${initials}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-};
-
-const mapUserToStaffMember = (user: User, role: StaffRole | null): StaffMember => {
+const mapUserToStaffMember = (user: User, role: StaffRole | null, profile: SupabaseProfile | null): StaffMember => {
   const metadata = user.user_metadata as Record<string, unknown> | null;
+  const profileName = typeof profile?.full_name === 'string' ? profile.full_name : null;
+  const profileBranch = typeof profile?.branch === 'string' ? profile.branch : null;
+  const profileAvatar = typeof profile?.avatar_url === 'string' ? profile.avatar_url : null;
+  const profileEmail = typeof profile?.email === 'string' ? profile.email : null;
   const name =
+    (profileName && profileName.trim()) ||
     (typeof metadata?.full_name === 'string' && metadata.full_name) ||
     (typeof metadata?.name === 'string' && metadata.name) ||
     user.email ||
     'Staff';
-  const email = user.email ?? 'unknown';
-  const branch = (typeof metadata?.branch === 'string' && metadata.branch) || 'HQ';
+  const email = profileEmail || user.email || 'unknown';
+  const branch = (profileBranch && profileBranch.trim()) || (typeof metadata?.branch === 'string' && metadata.branch) || 'HQ';
   const avatarUrl =
+    profileAvatar ||
     (typeof metadata?.avatar_url === 'string' && metadata.avatar_url) ||
     buildInitialsAvatar(name);
-  const lastLogin = user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).toLocaleString()
-    : '—';
+  const lastLoginSource = profile?.last_login_at ?? user.last_sign_in_at ?? null;
+  const lastLogin = lastLoginSource ? new Date(lastLoginSource).toLocaleString() : '—';
+  const status = profile?.status === 'SUSPENDED' ? 'Suspended' : 'Active';
 
   return {
     id: user.id,
@@ -86,7 +82,7 @@ const mapUserToStaffMember = (user: User, role: StaffRole | null): StaffMember =
     email,
     role: role ?? 'Teller',
     branch,
-    status: 'Active',
+    status,
     lastLogin,
     avatarUrl
   };
@@ -98,6 +94,12 @@ const LoadingScreen: React.FC = () => (
       <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
       <p className="text-sm font-medium">Loading session...</p>
     </div>
+  </div>
+);
+
+const SectionLoading: React.FC = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
   </div>
 );
 
@@ -117,10 +119,10 @@ const MissingConfig: React.FC = () => (
 );
 
 const App: React.FC = () => {
-  const { user, role, institutionId, loading, signOut, isConfigured } = useAuth();
+  const { user, profile, role, institutionId, loading, signOut, isConfigured } = useAuth();
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const demoUser = useMockData ? (MOCK_STAFF[0] ?? null) : null;
-  const baseUser = useMockData ? demoUser : (user ? mapUserToStaffMember(user, role) : null);
+  const baseUser = useMockData ? demoUser : (user ? mapUserToStaffMember(user, role, profile) : null);
   const [viewingAsUser, setViewingAsUser] = useState<StaffMember | null>(null);
 
   const originalUser = baseUser ?? demoUser;
@@ -142,8 +144,6 @@ const App: React.FC = () => {
 
   const dashboardStats = useMockData ? MOCK_STATS : EMPTY_STATS;
   const dashboardTransactions = useMockData ? MOCK_TRANSACTIONS : [];
-  const memberData = useMockData ? MOCK_MEMBERS : [];
-  const transactionData = useMockData ? MOCK_TRANSACTIONS : [];
   const showSupabaseDashboard = !useMockData && Boolean(institutionId);
 
   useEffect(() => {
@@ -175,7 +175,11 @@ const App: React.FC = () => {
       return <LoadingScreen />;
     }
     if (!user || !baseUser) {
-      return <Login />;
+      return (
+        <Suspense fallback={<LoadingScreen />}>
+          <Login />
+        </Suspense>
+      );
     }
   }
 
@@ -185,7 +189,8 @@ const App: React.FC = () => {
 
   // RBAC Permission Map
   const canAccess = (view: ViewState): boolean => {
-    const role = currentUser.role;
+    const effectiveRole = useMockData ? currentUser.role : role;
+    if (!effectiveRole) return false;
     
     switch (view) {
       case ViewState.DASHBOARD:
@@ -196,19 +201,19 @@ const App: React.FC = () => {
       case ViewState.STAFF:
       case ViewState.SETTINGS:
       case ViewState.NFC_LOGS: // Only Admins see raw NFC logs
-        return ['Super Admin'].includes(role);
+        return ['Super Admin'].includes(effectiveRole);
       case ViewState.RECONCILIATION:
-        return ['Super Admin', 'Branch Manager', 'Auditor'].includes(role);
+        return ['Super Admin', 'Branch Manager', 'Auditor'].includes(effectiveRole);
       case ViewState.MEMBERS:
       case ViewState.TRANSACTIONS:
         return true;
       case ViewState.ACCOUNTS:
       case ViewState.LOANS:
-        return ['Super Admin', 'Branch Manager', 'Loan Officer'].includes(role);
+        return ['Super Admin', 'Branch Manager', 'Loan Officer'].includes(effectiveRole);
       case ViewState.MOMO_OPERATIONS: // Staff see SMS parsing
-        return ['Super Admin', 'Branch Manager', 'Teller', 'Loan Officer'].includes(role);
+        return ['Super Admin', 'Branch Manager', 'Teller', 'Loan Officer'].includes(effectiveRole);
       case ViewState.TOKENS:
-        return ['Super Admin', 'Branch Manager'].includes(role);
+        return ['Super Admin', 'Branch Manager'].includes(effectiveRole);
       default:
         return false;
     }
@@ -440,66 +445,68 @@ const App: React.FC = () => {
 
         {/* View Area */}
         <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
-           {currentView === ViewState.DASHBOARD && (
-             showSupabaseDashboard ? (
-               <SupabaseDashboard />
-             ) : (
-               <Dashboard 
-                 stats={dashboardStats} 
-                 recentTransactions={dashboardTransactions} 
-                 onNavigate={setCurrentView}
+          <Suspense fallback={<SectionLoading />}>
+             {currentView === ViewState.DASHBOARD && (
+               showSupabaseDashboard ? (
+                 <SupabaseDashboard />
+               ) : (
+                 <Dashboard 
+                   stats={dashboardStats} 
+                   recentTransactions={dashboardTransactions} 
+                   onNavigate={setCurrentView}
+                 />
+               )
+             )}
+             {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
+               <Groups onNavigate={setCurrentView} institutionId={institutionId} />
+             )}
+             {currentView === ViewState.SACCOS && canAccess(ViewState.SACCOS) && <Saccos onNavigate={setCurrentView} />}
+             {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
+               <Members members={useMockData ? MOCK_MEMBERS : undefined} onNavigate={setCurrentView} />
+             )}
+             {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
+               <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
+             )}
+             
+             {/* Split Mobile Money Views */}
+             {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations mode="sms" />}
+             {currentView === ViewState.NFC_LOGS && canAccess(ViewState.NFC_LOGS) && <MoMoOperations mode="nfc" />}
+             
+             {currentView === ViewState.TOKENS && canAccess(ViewState.TOKENS) && <TokenWallet />}
+             {currentView === ViewState.RECONCILIATION && canAccess(ViewState.RECONCILIATION) && <Reconciliation />}
+             {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && <Loans onNavigate={setCurrentView} />}
+             {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
+               <Staff 
+                 currentUser={currentUser} 
+                 onImpersonate={(staff) => {
+                    setViewingAsUser(staff);
+                    setCurrentView(ViewState.DASHBOARD); 
+                 }} 
                />
-             )
-           )}
-           {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
-             <Groups onNavigate={setCurrentView} institutionId={institutionId} />
-           )}
-           {currentView === ViewState.SACCOS && canAccess(ViewState.SACCOS) && <Saccos onNavigate={setCurrentView} />}
-           {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
-             <Members members={memberData} onNavigate={setCurrentView} />
-           )}
-           {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
-             <Transactions transactions={transactionData} onNavigate={setCurrentView} />
-           )}
-           
-           {/* Split Mobile Money Views */}
-           {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations mode="sms" />}
-           {currentView === ViewState.NFC_LOGS && canAccess(ViewState.NFC_LOGS) && <MoMoOperations mode="nfc" />}
-           
-           {currentView === ViewState.TOKENS && canAccess(ViewState.TOKENS) && <TokenWallet />}
-           {currentView === ViewState.RECONCILIATION && canAccess(ViewState.RECONCILIATION) && <Reconciliation />}
-           {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && <Loans onNavigate={setCurrentView} />}
-           {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
-             <Staff 
-               currentUser={currentUser} 
-               onImpersonate={(staff) => {
-                  setViewingAsUser(staff);
-                  setCurrentView(ViewState.DASHBOARD); 
-               }} 
-             />
-           )}
-           {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && <SettingsPage />}
-           {currentView === ViewState.PROFILE && <Profile user={currentUser} />}
-           
-           {currentView === ViewState.ACCOUNTS && canAccess(currentView) && (
-             <div className="flex flex-col items-center justify-center h-full text-slate-400">
-               <div className="bg-slate-100 p-6 rounded-full mb-4">
-                 <PieChart size={48} />
+             )}
+             {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && <SettingsPage />}
+             {currentView === ViewState.PROFILE && <Profile user={currentUser} />}
+             
+             {currentView === ViewState.ACCOUNTS && canAccess(currentView) && (
+               <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                 <div className="bg-slate-100 p-6 rounded-full mb-4">
+                   <PieChart size={48} />
+                 </div>
+                 <h3 className="text-lg font-semibold text-slate-700">Coming Soon</h3>
+                 <p className="max-w-sm text-center mt-2">This module is part of the full SACCO+ suite but is not yet implemented in this preview.</p>
                </div>
-               <h3 className="text-lg font-semibold text-slate-700">Coming Soon</h3>
-               <p className="max-w-sm text-center mt-2">This module is part of the full SACCO+ suite but is not yet implemented in this preview.</p>
-             </div>
-           )}
-           
-           {!canAccess(currentView) && currentView !== ViewState.PROFILE && currentView !== ViewState.DASHBOARD && (
-             <div className="flex flex-col items-center justify-center h-full text-slate-400">
-               <div className="bg-red-50 p-6 rounded-full mb-4 text-red-500">
-                 <ShieldCheck size={48} />
+             )}
+             
+             {!canAccess(currentView) && currentView !== ViewState.PROFILE && currentView !== ViewState.DASHBOARD && (
+               <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                 <div className="bg-red-50 p-6 rounded-full mb-4 text-red-500">
+                   <ShieldCheck size={48} />
+                 </div>
+                 <h3 className="text-lg font-semibold text-slate-700">Access Denied</h3>
+                 <p className="max-w-sm text-center mt-2">Your role as <strong>{currentUser.role}</strong> does not have permission to view this section.</p>
                </div>
-               <h3 className="text-lg font-semibold text-slate-700">Access Denied</h3>
-               <p className="max-w-sm text-center mt-2">Your role as <strong>{currentUser.role}</strong> does not have permission to view this section.</p>
-             </div>
-           )}
+             )}
+          </Suspense>
         </div>
         
         {isMobileMenuOpen && (

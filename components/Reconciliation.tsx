@@ -1,19 +1,101 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle2, AlertTriangle, FileText, ArrowRight, Scale, Wallet, Smartphone, DollarSign, Filter, Check } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import type { SupabaseReconciliationIssue } from '../types';
 
 type RecTab = 'MoMo vs Ledger' | 'Branch Cash' | 'Token Reserve';
 
 const Reconciliation: React.FC = () => {
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId } = useAuth();
   const [activeTab, setActiveTab] = useState<RecTab>('MoMo vs Ledger');
-  const [unmatchedItems, setUnmatchedItems] = useState([1, 2, 3]);
+  const [issues, setIssues] = useState<SupabaseReconciliationIssue[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastClosedLabel, setLastClosedLabel] = useState<string>('—');
 
-  const resolveItem = (id: number) => {
-    setUnmatchedItems(prev => prev.filter(item => item !== id));
+  useEffect(() => {
+    if (useMockData) {
+      setIssues([]);
+      return;
+    }
+    if (!institutionId) {
+      setIssues([]);
+      return;
+    }
+
+    const loadIssues = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from('reconciliation_issues')
+        .select('*')
+        .eq('institution_id', institutionId)
+        .eq('status', 'OPEN')
+        .order('detected_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading reconciliation issues:', error);
+        setError('Unable to load reconciliation issues. Check your connection and permissions.');
+        setIssues([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: resolvedData } = await supabase
+        .from('reconciliation_issues')
+        .select('resolved_at')
+        .eq('institution_id', institutionId)
+        .eq('status', 'RESOLVED')
+        .order('resolved_at', { ascending: false })
+        .limit(1);
+
+      const resolvedAt = resolvedData?.[0]?.resolved_at;
+      if (resolvedAt) {
+        setLastClosedLabel(new Date(resolvedAt).toLocaleDateString());
+      }
+
+      setIssues((data as SupabaseReconciliationIssue[]) || []);
+      setLoading(false);
+    };
+
+    loadIssues();
+  }, [useMockData, institutionId]);
+
+  const resolveItem = async (id: string, status: 'RESOLVED' | 'IGNORED') => {
+    if (useMockData) {
+      setIssues((prev) => prev.filter((issue) => issue.id !== id));
+      return;
+    }
+
+    const { error } = await supabase
+      .from('reconciliation_issues')
+      .update({ status, resolved_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error resolving reconciliation issue:', error);
+      return;
+    }
+
+    setIssues((prev) => prev.filter((issue) => issue.id !== id));
   };
 
   return (
     <div className="space-y-6 h-full flex flex-col">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+      {loading && (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )}
       {/* KPI Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -29,7 +111,7 @@ const Reconciliation: React.FC = () => {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between border-l-4 border-l-amber-500">
            <div>
              <p className="text-slate-500 text-xs font-semibold uppercase">Pending Issues</p>
-             <p className="text-2xl font-bold text-amber-600">{unmatchedItems.length}</p>
+             <p className="text-2xl font-bold text-amber-600">{issues.length}</p>
              <p className="text-xs text-slate-400 mt-1">Require manual review</p>
            </div>
            <div className="p-3 bg-amber-50 text-amber-600 rounded-full">
@@ -39,8 +121,8 @@ const Reconciliation: React.FC = () => {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
            <div>
              <p className="text-slate-500 text-xs font-semibold uppercase">Last Closed</p>
-             <p className="text-2xl font-bold text-slate-900">Yesterday</p>
-             <p className="text-xs text-slate-400 mt-1">Branch: Kigali Main</p>
+             <p className="text-2xl font-bold text-slate-900">{lastClosedLabel}</p>
+             <p className="text-xs text-slate-400 mt-1">Branch closure snapshot</p>
            </div>
            <div className="p-3 bg-slate-50 text-slate-600 rounded-full">
              <Scale size={24} />
@@ -100,29 +182,31 @@ const Reconciliation: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {unmatchedItems.map(id => (
-                            <tr key={id} className="hover:bg-slate-50">
-                                <td className="px-6 py-4 text-sm text-slate-600">Today, 10:4{id} AM</td>
+                        {issues.map(issue => (
+                            <tr key={issue.id} className="hover:bg-slate-50">
+                                <td className="px-6 py-4 text-sm text-slate-600">
+                                  {new Date(issue.detected_at).toLocaleString()}
+                                </td>
                                 <td className="px-6 py-4">
-                                    <div className="text-sm font-bold text-slate-900">{35000 * id} RWF</div>
-                                    <div className="text-xs text-slate-500">Ref: 8399{id}20</div>
-                                    <div className="text-xs text-blue-600 mt-0.5">Sender: +250 788...</div>
+                                    <div className="text-sm font-bold text-slate-900">{issue.amount.toLocaleString()} RWF</div>
+                                    <div className="text-xs text-slate-500">Ref: {issue.source_reference || '—'}</div>
+                                    <div className="text-xs text-blue-600 mt-0.5">Source: {issue.source}</div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-                                        <AlertTriangle size={12} /> Missing Entry
+                                        <AlertTriangle size={12} /> {issue.ledger_status}
                                     </span>
-                                    <p className="text-xs text-slate-400 mt-1">No matching transaction found within 5 mins.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Review required for reconciliation.</p>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <button 
-                                        onClick={() => resolveItem(id)}
+                                        onClick={() => resolveItem(issue.id, 'RESOLVED')}
                                         className="text-blue-600 text-sm font-medium hover:underline mr-3"
                                     >
                                         Create Entry
                                     </button>
                                     <button 
-                                        onClick={() => resolveItem(id)}
+                                        onClick={() => resolveItem(issue.id, 'IGNORED')}
                                         className="text-slate-400 text-sm font-medium hover:text-slate-600"
                                     >
                                         Ignore
@@ -130,7 +214,7 @@ const Reconciliation: React.FC = () => {
                                 </td>
                             </tr>
                         ))}
-                        {unmatchedItems.length === 0 && (
+                        {issues.length === 0 && (
                             <tr>
                                 <td colSpan={4} className="p-10 text-center text-slate-400">
                                     <CheckCircle2 size={48} className="mx-auto mb-4 text-green-200" />

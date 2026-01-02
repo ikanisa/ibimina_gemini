@@ -38,6 +38,7 @@ const SupabaseDashboard: React.FC = () => {
   });
   const [recentActivity, setRecentActivity] = useState<ContributionWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const emptyStats: DashboardStats = {
     totalGroups: 0,
     activeMembers: 0,
@@ -53,12 +54,14 @@ const SupabaseDashboard: React.FC = () => {
     if (!institutionId) {
       setStats(emptyStats);
       setRecentActivity([]);
+      setError(null);
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
+      setError(null);
       // Calculate month start date once for efficiency
       const now = new Date();
       const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -70,6 +73,15 @@ const SupabaseDashboard: React.FC = () => {
         supabase.from('contributions').select('amount').eq('institution_id', institutionId).gte('date', monthStartDate),
         supabase.from('incoming_payments').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'UNRECONCILED')
       ]);
+
+      const queryErrors = [groups.error, members.error, contributions.error, payments.error].filter(Boolean);
+      if (queryErrors.length > 0) {
+        queryErrors.forEach((err) => console.error('Dashboard query error:', err));
+        setStats(emptyStats);
+        setRecentActivity([]);
+        setError('Unable to load dashboard data. Check your connection and permissions.');
+        return;
+      }
 
       // Safely process contribution data with proper type checking
       const contributionData = Array.isArray(contributions.data) ? contributions.data : [];
@@ -86,16 +98,23 @@ const SupabaseDashboard: React.FC = () => {
       });
 
       // Recent activity
-      const { data: recent } = await supabase
+      const { data: recent, error: recentError } = await supabase
         .from('contributions')
         .select('*, members(full_name), groups(group_name)')
         .eq('institution_id', institutionId)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      setRecentActivity((recent as ContributionWithRelations[]) || []);
+      if (recentError) {
+        console.error('Recent activity error:', recentError);
+        setError('Unable to load recent activity. Check your connection and permissions.');
+        setRecentActivity([]);
+      } else {
+        setRecentActivity((recent as ContributionWithRelations[]) || []);
+      }
     } catch (err) {
       console.error('Dashboard load error:', err);
+      setError('Unable to load dashboard data. Check your connection and permissions.');
     } finally {
       setLoading(false);
     }
@@ -111,6 +130,11 @@ const SupabaseDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">

@@ -1,21 +1,102 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Building, MapPin, Users, ArrowRight, MoreHorizontal, X, Settings, CreditCard, Briefcase, Search, Filter, Plus, ChevronLeft, ChevronRight, Download, Edit } from 'lucide-react';
 import { MOCK_SACCOS } from '../constants';
-import { Sacco, ViewState } from '../types';
+import { Sacco, SupabaseBranch, SupabaseMember, ViewState, Institution } from '../types';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { mapMemberStatus } from '../lib/mappers';
 
 interface SaccosProps {
   onNavigate?: (view: ViewState) => void;
 }
 
 const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId } = useAuth();
+  const [saccos, setSaccos] = useState<Sacco[]>(useMockData ? MOCK_SACCOS : []);
+  const [branchesByInstitution, setBranchesByInstitution] = useState<Record<string, SupabaseBranch[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSacco, setSelectedSacco] = useState<Sacco | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Mock pagination logic
+  useEffect(() => {
+    if (useMockData) {
+      setSaccos(MOCK_SACCOS);
+      return;
+    }
+
+    const loadSaccos = async () => {
+      setLoading(true);
+      setError(null);
+
+      const query = supabase
+        .from('institutions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data, error } = institutionId
+        ? await query.eq('id', institutionId)
+        : await query;
+
+      if (error) {
+        console.error('Error loading institutions:', error);
+        setError('Unable to load SACCOs. Check your connection and permissions.');
+        setSaccos([]);
+        setLoading(false);
+        return;
+      }
+
+      const institutions = (data as Institution[]) || [];
+      const institutionIds = institutions.map((inst) => inst.id);
+
+      if (institutionIds.length === 0) {
+        setBranchesByInstitution({});
+        setSaccos([]);
+        setLoading(false);
+        return;
+      }
+
+      const [{ data: branchesData }, { data: membersData }] = await Promise.all([
+        supabase.from('branches').select('*').in('institution_id', institutionIds),
+        supabase.from('members').select('id, institution_id').in('institution_id', institutionIds)
+      ]);
+
+      const branchMap: Record<string, SupabaseBranch[]> = {};
+      (branchesData as SupabaseBranch[] | null)?.forEach((branch) => {
+        if (!branchMap[branch.institution_id]) branchMap[branch.institution_id] = [];
+        branchMap[branch.institution_id].push(branch);
+      });
+
+      const memberCountMap = (membersData as SupabaseMember[] | null)?.reduce((acc, member) => {
+        acc[member.institution_id] = (acc[member.institution_id] ?? 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) ?? {};
+
+      const mapped = institutions.map((inst) => ({
+        id: inst.id,
+        name: inst.name,
+        code: inst.code ?? inst.id.slice(0, 6).toUpperCase(),
+        status: mapMemberStatus(inst.status),
+        branchesCount: branchMap[inst.id]?.length ?? 0,
+        membersCount: memberCountMap[inst.id] ?? 0,
+        totalAssets: inst.total_assets ?? 0,
+        supervisor: inst.supervisor ?? '—'
+      }));
+
+      setBranchesByInstitution(branchMap);
+      setSaccos(mapped);
+      setLoading(false);
+    };
+
+    loadSaccos();
+  }, [useMockData, institutionId]);
+
+  // Pagination logic
   const itemsPerPage = 10;
-  const filteredSaccos = MOCK_SACCOS.filter(s => 
+  const filteredSaccos = saccos.filter(s => 
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       s.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -25,6 +106,18 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
     <div className="relative h-full flex flex-col">
       <div className={`flex-1 flex flex-col transition-all duration-300 ${selectedSacco ? 'w-1/2 pr-4' : 'w-full'}`}>
         
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
            <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -113,6 +206,11 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
                     ))}
                  </tbody>
               </table>
+              {filteredSaccos.length === 0 && (
+                <div className="p-10 text-center text-slate-400 text-sm">
+                  {useMockData ? 'No SACCOs found.' : 'No SACCOs yet. Add an institution to get started.'}
+                </div>
+              )}
            </div>
            
            {/* Pagination Footer */}
@@ -176,23 +274,32 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
                     </button>
                  </div>
                  <div className="space-y-3">
-                    {[1, 2, 3, 4].slice(0, selectedSacco.branchesCount).map(i => (
-                       <div key={i} className="p-4 border border-slate-200 rounded-lg flex justify-between items-center hover:bg-slate-50 cursor-pointer group">
+                    {(branchesByInstitution[selectedSacco.id] ?? []).map((branch, idx) => (
+                       <div key={branch.id} className="p-4 border border-slate-200 rounded-lg flex justify-between items-center hover:bg-slate-50 cursor-pointer group">
                           <div className="flex items-center gap-3">
                              <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center text-slate-500 font-bold text-xs group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                B{i}
+                                B{String(idx + 1).padStart(2, '0')}
                              </div>
                              <div>
-                                <p className="font-medium text-sm text-slate-900">Branch 0{i} - Main St</p>
-                                <p className="text-xs text-slate-500">Manager: John Doe • +250 788...</p>
+                                <p className="font-medium text-sm text-slate-900">{branch.name}</p>
+                                <p className="text-xs text-slate-500">
+                                  Manager: {branch.manager_name || '—'} • {branch.manager_phone || '—'}
+                                </p>
                              </div>
                           </div>
                           <div className="flex items-center gap-3">
-                             <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Active</span>
+                             <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                               {branch.status}
+                             </span>
                              <ChevronRight size={14} className="text-slate-300" />
                           </div>
                        </div>
                     ))}
+                    {(branchesByInstitution[selectedSacco.id] ?? []).length === 0 && (
+                      <div className="p-6 text-center text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
+                        No branches found.
+                      </div>
+                    )}
                  </div>
               </div>
               

@@ -1,29 +1,134 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, MoreHorizontal, Smartphone, ShieldCheck, UserCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle } from 'lucide-react';
-import { Member, ViewState } from '../types';
+import { Member, ViewState, SupabaseGroup, SupabaseGroupMember, SupabaseMember } from '../types';
+import { MOCK_MEMBERS } from '../constants';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { mapKycStatus, mapMemberStatus } from '../lib/mappers';
+import { buildInitialsAvatar } from '../lib/avatars';
 
 interface MembersProps {
-  members: Member[];
+  members?: Member[];
   onNavigate?: (view: ViewState) => void;
 }
 
 type Tab = 'Profile' | 'Accounts' | 'Transactions' | 'Documents' | 'Tokens';
 
-const Members: React.FC<MembersProps> = ({ members, onNavigate }) => {
+const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) => {
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId } = useAuth();
+  const [members, setMembers] = useState<Member[]>(membersProp ?? (useMockData ? MOCK_MEMBERS : []));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('Profile');
+
+  useEffect(() => {
+    if (membersProp !== undefined) {
+      setMembers(membersProp);
+      return;
+    }
+    if (useMockData) {
+      setMembers(MOCK_MEMBERS);
+      return;
+    }
+    if (!institutionId) {
+      setMembers([]);
+      return;
+    }
+
+    const loadMembers = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('institution_id', institutionId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading members:', error);
+        setError('Unable to load members. Check your connection and permissions.');
+        setMembers([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: groupData, error: groupError } = await supabase
+        .from('group_members')
+        .select('member_id, groups(group_name)')
+        .eq('institution_id', institutionId);
+
+      if (groupError) {
+        console.error('Error loading member groups:', groupError);
+      }
+
+      type GroupMembershipRow = {
+        member_id: string;
+        groups?: { group_name?: string | null }[] | { group_name?: string | null } | null;
+      };
+
+      const groupsByMember = new Map<string, string[]>();
+      (groupData as GroupMembershipRow[] | null)?.forEach((row) => {
+        const groupName = Array.isArray(row.groups)
+          ? row.groups[0]?.group_name
+          : row.groups?.group_name;
+        if (!groupName) return;
+        const current = groupsByMember.get(row.member_id) ?? [];
+        current.push(groupName);
+        groupsByMember.set(row.member_id, current);
+      });
+
+      const mappedMembers = (data as SupabaseMember[]).map((member) => {
+        const groupList = groupsByMember.get(member.id) ?? [];
+        return {
+          id: member.id,
+          name: member.full_name,
+          phone: member.phone,
+          branch: member.branch || 'HQ',
+          status: mapMemberStatus(member.status),
+          kycStatus: mapKycStatus(member.kyc_status ?? null),
+          savingsBalance: member.savings_balance ?? 0,
+          loanBalance: member.loan_balance ?? 0,
+          tokenBalance: member.token_balance ?? 0,
+          joinDate: member.join_date ?? member.created_at.split('T')[0],
+          avatarUrl: member.avatar_url || buildInitialsAvatar(member.full_name),
+          groups: groupList
+        };
+      });
+
+      setMembers(mappedMembers);
+      setLoading(false);
+    };
+
+    loadMembers();
+  }, [membersProp, useMockData, institutionId]);
 
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     m.phone.includes(searchTerm)
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-[calc(100vh-100px)] flex gap-6">
       {/* List Section */}
       <div className={`flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 ${selectedMember ? 'w-1/2 hidden lg:flex' : 'w-full'}`}>
+        {error && (
+          <div className="bg-red-50 border-b border-red-200 text-red-700 px-4 py-3 text-sm">
+            {error}
+          </div>
+        )}
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-100 flex justify-between items-center">
           <div className="relative w-64">
@@ -98,6 +203,11 @@ const Members: React.FC<MembersProps> = ({ members, onNavigate }) => {
               </div>
             </div>
           ))}
+          {filteredMembers.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-sm">
+              {useMockData ? 'No members found.' : 'No members yet. Add members to get started.'}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,13 @@
 export default {
-  content: ['./index.html', './**/*.{ts,tsx}'],
+  content: [
+    './index.html',
+    './App.tsx',
+    './index.tsx',
+    './components/**/*.{ts,tsx}',
+    './contexts/**/*.{ts,tsx}',
+    './lib/**/*.{ts,tsx}',
+    './public/**/*.html'
+  ],
   theme: {
     extend: {
       fontFamily: {

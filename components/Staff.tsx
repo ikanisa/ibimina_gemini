@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Users, 
   Shield, 
@@ -23,7 +23,11 @@ import {
   Eye
 } from 'lucide-react';
 import { MOCK_STAFF } from '../constants';
-import { StaffMember, StaffRole } from '../types';
+import { StaffMember, StaffRole, SupabaseProfile } from '../types';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { buildInitialsAvatar } from '../lib/avatars';
+import { mapStaffRole, mapStaffStatus } from '../lib/mappers';
 
 type Tab = 'Staff List' | 'Roles & Permissions';
 type ImportStep = 'upload' | 'processing' | 'review' | 'success';
@@ -44,6 +48,11 @@ interface StaffProps {
 
 const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const [activeTab, setActiveTab] = useState<Tab>('Staff List');
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId } = useAuth();
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(useMockData ? MOCK_STAFF : []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<StaffRole>('Branch Manager');
   
@@ -69,7 +78,54 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const [parsedCandidates, setParsedCandidates] = useState<ParsedCandidate[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredStaff = MOCK_STAFF.filter(staff => 
+  useEffect(() => {
+    if (useMockData) {
+      setStaffMembers(MOCK_STAFF);
+      return;
+    }
+
+    const loadStaff = async () => {
+      setLoading(true);
+      setError(null);
+
+      const query = supabase
+        .from('profiles')
+        .select('user_id, email, role, full_name, branch, avatar_url, status, last_login_at, institution_id');
+
+      const { data, error } = institutionId
+        ? await query.eq('institution_id', institutionId)
+        : await query;
+
+      if (error) {
+        console.error('Error loading staff:', error);
+        setError('Unable to load staff. Check your connection and permissions.');
+        setStaffMembers([]);
+        setLoading(false);
+        return;
+      }
+
+      const mapped = (data as SupabaseProfile[]).map((staff) => {
+        const name = staff.full_name || staff.email || 'Staff';
+        return {
+          id: staff.user_id,
+          name,
+          email: staff.email || 'unknown',
+          role: mapStaffRole(staff.role),
+          branch: staff.branch || 'HQ',
+          status: mapStaffStatus(staff.status),
+          lastLogin: staff.last_login_at ? new Date(staff.last_login_at).toLocaleString() : '—',
+          avatarUrl: staff.avatar_url || buildInitialsAvatar(name)
+        };
+      });
+
+      setStaffMembers(mapped);
+      setLoading(false);
+    };
+
+    loadStaff();
+  }, [useMockData, institutionId]);
+
+  const filteredStaff = staffMembers.filter(staff => 
     staff.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     staff.role.toLowerCase().includes(searchTerm.toLowerCase())
@@ -109,27 +165,80 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleCreateStaff = (e: React.FormEvent) => {
+  const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    // Simulate API request
-    setTimeout(() => {
-        setIsSubmitting(false);
-        setIsAddModalOpen(false);
-        // Reset form
-        setNewStaffData({
-            name: '',
-            email: '',
-            role: 'Teller',
-            branch: '',
-            status: 'Active',
-            onboardingMethod: 'invite',
-            password: ''
-        });
-        alert(`Staff member ${newStaffData.name} created successfully!`);
-    }, 1500);
+
+    if (useMockData) {
+      // Simulate API request
+      setTimeout(() => {
+          setIsSubmitting(false);
+          setIsAddModalOpen(false);
+          // Reset form
+          setNewStaffData({
+              name: '',
+              email: '',
+              role: 'Teller',
+              branch: '',
+              status: 'Active',
+              onboardingMethod: 'invite',
+              password: ''
+          });
+          alert(`Staff member ${newStaffData.name} created successfully!`);
+      }, 1500);
+      return;
+    }
+
+    const { data, error } = await supabase.functions.invoke('staff-invite', {
+      body: {
+        email: newStaffData.email,
+        full_name: newStaffData.name,
+        role: newStaffData.role,
+        branch: newStaffData.branch,
+        institution_id: institutionId,
+        onboarding_method: newStaffData.onboardingMethod,
+        password: newStaffData.onboardingMethod === 'password' ? newStaffData.password : undefined
+      }
+    });
+
+    if (error) {
+      console.error('Error creating staff:', error);
+      setFormErrors({ submit: 'Unable to create staff. Ensure the staff-invite function is deployed.' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (data?.profile) {
+      const newProfile = data.profile as SupabaseProfile;
+      const name = newProfile.full_name || newProfile.email || 'Staff';
+      setStaffMembers((prev) => [
+        {
+          id: newProfile.user_id,
+          name,
+          email: newProfile.email || newStaffData.email,
+          role: mapStaffRole(newProfile.role),
+          branch: newProfile.branch || newStaffData.branch,
+          status: mapStaffStatus(newProfile.status),
+          lastLogin: newProfile.last_login_at ? new Date(newProfile.last_login_at).toLocaleString() : '—',
+          avatarUrl: newProfile.avatar_url || buildInitialsAvatar(name)
+        },
+        ...prev
+      ]);
+    }
+
+    setIsSubmitting(false);
+    setIsAddModalOpen(false);
+    setNewStaffData({
+        name: '',
+        email: '',
+        role: 'Teller',
+        branch: '',
+        status: 'Active',
+        onboardingMethod: 'invite',
+        password: ''
+    });
   };
 
   // Handlers for Import Flow
@@ -227,6 +336,16 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
 
       {activeTab === 'Staff List' ? (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          {error && (
+            <div className="bg-red-50 border-b border-red-200 text-red-700 px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
+          {loading && (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          )}
           {/* Toolbar */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <div className="relative w-72">
@@ -284,7 +403,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{staff.lastLogin}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right flex items-center justify-end gap-2">
-                    {currentUser.role === 'Super Admin' && staff.id !== currentUser.id && (
+                    {useMockData && currentUser.role === 'Super Admin' && staff.id !== currentUser.id && (
                       <button 
                         onClick={() => onImpersonate(staff)}
                         className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded flex items-center gap-1"
@@ -301,6 +420,11 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
               ))}
             </tbody>
           </table>
+          {filteredStaff.length === 0 && (
+            <div className="p-10 text-center text-slate-400 text-sm">
+              {useMockData ? 'No staff found.' : 'No staff data yet. Connect this module to Supabase.'}
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -547,6 +671,11 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                 </div>
 
               </div>
+              {formErrors.submit && (
+                <div className="px-6 pb-2 text-sm text-red-600">
+                  {formErrors.submit}
+                </div>
+              )}
               
               {/* Footer */}
               <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">

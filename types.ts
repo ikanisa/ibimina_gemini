@@ -18,11 +18,26 @@ export interface AuthUser {
   };
 }
 
+export interface SupabaseProfile {
+  user_id: string;
+  institution_id: string | null;
+  role: UserRole;
+  email?: string | null;
+  full_name?: string | null;
+  branch?: string | null;
+  avatar_url?: string | null;
+  status?: 'ACTIVE' | 'SUSPENDED';
+  last_login_at?: string | null;
+}
+
 export interface Institution {
   id: string;
   name: string;
   type: InstitutionType;
   status: string;
+  code?: string | null;
+  supervisor?: string | null;
+  total_assets?: number | null;
   created_at: string;
 }
 
@@ -37,6 +52,11 @@ export interface SupabaseGroup {
   bank_name?: string;
   account_ref?: string;
   currency: string;
+  meeting_day?: string | null;
+  cycle_label?: string | null;
+  fund_balance?: number | null;
+  active_loans_count?: number | null;
+  next_meeting_date?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +67,13 @@ export interface SupabaseMember {
   full_name: string;
   phone: string;
   status: string;
+  branch?: string | null;
+  kyc_status?: KycStatus;
+  savings_balance?: number | null;
+  loan_balance?: number | null;
+  token_balance?: number | null;
+  avatar_url?: string | null;
+  join_date?: string | null;
   created_at: string;
 }
 
@@ -55,12 +82,38 @@ export interface SupabaseContribution {
   institution_id: string;
   group_id: string;
   member_id: string;
+  meeting_id?: string | null;
   date: string;
   amount: number;
   method: string;
+  channel?: string | null;
   reference: string;
   status: ContributionStatus;
   created_by: string;
+  created_at: string;
+}
+
+export interface SupabaseGroupMember {
+  id: string;
+  institution_id: string;
+  group_id: string;
+  member_id: string;
+  role: 'CHAIRPERSON' | 'SECRETARY' | 'TREASURER' | 'MEMBER';
+  status: 'GOOD_STANDING' | 'IN_ARREARS' | 'DEFAULTED';
+  joined_date?: string | null;
+  created_at: string;
+}
+
+export interface SupabaseMeeting {
+  id: string;
+  institution_id: string;
+  group_id: string;
+  date: string;
+  type: string;
+  attendance_count: number;
+  total_collected: number;
+  notes?: string | null;
+  status: 'SCHEDULED' | 'COMPLETED';
   created_at: string;
 }
 
@@ -88,6 +141,101 @@ export interface Withdrawal {
   notes?: string;
   created_by: string;
   created_at: string;
+}
+
+export interface SupabaseTransaction {
+  id: string;
+  institution_id: string;
+  member_id?: string | null;
+  group_id?: string | null;
+  type: string;
+  amount: number;
+  currency: string;
+  channel: string;
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED';
+  reference?: string | null;
+  created_at: string;
+}
+
+export interface SupabaseLoan {
+  id: string;
+  institution_id: string;
+  member_id?: string | null;
+  group_id?: string | null;
+  amount: number;
+  outstanding_balance: number;
+  status: 'PENDING_APPROVAL' | 'ACTIVE' | 'OVERDUE' | 'CLOSED' | 'REJECTED';
+  start_date: string;
+  next_payment_date?: string | null;
+  interest_rate: number;
+  term_months: number;
+  created_at: string;
+}
+
+export interface SupabaseBranch {
+  id: string;
+  institution_id: string;
+  name: string;
+  manager_name?: string | null;
+  manager_phone?: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface SupabaseSmsMessage {
+  id: string;
+  institution_id: string;
+  sender: string;
+  timestamp: string;
+  body: string;
+  is_parsed: boolean;
+  parsed_amount?: number | null;
+  parsed_currency?: string | null;
+  parsed_transaction_id?: string | null;
+  parsed_counterparty?: string | null;
+  linked_transaction_id?: string | null;
+  created_at: string;
+}
+
+export interface SupabaseNfcLog {
+  id: string;
+  institution_id: string;
+  timestamp: string;
+  device_id: string;
+  tag_id: string;
+  action: string;
+  status: string;
+  member_id?: string | null;
+  amount?: number | null;
+  linked_sms: boolean;
+  created_at: string;
+}
+
+export interface SupabaseReconciliationIssue {
+  id: string;
+  institution_id: string;
+  source: string;
+  amount: number;
+  source_reference?: string | null;
+  ledger_status: string;
+  status: 'OPEN' | 'RESOLVED' | 'IGNORED';
+  detected_at: string;
+  resolved_at?: string | null;
+  notes?: string | null;
+  linked_transaction_id?: string | null;
+}
+
+export interface SupabaseSettings {
+  institution_id: string;
+  system_name: string;
+  support_email?: string | null;
+  base_currency: string;
+  momo_shortcode?: string | null;
+  momo_merchant_id?: string | null;
+  auto_reconcile: boolean;
+  notifications_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // ============================================================================

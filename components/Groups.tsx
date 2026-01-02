@@ -25,28 +25,44 @@ import {
   Save,
   Trash2
 } from 'lucide-react';
-import { MOCK_GROUPS, MOCK_GROUP_MEMBERS, MOCK_MEETINGS, MOCK_CONTRIBUTIONS, MOCK_TRANSACTIONS, MOCK_SMS, MOCK_NFC_LOGS } from '../constants';
-import { Group, ViewState, SupabaseGroup } from '../types';
+import { MOCK_GROUPS, MOCK_GROUP_MEMBERS, MOCK_MEETINGS, MOCK_CONTRIBUTIONS, MOCK_TRANSACTIONS, MOCK_SMS } from '../constants';
+import { 
+  Contribution,
+  Group,
+  GroupMember,
+  Meeting,
+  SmsMessage,
+  SupabaseContribution,
+  SupabaseGroup,
+  SupabaseGroupMember,
+  SupabaseMeeting,
+  SupabaseMember,
+  SupabaseSmsMessage,
+  SupabaseTransaction,
+  Transaction,
+  ViewState
+} from '../types';
 import { supabase } from '../lib/supabase';
+import { mapGroupMemberRole, mapGroupMemberStatus, mapTransactionStatus, mapTransactionType } from '../lib/mappers';
 
 type DetailTab = 'Overview' | 'Members' | 'Contributions' | 'Loans' | 'Meetings' | 'MoMo' | 'Settings';
 
 // Helper function to map Supabase group data to local Group type
-const mapSupabaseGroupToGroup = (item: SupabaseGroup): Group => ({
+const mapSupabaseGroupToGroup = (item: SupabaseGroup, memberCount = 0): Group => ({
   id: item.id,
   name: item.group_name,
   code: item.id.substring(0, 8).toUpperCase(),
   saccoId: item.institution_id,
   branch: 'Main',
   status: item.status === 'ACTIVE' ? 'Active' : item.status === 'PAUSED' ? 'Suspended' : 'Completed',
-  cycleLabel: 'Current Cycle',
-  memberCount: 0,
-  meetingDay: 'Monday',
+  cycleLabel: item.cycle_label ?? 'Current Cycle',
+  memberCount,
+  meetingDay: item.meeting_day ?? 'Monday',
   contributionAmount: item.expected_amount,
   contributionFrequency: item.frequency === 'Weekly' ? 'Weekly' : 'Monthly',
-  fundBalance: 0,
-  activeLoansCount: 0,
-  nextMeeting: 'TBD'
+  fundBalance: item.fund_balance ?? 0,
+  activeLoansCount: item.active_loans_count ?? 0,
+  nextMeeting: item.next_meeting_date ?? 'TBD'
 });
 
 interface GroupsProps {
@@ -55,19 +71,36 @@ interface GroupsProps {
 }
 
 const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>('Overview');
   const [viewMode, setViewMode] = useState<'Grid' | 'List'>('List');
-  const [groups, setGroups] = useState<Group[]>(MOCK_GROUPS);
+  const [groups, setGroups] = useState<Group[]>(useMockData ? MOCK_GROUPS : []);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>(useMockData ? MOCK_GROUP_MEMBERS : []);
+  const [groupMeetings, setGroupMeetings] = useState<Meeting[]>(useMockData ? MOCK_MEETINGS : []);
+  const [groupContributions, setGroupContributions] = useState<Contribution[]>(useMockData ? MOCK_CONTRIBUTIONS : []);
+  const [groupTransactions, setGroupTransactions] = useState<Transaction[]>(useMockData ? MOCK_TRANSACTIONS : []);
+  const [groupSms, setGroupSms] = useState<SmsMessage[]>(useMockData ? MOCK_SMS : []);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Load groups from Supabase when institutionId is provided
   useEffect(() => {
     const loadGroups = async () => {
-      if (!institutionId) {
-        // Use mock data when no institutionId
+      setError(null);
+
+      if (useMockData) {
         setGroups(MOCK_GROUPS);
+        setLoading(false);
+        return;
+      }
+
+      if (!institutionId) {
+        setGroups([]);
+        setLoading(false);
         return;
       }
 
@@ -81,30 +114,59 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
 
         if (error) {
           console.error('Error loading groups:', error);
-          setGroups(MOCK_GROUPS); // Fallback to mock data
+          setError('Unable to load groups. Check your connection and permissions.');
+          setGroups([]);
         } else if (data && Array.isArray(data) && data.length > 0) {
+          const { data: memberData, error: memberError } = await supabase
+            .from('group_members')
+            .select('group_id')
+            .eq('institution_id', institutionId);
+
+          if (memberError) {
+            console.error('Error loading group members:', memberError);
+          }
+
+          const memberCounts = (memberData as { group_id: string }[] | null)?.reduce((acc, row) => {
+            acc[row.group_id] = (acc[row.group_id] ?? 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) ?? {};
+
           // Map Supabase data to Group type using the helper function
-          const mappedGroups: Group[] = (data as SupabaseGroup[]).map(mapSupabaseGroupToGroup);
+          const mappedGroups: Group[] = (data as SupabaseGroup[]).map((group) => (
+            mapSupabaseGroupToGroup(group, memberCounts[group.id] ?? 0)
+          ));
           setGroups(mappedGroups);
         } else {
-          setGroups(MOCK_GROUPS); // Fallback to mock data if no data returned
+          setGroups([]);
         }
       } catch (err) {
         console.error('Error loading groups:', err);
-        setGroups(MOCK_GROUPS); // Fallback to mock data
+        setError('Unable to load groups. Check your connection and permissions.');
+        setGroups([]);
       } finally {
         setLoading(false);
       }
     };
 
     loadGroups();
-  }, [institutionId]);
+  }, [institutionId, useMockData]);
 
   // Filter groups based on search term
   const filteredGroups = groups.filter(g => 
     g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     g.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalGroupFunds = groups.reduce((sum, group) => sum + group.fundBalance, 0);
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const meetingTodayGroups = groups.filter((group) =>
+    group.meetingDay.toLowerCase().startsWith(todayName.toLowerCase())
+  );
+  const expectedCollection = meetingTodayGroups.reduce(
+    (sum, group) => sum + group.contributionAmount * group.memberCount,
+    0
+  );
+  const totalActiveLoans = groups.reduce((sum, group) => sum + group.activeLoansCount, 0);
   
   // Contribution View State
   const [contributionViewMode, setContributionViewMode] = useState<'Matrix' | 'Period'>('Matrix');
@@ -132,6 +194,215 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
 
   const currentPeriodLabel = selectedGroup ? getPeriodLabel(currentPeriodIndex, selectedGroup.contributionFrequency) : '';
 
+  useEffect(() => {
+    if (useMockData) {
+      setGroupMembers(MOCK_GROUP_MEMBERS);
+      setGroupMeetings(MOCK_MEETINGS);
+      setGroupContributions(MOCK_CONTRIBUTIONS);
+      setGroupTransactions(MOCK_TRANSACTIONS);
+      setGroupSms(MOCK_SMS);
+      return;
+    }
+
+    if (!selectedGroup || !institutionId) {
+      setGroupMembers([]);
+      setGroupMeetings([]);
+      setGroupContributions([]);
+      setGroupTransactions([]);
+      setGroupSms([]);
+      return;
+    }
+
+    const getWeekNumber = (date: Date) => {
+      const start = new Date(Date.UTC(date.getFullYear(), 0, 1));
+      const diff = date.getTime() - start.getTime();
+      return Math.ceil((diff / 86400000 + start.getUTCDay() + 1) / 7);
+    };
+
+    const buildPeriodLabel = (dateValue: string, frequency: 'Weekly' | 'Monthly') => {
+      const date = new Date(dateValue);
+      if (frequency === 'Monthly') {
+        return date.toLocaleString('en-US', { month: 'short' });
+      }
+      return `Wk ${getWeekNumber(date)}`;
+    };
+
+    const loadGroupDetails = async () => {
+      setDetailLoading(true);
+      setDetailError(null);
+
+      const [
+        membersResponse,
+        meetingsResponse,
+        contributionsResponse,
+        transactionsResponse,
+        smsResponse
+      ] = await Promise.all([
+        supabase
+          .from('group_members')
+          .select('id, member_id, role, status, joined_date, members(full_name)')
+          .eq('group_id', selectedGroup.id),
+        supabase
+          .from('meetings')
+          .select('*')
+          .eq('group_id', selectedGroup.id)
+          .order('date', { ascending: false }),
+        supabase
+          .from('contributions')
+          .select('*')
+          .eq('group_id', selectedGroup.id)
+          .order('date', { ascending: false }),
+        supabase
+          .from('transactions')
+          .select('*, members(full_name)')
+          .eq('group_id', selectedGroup.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('sms_messages')
+          .select('*')
+          .eq('institution_id', institutionId)
+          .order('timestamp', { ascending: false })
+      ]);
+
+      const responses = [membersResponse, meetingsResponse, contributionsResponse, transactionsResponse, smsResponse];
+      const firstError = responses.find((res) => res.error)?.error;
+      if (firstError) {
+        console.error('Error loading group details:', firstError);
+        setDetailError('Unable to load group details. Check your connection and permissions.');
+      }
+
+      const contributions = (contributionsResponse.data as SupabaseContribution[] | null) ?? [];
+      const expectedAmount = selectedGroup.contributionAmount || 0;
+
+      const mappedContributions: Contribution[] = contributions.map((contribution) => {
+        const paidAmount = Number(contribution.amount);
+        const status =
+          paidAmount >= expectedAmount
+            ? 'Paid'
+            : paidAmount > 0
+              ? 'Partial'
+              : 'Missed';
+        const channelValue = (contribution.channel ?? contribution.method ?? 'Cash').toLowerCase();
+        const channel =
+          channelValue.includes('momo')
+            ? 'MoMo'
+            : channelValue.includes('token')
+              ? 'Token'
+              : 'Cash';
+
+        return {
+          id: contribution.id,
+          memberId: contribution.member_id,
+          groupId: contribution.group_id,
+          meetingId: contribution.meeting_id ?? '',
+          periodLabel: buildPeriodLabel(contribution.date, selectedGroup.contributionFrequency),
+          expectedAmount,
+          paidAmount,
+          status,
+          channel
+        };
+      });
+
+      const contributionStats = mappedContributions.reduce((acc, contribution) => {
+        const entry = acc[contribution.memberId] ?? { paid: 0, missed: 0 };
+        if (contribution.status === 'Paid') {
+          entry.paid += 1;
+        } else if (contribution.status === 'Missed') {
+          entry.missed += 1;
+        }
+        acc[contribution.memberId] = entry;
+        return acc;
+      }, {} as Record<string, { paid: number; missed: number }>);
+
+      type GroupMemberRow = {
+        member_id: string;
+        role: SupabaseGroupMember['role'];
+        status: SupabaseGroupMember['status'];
+        joined_date?: string | null;
+        members?: { full_name?: string | null }[] | { full_name?: string | null } | null;
+      };
+
+      const mappedMembers: GroupMember[] = (
+        (membersResponse.data as GroupMemberRow[] | null) ?? []
+      ).map((member) => {
+        const stats = contributionStats[member.member_id] ?? { paid: 0, missed: 0 };
+        const memberName = Array.isArray(member.members)
+          ? member.members[0]?.full_name
+          : member.members?.full_name;
+        return {
+          memberId: member.member_id,
+          name: memberName ?? 'Member',
+          role: mapGroupMemberRole(member.role),
+          status: mapGroupMemberStatus(member.status),
+          joinedDate: member.joined_date ?? '—',
+          contributionsPaid: stats.paid,
+          contributionsMissed: stats.missed
+        };
+      });
+
+      const mappedMeetings: Meeting[] = (
+        (meetingsResponse.data as SupabaseMeeting[] | null) ?? []
+      ).map((meeting) => ({
+        id: meeting.id,
+        groupId: meeting.group_id,
+        date: meeting.date,
+        type: meeting.type as Meeting['type'],
+        attendanceCount: meeting.attendance_count,
+        totalCollected: Number(meeting.total_collected),
+        notes: meeting.notes ?? '',
+        status: meeting.status === 'COMPLETED' ? 'Completed' : 'Scheduled'
+      }));
+
+      const mappedTransactions: Transaction[] = (
+        (transactionsResponse.data as (SupabaseTransaction & { members?: SupabaseMember | null })[] | null) ?? []
+      ).map((tx) => {
+        const date = new Date(tx.created_at);
+        const dateLabel = `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
+        return {
+          id: tx.id,
+          date: dateLabel,
+          memberId: tx.member_id ?? '—',
+          memberName: tx.members?.full_name ?? 'Unknown',
+          type: mapTransactionType(tx.type),
+          amount: Number(tx.amount),
+          currency: tx.currency,
+          channel: tx.channel as Transaction['channel'],
+          status: mapTransactionStatus(tx.status),
+          reference: tx.reference ?? '—',
+          groupId: tx.group_id ?? undefined
+        };
+      });
+
+      const mappedSms: SmsMessage[] = (
+        (smsResponse.data as SupabaseSmsMessage[] | null) ?? []
+      ).map((sms) => ({
+        id: sms.id,
+        sender: sms.sender,
+        timestamp: new Date(sms.timestamp).toLocaleString(),
+        body: sms.body,
+        isParsed: sms.is_parsed,
+        parsedData: sms.is_parsed
+          ? {
+              amount: Number(sms.parsed_amount ?? 0),
+              currency: sms.parsed_currency ?? 'RWF',
+              transactionId: sms.parsed_transaction_id ?? '',
+              counterparty: sms.parsed_counterparty ?? ''
+            }
+          : undefined,
+        linkedTransactionId: sms.linked_transaction_id ?? undefined
+      }));
+
+      setGroupMembers(mappedMembers);
+      setGroupMeetings(mappedMeetings);
+      setGroupContributions(mappedContributions);
+      setGroupTransactions(mappedTransactions);
+      setGroupSms(mappedSms);
+      setDetailLoading(false);
+    };
+
+    loadGroupDetails();
+  }, [useMockData, institutionId, selectedGroup?.id]);
+
   // Group List View
   if (!selectedGroup) {
     return (
@@ -142,33 +413,33 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-blue-100 text-xs font-semibold uppercase">Total Group Funds</p>
-                <h3 className="text-2xl font-bold mt-1">85.4M RWF</h3>
+                <h3 className="text-2xl font-bold mt-1">{totalGroupFunds.toLocaleString()} RWF</h3>
               </div>
               <div className="p-2 bg-white/20 rounded-lg">
                 <Briefcase size={20} />
               </div>
             </div>
-            <p className="text-sm text-blue-100 mt-2">Across 45 active groups</p>
+            <p className="text-sm text-blue-100 mt-2">Across {groups.length} active groups</p>
           </div>
           
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-start">
                <div>
                  <p className="text-slate-500 text-xs font-semibold uppercase">Meeting Today</p>
-                 <h3 className="text-2xl font-bold text-slate-900 mt-1">8 Groups</h3>
+                 <h3 className="text-2xl font-bold text-slate-900 mt-1">{meetingTodayGroups.length} Groups</h3>
                </div>
                <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
                  <Calendar size={20} />
                </div>
             </div>
-            <p className="text-sm text-slate-500 mt-2">Expected collection: 1.2M RWF</p>
+            <p className="text-sm text-slate-500 mt-2">Expected collection: {expectedCollection.toLocaleString()} RWF</p>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-start">
                <div>
                  <p className="text-slate-500 text-xs font-semibold uppercase">Active Loans</p>
-                 <h3 className="text-2xl font-bold text-slate-900 mt-1">124</h3>
+                 <h3 className="text-2xl font-bold text-slate-900 mt-1">{totalActiveLoans}</h3>
                </div>
                <div className="p-2 bg-green-50 text-green-600 rounded-lg">
                  <DollarSign size={20} />
@@ -208,6 +479,12 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
         {loading && (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {error}
           </div>
         )}
 
@@ -259,7 +536,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                          <div key={i} className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white"></div>
                        ))}
                        <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-medium text-slate-600">
-                         +{group.memberCount - 3}
+                         +{Math.max(group.memberCount - 3, 0)}
                        </div>
                     </div>
                   </td>
@@ -355,6 +632,16 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto bg-slate-50 p-6">
+        {detailError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+            {detailError}
+          </div>
+        )}
+        {detailLoading && (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
         
         {activeTab === 'Overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
@@ -400,7 +687,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                   </button>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {MOCK_MEETINGS.filter(m => m.groupId === selectedGroup.id).slice(0, 3).map(meeting => (
+                  {groupMeetings.filter(m => m.groupId === selectedGroup.id).slice(0, 3).map(meeting => (
                     <div key={meeting.id} className="px-6 py-4 flex justify-between items-center hover:bg-slate-50">
                       <div className="flex items-center gap-4">
                         <div className="w-12 text-center bg-slate-100 rounded-lg py-1">
@@ -544,7 +831,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {MOCK_GROUP_MEMBERS.map((member) => (
+                      {groupMembers.map((member) => (
                         <tr key={member.memberId} className="hover:bg-slate-50">
                            <td className="p-3 text-sm font-medium text-slate-900 border-r border-slate-100 bg-white sticky left-0">
                              {member.name}
@@ -554,7 +841,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                              const label = getPeriodLabel(week, selectedGroup.contributionFrequency);
                              // Simulated status logic for demonstration
                              // Using simple string matching since mock data uses "Wk 42" format
-                             const contribution = MOCK_CONTRIBUTIONS.find(c => 
+                             const contribution = groupContributions.find(c => 
                                 c.memberId === member.memberId && 
                                 c.periodLabel === label && 
                                 c.groupId === selectedGroup.id
@@ -599,9 +886,9 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                  
                  {/* Table Body */}
                  <div className="divide-y divide-slate-100">
-                   {MOCK_GROUP_MEMBERS.map((member) => {
+                   {groupMembers.map((member) => {
                       // Find mock contribution for selected period
-                      const contribution = MOCK_CONTRIBUTIONS.find(c => 
+                      const contribution = groupContributions.find(c => 
                          c.memberId === member.memberId && 
                          c.periodLabel === currentPeriodLabel && 
                          c.groupId === selectedGroup.id
@@ -700,7 +987,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                 {MOCK_GROUP_MEMBERS.map((member) => (
+                 {groupMembers.map((member) => (
                    <tr key={member.memberId} className="hover:bg-slate-50">
                      <td className="px-6 py-4">
                        <p className="text-sm font-bold text-slate-900">{member.name}</p>
@@ -801,7 +1088,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
             </div>
 
             <div className="grid gap-4">
-              {MOCK_MEETINGS.filter(m => m.groupId === selectedGroup.id).map(meeting => (
+              {groupMeetings.filter(m => m.groupId === selectedGroup.id).map(meeting => (
                 <div key={meeting.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                    <div className="flex justify-between items-start">
                       <div className="flex gap-4">
@@ -853,7 +1140,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                       <h4 className="font-bold text-slate-700 text-sm">Unlinked SMS (Suggestions)</h4>
                    </div>
                    <div className="divide-y divide-slate-100">
-                      {MOCK_SMS.filter(sms => !sms.linkedTransactionId).map(sms => (
+                      {groupSms.filter(sms => !sms.linkedTransactionId).map(sms => (
                          <div key={sms.id} className="p-4 hover:bg-slate-50">
                             <div className="flex justify-between mb-1">
                                <span className="font-bold text-sm text-slate-900">{sms.sender}</span>
@@ -870,7 +1157,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                             )}
                          </div>
                       ))}
-                      {MOCK_SMS.filter(sms => !sms.linkedTransactionId).length === 0 && (
+                      {groupSms.filter(sms => !sms.linkedTransactionId).length === 0 && (
                          <div className="p-8 text-center text-slate-400 text-sm">No unmatched SMS found.</div>
                       )}
                    </div>
@@ -881,7 +1168,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                       <h4 className="font-bold text-slate-700 text-sm">Confirmed Transactions</h4>
                    </div>
                    <div className="divide-y divide-slate-100">
-                      {MOCK_TRANSACTIONS.filter(tx => tx.groupId === selectedGroup.id).map(tx => (
+                      {groupTransactions.filter(tx => tx.groupId === selectedGroup.id).map(tx => (
                          <div key={tx.id} className="p-4 hover:bg-slate-50 flex justify-between items-center">
                             <div>
                                <p className="text-sm font-medium text-slate-900">{tx.memberName}</p>

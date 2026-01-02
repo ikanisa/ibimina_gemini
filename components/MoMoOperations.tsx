@@ -1,19 +1,145 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageSquare, CheckCircle2, AlertCircle, ArrowRight, Cpu, Smartphone, LayoutList, Table as TableIcon, RefreshCw } from 'lucide-react';
 import { MOCK_SMS, MOCK_NFC_LOGS } from '../constants';
-import { SmsMessage } from '../types';
+import { SmsMessage, NfcLog, SupabaseNfcLog, SupabaseSmsMessage } from '../types';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MoMoOperationsProps {
   mode?: 'sms' | 'nfc'; // 'sms' for Staff, 'nfc' for Admin logs
 }
 
 const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId } = useAuth();
   const [smsViewMode, setSmsViewMode] = useState<'split' | 'table'>('split');
   const [selectedSms, setSelectedSms] = useState<SmsMessage | null>(null);
+  const [smsRecords, setSmsRecords] = useState<SmsMessage[]>(useMockData ? MOCK_SMS : []);
+  const [nfcRecords, setNfcRecords] = useState<NfcLog[]>(useMockData ? MOCK_NFC_LOGS : []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    if (useMockData) {
+      setSmsRecords(MOCK_SMS);
+      setNfcRecords(MOCK_NFC_LOGS);
+      return;
+    }
+
+    if (!institutionId) {
+      setSmsRecords([]);
+      setNfcRecords([]);
+      return;
+    }
+
+    const formatTimestamp = (value: string) => {
+      const date = new Date(value);
+      return `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
+    };
+
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+
+      if (mode === 'sms') {
+        const { data, error } = await supabase
+          .from('sms_messages')
+          .select('*')
+          .eq('institution_id', institutionId)
+          .order('timestamp', { ascending: false });
+
+        if (error) {
+          console.error('Error loading SMS messages:', error);
+          setError('Unable to load SMS messages. Check your connection and permissions.');
+          setSmsRecords([]);
+          setLoading(false);
+          return;
+        }
+
+        const mapped = (data as SupabaseSmsMessage[]).map((sms) => ({
+          id: sms.id,
+          sender: sms.sender,
+          timestamp: formatTimestamp(sms.timestamp),
+          body: sms.body,
+          isParsed: sms.is_parsed,
+          parsedData: sms.is_parsed
+            ? {
+                amount: Number(sms.parsed_amount ?? 0),
+                currency: sms.parsed_currency ?? 'RWF',
+                transactionId: sms.parsed_transaction_id ?? '',
+                counterparty: sms.parsed_counterparty ?? ''
+              }
+            : undefined,
+          linkedTransactionId: sms.linked_transaction_id ?? undefined
+        }));
+
+        setSmsRecords(mapped);
+        setSelectedSms(mapped[0] ?? null);
+      }
+
+      if (mode === 'nfc') {
+        const { data, error } = await supabase
+          .from('nfc_logs')
+          .select('*')
+          .eq('institution_id', institutionId)
+          .order('timestamp', { ascending: false });
+
+        if (error) {
+          console.error('Error loading NFC logs:', error);
+          setError('Unable to load NFC logs. Check your connection and permissions.');
+          setNfcRecords([]);
+          setLoading(false);
+          return;
+        }
+
+        const mapped = (data as SupabaseNfcLog[]).map((log) => {
+          const normalizedStatus = log.status.toUpperCase().replace(/\s+/g, '_');
+          const statusLabel: NfcLog['status'] =
+            normalizedStatus === 'SUCCESS'
+              ? 'Success'
+              : normalizedStatus === 'FAILED'
+                ? 'Failed'
+                : 'Pending SMS';
+          return {
+          id: log.id,
+          timestamp: formatTimestamp(log.timestamp),
+          deviceId: log.device_id,
+          tagId: log.tag_id,
+          action: log.action,
+          status: statusLabel,
+          memberId: log.member_id ?? undefined,
+          amount: log.amount ?? undefined,
+          linkedSms: log.linked_sms
+        };
+        });
+
+        setNfcRecords(mapped);
+      }
+
+      setLoading(false);
+    };
+
+    loadData();
+  }, [useMockData, institutionId, mode, refreshToken]);
+
+  const handleRefresh = () => {
+    setRefreshToken((prev) => prev + 1);
+  };
 
   return (
     <div className="space-y-6 h-full flex flex-col">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+      {loading && (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-center shrink-0">
         <div>
@@ -28,7 +154,10 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
            </p>
         </div>
         {mode === 'sms' && (
-           <button className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors">
+           <button
+             onClick={handleRefresh}
+             className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors"
+           >
              <RefreshCw size={16} /> Sync Inbox
            </button>
         )}
@@ -46,7 +175,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
             <div className="col-span-2 text-right">Status</div>
           </div>
           <div className="overflow-y-auto flex-1">
-            {MOCK_NFC_LOGS.map(log => (
+            {nfcRecords.map(log => (
               <div key={log.id} className="grid grid-cols-12 px-6 py-4 items-center border-b border-slate-50 hover:bg-slate-50 transition-colors">
                 <div className="col-span-2 text-sm text-slate-900">{log.timestamp}</div>
                 <div className="col-span-2 text-sm text-slate-600">{log.memberId || 'Unknown'}</div>
@@ -73,6 +202,11 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
               </div>
             ))}
           </div>
+          {nfcRecords.length === 0 && (
+            <div className="p-10 text-center text-slate-400 text-sm">
+              {useMockData ? 'No NFC logs found.' : 'No NFC logs yet. Connect this module to Supabase.'}
+            </div>
+          )}
         </div>
       )}
 
@@ -106,7 +240,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                   <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Live Sync</span>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                  {MOCK_SMS.map(sms => (
+                  {smsRecords.map(sms => (
                     <div 
                       key={sms.id} 
                       onClick={() => setSelectedSms(sms)}
@@ -129,6 +263,11 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                       </div>
                     </div>
                   ))}
+                  {smsRecords.length === 0 && (
+                    <div className="p-6 text-center text-slate-400 text-sm">
+                      {useMockData ? 'No SMS messages.' : 'No SMS data yet. Connect this module to Supabase.'}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -211,7 +350,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-100">
-                     {MOCK_SMS.map(sms => (
+                     {smsRecords.map(sms => (
                        <tr key={sms.id} className="hover:bg-slate-50 transition-colors">
                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{sms.timestamp}</td>
                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{sms.sender}</td>
@@ -251,6 +390,13 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                          </td>
                        </tr>
                      ))}
+                     {smsRecords.length === 0 && (
+                       <tr>
+                         <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-sm">
+                           {useMockData ? 'No SMS messages.' : 'No SMS data yet. Connect this module to Supabase.'}
+                         </td>
+                       </tr>
+                     )}
                    </tbody>
                  </table>
                </div>

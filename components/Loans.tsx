@@ -1,25 +1,90 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileText, Filter, Search, Plus, CheckCircle2, XCircle, Clock, MoreHorizontal, ChevronDown, DollarSign, AlertCircle, X, Calendar, User, ArrowRight } from 'lucide-react';
 import { MOCK_LOANS } from '../constants';
-import { Loan, LoanStatus, ViewState } from '../types';
+import { Loan, LoanStatus, SupabaseLoan, SupabaseMember, ViewState } from '../types';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { mapLoanStatus } from '../lib/mappers';
 
 interface LoansProps {
   onNavigate?: (view: ViewState) => void;
 }
 
 const Loans: React.FC<LoansProps> = ({ onNavigate }) => {
+  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId } = useAuth();
+  const [loans, setLoans] = useState<Loan[]>(useMockData ? MOCK_LOANS : []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'All' | LoanStatus>('All');
   const [selectedLoans, setSelectedLoans] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [detailLoan, setDetailLoan] = useState<Loan | null>(null);
 
-  const filteredLoans = MOCK_LOANS.filter(loan => {
+  useEffect(() => {
+    if (useMockData) {
+      setLoans(MOCK_LOANS);
+      return;
+    }
+    if (!institutionId) {
+      setLoans([]);
+      return;
+    }
+
+    const loadLoans = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from('loans')
+        .select('*, members(full_name)')
+        .eq('institution_id', institutionId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading loans:', error);
+        setError('Unable to load loans. Check your connection and permissions.');
+        setLoans([]);
+        setLoading(false);
+        return;
+      }
+
+      const mapped = (data as (SupabaseLoan & { members?: SupabaseMember | null })[]).map((loan) => ({
+        id: loan.id,
+        borrowerId: loan.member_id ?? '—',
+        borrowerName: loan.members?.full_name ?? 'Unknown',
+        amount: Number(loan.amount),
+        outstandingBalance: Number(loan.outstanding_balance),
+        status: mapLoanStatus(loan.status),
+        startDate: loan.start_date,
+        nextPaymentDate: loan.next_payment_date ?? undefined,
+        groupId: loan.group_id ?? undefined,
+        interestRate: Number(loan.interest_rate),
+        termMonths: loan.term_months
+      }));
+
+      setLoans(mapped);
+      setLoading(false);
+    };
+
+    loadLoans();
+  }, [useMockData, institutionId]);
+
+  const filteredLoans = loans.filter(loan => {
     const matchesTab = activeTab === 'All' || loan.status === activeTab;
     const matchesSearch = loan.borrowerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           loan.id.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  const totalPortfolio = loans.reduce((sum, loan) => sum + loan.outstandingBalance, 0);
+  const pendingDisbursement = loans
+    .filter((loan) => loan.status === 'Pending Approval')
+    .reduce((sum, loan) => sum + loan.amount, 0);
+  const overdueTotal = loans
+    .filter((loan) => loan.status === 'Overdue')
+    .reduce((sum, loan) => sum + loan.outstandingBalance, 0);
 
   const toggleSelection = (id: string) => {
     if (selectedLoans.includes(id)) {
@@ -47,21 +112,31 @@ const Loans: React.FC<LoansProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-6 h-full flex flex-col relative">
+      {loading && (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       {/* Stats Header */}
       <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-all duration-300 ${detailLoan ? 'w-1/2 pr-4' : 'w-full'}`}>
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
            <p className="text-slate-500 text-xs font-semibold uppercase">Total Portfolio</p>
-           <h3 className="text-2xl font-bold text-slate-900 mt-1">124.5M RWF</h3>
+           <h3 className="text-2xl font-bold text-slate-900 mt-1">{totalPortfolio.toLocaleString()} RWF</h3>
            <p className="text-xs text-green-600 flex items-center gap-1 mt-1"><CheckCircle2 size={12}/> 95% Healthy</p>
         </div>
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
            <p className="text-slate-500 text-xs font-semibold uppercase">Pending Disbursement</p>
-           <h3 className="text-2xl font-bold text-blue-600 mt-1">12.8M RWF</h3>
-           <p className="text-xs text-slate-500 mt-1">5 Loans Approved</p>
+           <h3 className="text-2xl font-bold text-blue-600 mt-1">{pendingDisbursement.toLocaleString()} RWF</h3>
+           <p className="text-xs text-slate-500 mt-1">{loans.filter((loan) => loan.status === 'Pending Approval').length} Loans Pending</p>
         </div>
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
            <p className="text-slate-500 text-xs font-semibold uppercase">At Risk (Overdue)</p>
-           <h3 className="text-2xl font-bold text-red-600 mt-1">4.2M RWF</h3>
+           <h3 className="text-2xl font-bold text-red-600 mt-1">{overdueTotal.toLocaleString()} RWF</h3>
            <p className="text-xs text-red-600 flex items-center gap-1 mt-1"><AlertCircle size={12}/> Action Required</p>
         </div>
       </div>
@@ -83,7 +158,7 @@ const Loans: React.FC<LoansProps> = ({ onNavigate }) => {
              </div>
            </div>
            <div className="flex gap-2 w-full sm:w-auto justify-end">
-             {selectedLoans.length > 0 && (
+                {selectedLoans.length > 0 && (
                 <div className="flex items-center gap-2 mr-4 animate-in fade-in slide-in-from-right-5">
                   <span className="text-xs font-medium text-slate-500">{selectedLoans.length} selected</span>
                   <button className="px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700">Approve</button>
@@ -134,7 +209,7 @@ const Loans: React.FC<LoansProps> = ({ onNavigate }) => {
                  </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                 {filteredLoans.map(loan => (
+           {filteredLoans.map(loan => (
                     <tr 
                       key={loan.id} 
                       className={`hover:bg-slate-50 transition-colors cursor-pointer ${detailLoan?.id === loan.id ? 'bg-blue-50' : ''}`}
@@ -191,9 +266,16 @@ const Loans: React.FC<LoansProps> = ({ onNavigate }) => {
                           </button>
                        </td>
                     </tr>
-                 ))}
-              </tbody>
-           </table>
+           ))}
+           {filteredLoans.length === 0 && (
+             <tr>
+               <td colSpan={7} className="p-8 text-center text-slate-400 text-sm">
+                 {useMockData ? 'No loans found.' : 'No loans yet. Create a loan to get started.'}
+               </td>
+             </tr>
+           )}
+         </tbody>
+       </table>
            {filteredLoans.length === 0 && (
               <div className="p-10 text-center text-slate-500">
                  <FileText size={48} className="mx-auto mb-4 opacity-20" />
