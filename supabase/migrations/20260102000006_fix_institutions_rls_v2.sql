@@ -1,5 +1,5 @@
 -- Fix institutions RLS to allow all authenticated users to read
--- Run this directly in Supabase SQL Editor
+-- This migration replaces previous RLS policies
 
 -- First, drop ALL existing policies on institutions
 DO $$
