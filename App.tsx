@@ -21,7 +21,8 @@ import {
   PieChart,
   ChevronDown,
   UserCircle,
-  Eye
+  Eye,
+  KeyRound
 } from 'lucide-react';
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const Groups = lazy(() => import('./components/Groups'));
@@ -37,6 +38,7 @@ const Loans = lazy(() => import('./components/Loans'));
 const SettingsPage = lazy(() => import('./components/Settings'));
 const Login = lazy(() => import('./components/Login'));
 const SupabaseDashboard = lazy(() => import('./components/SupabaseDashboard'));
+const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
 import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
 import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -134,6 +136,7 @@ const App: React.FC = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleSignOut = async () => {
     setViewingAsUser(null);
@@ -229,8 +232,8 @@ const App: React.FC = () => {
           setIsMobileMenuOpen(false);
         }}
         className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors rounded-lg mb-1 ${currentView === view
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
           }`}
       >
         {icon}
@@ -271,9 +274,9 @@ const App: React.FC = () => {
                   }`}
               >
                 <div className={`w-2 h-2 rounded-full ${staff.role === 'Super Admin' ? 'bg-purple-500' :
-                    staff.role === 'Branch Manager' ? 'bg-blue-500' :
-                      staff.role === 'Teller' ? 'bg-green-500' :
-                        staff.role === 'Loan Officer' ? 'bg-orange-500' : 'bg-indigo-500'
+                  staff.role === 'Branch Manager' ? 'bg-blue-500' :
+                    staff.role === 'Teller' ? 'bg-green-500' :
+                      staff.role === 'Loan Officer' ? 'bg-orange-500' : 'bg-indigo-500'
                   }`}></div>
                 {staff.role}
               </button>
@@ -429,6 +432,15 @@ const App: React.FC = () => {
                       <UserCircle size={16} /> My Profile
                     </button>
                     <button
+                      onClick={() => {
+                        setIsChangePasswordOpen(true);
+                        setIsProfileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    >
+                      <KeyRound size={16} /> Change Password
+                    </button>
+                    <button
                       onClick={handleSignOut}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
@@ -514,6 +526,14 @@ const App: React.FC = () => {
           ></div>
         )}
       </main>
+
+      {/* Change Password Modal */}
+      <Suspense fallback={null}>
+        <ChangePasswordModal
+          isOpen={isChangePasswordOpen}
+          onClose={() => setIsChangePasswordOpen(false)}
+        />
+      </Suspense>
     </div>
   );
 };
