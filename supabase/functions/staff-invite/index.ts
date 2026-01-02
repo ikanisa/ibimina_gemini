@@ -42,6 +42,25 @@ Deno.serve(async (req) => {
     const onboardingMethod = body.onboarding_method ?? 'invite';
     const password = body.password ?? null;
 
+    // Map UI-friendly role names to database enum values
+    const mapRoleToEnum = (uiRole: string): string => {
+      switch (uiRole) {
+        case 'Super Admin':
+          return 'PLATFORM_ADMIN';
+        case 'Branch Manager':
+          return 'INSTITUTION_ADMIN';
+        case 'Loan Officer':
+          return 'INSTITUTION_STAFF';
+        case 'Teller':
+          return 'INSTITUTION_TREASURER';
+        case 'Auditor':
+          return 'INSTITUTION_AUDITOR';
+        default:
+          return 'INSTITUTION_STAFF';
+      }
+    };
+    const dbRole = mapRoleToEnum(role);
+
     if (!email) {
       return new Response(JSON.stringify({ error: 'Email is required.' }), {
         status: 400,
@@ -65,24 +84,24 @@ Deno.serve(async (req) => {
     const inviteResult =
       onboardingMethod === 'password'
         ? await supabase.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: {
-              full_name: fullName,
-              role,
-              branch,
-              institution_id: institutionId
-            }
-          })
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: fullName,
+            role,
+            branch,
+            institution_id: institutionId
+          }
+        })
         : await supabase.auth.admin.inviteUserByEmail(email, {
-            data: {
-              full_name: fullName,
-              role,
-              branch,
-              institution_id: institutionId
-            }
-          });
+          data: {
+            full_name: fullName,
+            role,
+            branch,
+            institution_id: institutionId
+          }
+        });
 
     if (inviteResult.error || !inviteResult.data.user) {
       return new Response(JSON.stringify({ error: inviteResult.error?.message ?? 'Failed to invite staff.' }), {
@@ -97,7 +116,7 @@ Deno.serve(async (req) => {
       .upsert({
         user_id: user.id,
         institution_id: institutionId,
-        role,
+        role: dbRole,
         email,
         full_name: fullName,
         branch
