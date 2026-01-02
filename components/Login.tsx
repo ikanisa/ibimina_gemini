@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Building, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+
+const ForgotPassword = lazy(() => import('./ForgotPassword'));
 
 // ============================================================================
 // COMPONENT: LOGIN
@@ -12,6 +14,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +26,18 @@ const Login: React.FC = () => {
     }
     setLoading(false);
   };
+
+  if (showForgotPassword) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      }>
+        <ForgotPassword onBack={() => setShowForgotPassword(false)} />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-4">
@@ -49,7 +64,16 @@ const Login: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-slate-700">Password</label>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Forgot password?
+              </button>
+            </div>
             <input
               type="password"
               value={password}
@@ -82,3 +106,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+
