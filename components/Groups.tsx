@@ -24,9 +24,11 @@ import {
   FileText,
   Save,
   Trash2,
-  X
+  X,
+  Upload
 } from 'lucide-react';
 import { MOCK_GROUPS, MOCK_GROUP_MEMBERS, MOCK_MEETINGS, MOCK_CONTRIBUTIONS, MOCK_TRANSACTIONS, MOCK_SMS } from '../constants';
+import BulkGroupUpload from './BulkGroupUpload';
 import {
   Contribution,
   Group,
@@ -96,9 +98,12 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
     group_name: '',
     meeting_day: 'Monday',
     expected_amount: 5000,
-    frequency: 'Weekly' as 'Weekly' | 'Monthly',
+    frequency: 'Weekly' as 'Daily' | 'Weekly' | 'Monthly',
     cycle_label: ''
   });
+
+  // Bulk Upload Modal State
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   // Handle Create Group
   const handleCreateGroup = async () => {
@@ -534,6 +539,12 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
               <Filter size={16} /> Filter
             </button>
             <button
+              onClick={() => setIsBulkUploadOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex-1 sm:flex-none"
+            >
+              <Upload size={16} /> Bulk Upload
+            </button>
+            <button
               onClick={() => setIsCreateModalOpen(true)}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex-1 sm:flex-none"
             >
@@ -741,6 +752,17 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Bulk Upload Modal */}
+        {isBulkUploadOpen && (
+          <BulkGroupUpload
+            onClose={() => setIsBulkUploadOpen(false)}
+            onSuccess={() => {
+              setIsBulkUploadOpen(false);
+              window.location.reload();
+            }}
+          />
         )}
       </div>
     );

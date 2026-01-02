@@ -147,7 +147,7 @@ const App: React.FC = () => {
 
   const dashboardStats = useMockData ? MOCK_STATS : EMPTY_STATS;
   const dashboardTransactions = useMockData ? MOCK_TRANSACTIONS : [];
-  const showSupabaseDashboard = !useMockData && Boolean(institutionId);
+  const showSupabaseDashboard = !useMockData; // Always use Supabase dashboard when not in mock mode
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);

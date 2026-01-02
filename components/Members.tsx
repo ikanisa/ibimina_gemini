@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MoreHorizontal, Smartphone, ShieldCheck, UserCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle, Plus } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Smartphone, ShieldCheck, UserCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle, Plus, Upload } from 'lucide-react';
 import { Member, ViewState, SupabaseGroup, SupabaseGroupMember, SupabaseMember } from '../types';
 import { MOCK_MEMBERS } from '../constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { mapKycStatus, mapMemberStatus } from '../lib/mappers';
 import { buildInitialsAvatar } from '../lib/avatars';
+import BulkMemberUpload from './BulkMemberUpload';
 
 interface MembersProps {
   members?: Member[];
@@ -34,6 +35,9 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
     phone: '',
     branch: 'HQ'
   });
+
+  // Bulk Upload Modal State
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   // Handle Add Member
   const handleAddMember = async () => {
@@ -216,6 +220,12 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
             <div className="flex gap-2">
               <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
                 <Filter size={18} />
+              </button>
+              <button
+                onClick={() => setIsBulkUploadOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200"
+              >
+                <Upload size={16} /> Bulk Upload
               </button>
               <button
                 onClick={() => setIsAddModalOpen(true)}
@@ -522,8 +532,19 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
               </div>
             </div>
           </div>
-        )
-      }
+        )}
+
+      {/* Bulk Upload Modal */}
+      {isBulkUploadOpen && (
+        <BulkMemberUpload
+          onClose={() => setIsBulkUploadOpen(false)}
+          onSuccess={() => {
+            setIsBulkUploadOpen(false);
+            // Reload members (trigger re-fetch)
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 };

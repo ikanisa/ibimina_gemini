@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Briefcase, 
-  Users, 
-  DollarSign, 
-  Scale, 
+import {
+  Briefcase,
+  Users,
+  DollarSign,
+  Scale,
   Activity,
   AlertCircle,
   TrendingUp
@@ -51,14 +51,6 @@ const SupabaseDashboard: React.FC = () => {
   }, [institutionId]);
 
   const loadDashboard = async () => {
-    if (!institutionId) {
-      setStats(emptyStats);
-      setRecentActivity([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
@@ -66,12 +58,26 @@ const SupabaseDashboard: React.FC = () => {
       const now = new Date();
       const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
+      // Build queries - use institution filter only if institutionId exists
+      let groupsQuery = supabase.from('groups').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE');
+      let membersQuery = supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE');
+      let contributionsQuery = supabase.from('contributions').select('amount').gte('date', monthStartDate);
+      let paymentsQuery = supabase.from('incoming_payments').select('id', { count: 'exact', head: true }).eq('status', 'UNRECONCILED');
+
+      // Apply institution filter if user has one
+      if (institutionId) {
+        groupsQuery = groupsQuery.eq('institution_id', institutionId);
+        membersQuery = membersQuery.eq('institution_id', institutionId);
+        contributionsQuery = contributionsQuery.eq('institution_id', institutionId);
+        paymentsQuery = paymentsQuery.eq('institution_id', institutionId);
+      }
+
       // Get counts
       const [groups, members, contributions, payments] = await Promise.all([
-        supabase.from('groups').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'ACTIVE'),
-        supabase.from('members').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'ACTIVE'),
-        supabase.from('contributions').select('amount').eq('institution_id', institutionId).gte('date', monthStartDate),
-        supabase.from('incoming_payments').select('id', { count: 'exact', head: true }).eq('institution_id', institutionId).eq('status', 'UNRECONCILED')
+        groupsQuery,
+        membersQuery,
+        contributionsQuery,
+        paymentsQuery
       ]);
 
       const queryErrors = [groups.error, members.error, contributions.error, payments.error].filter(Boolean);
@@ -98,12 +104,17 @@ const SupabaseDashboard: React.FC = () => {
       });
 
       // Recent activity
-      const { data: recent, error: recentError } = await supabase
+      let recentQuery = supabase
         .from('contributions')
         .select('*, members(full_name), groups(group_name)')
-        .eq('institution_id', institutionId)
         .order('created_at', { ascending: false })
         .limit(10);
+
+      if (institutionId) {
+        recentQuery = recentQuery.eq('institution_id', institutionId);
+      }
+
+      const { data: recent, error: recentError } = await recentQuery;
 
       if (recentError) {
         console.error('Recent activity error:', recentError);
