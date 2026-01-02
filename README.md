@@ -105,3 +105,4 @@ The built files will be in the `dist/` directory.
 See `QA_UAT.md` for the full QA/UAT plan.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1M1b8VEmqynqqhv_ON6DRy4pYiGbj7vVd
+# Trigger rebuild
