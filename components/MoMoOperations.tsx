@@ -51,7 +51,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
 
     // Link the transaction to the SMS record
     const { error: linkError } = await supabase
-      .from('sms_messages')
+      .from('payment_ledger')
       .update({ linked_transaction_id: txData.id })
       .eq('id', selectedSms.id);
 
@@ -93,7 +93,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
 
       if (mode === 'sms') {
         const { data, error } = await supabase
-          .from('sms_messages')
+          .from('payment_ledger')
           .select('*')
           .eq('institution_id', institutionId)
           .order('timestamp', { ascending: false });

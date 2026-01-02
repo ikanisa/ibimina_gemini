@@ -327,7 +327,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
           .eq('group_id', selectedGroup.id)
           .order('created_at', { ascending: false }),
         supabase
-          .from('sms_messages')
+          .from('payment_ledger')
           .select('*')
           .eq('institution_id', institutionId)
           .order('timestamp', { ascending: false })

@@ -62,7 +62,7 @@ const SupabaseDashboard: React.FC = () => {
       let groupsQuery = supabase.from('groups').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE');
       let membersQuery = supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE');
       let contributionsQuery = supabase.from('contributions').select('amount').gte('date', monthStartDate);
-      let paymentsQuery = supabase.from('incoming_payments').select('id', { count: 'exact', head: true }).eq('status', 'UNRECONCILED');
+      let paymentsQuery = supabase.from('payment_ledger').select('id', { count: 'exact', head: true }).eq('reconciled', false);
 
       // Apply institution filter if user has one
       if (institutionId) {

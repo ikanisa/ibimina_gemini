@@ -37,8 +37,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
       setError(null);
 
       const { data, error } = await supabase
-        .from('transactions')
-        .select('*, members(full_name)')
+        .from('payment_ledger')
+        .select('*')
         .eq('institution_id', institutionId)
         .order('created_at', { ascending: false });
 
@@ -50,20 +50,20 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
         return;
       }
 
-      const mapped = (data as (SupabaseTransaction & { members?: SupabaseMember | null })[]).map((tx) => {
-        const date = new Date(tx.created_at);
+      const mapped = (data as any[]).map((tx) => {
+        const date = new Date(tx.created_at || tx.received_at);
         const dateLabel = `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
         return {
           id: tx.id,
           date: dateLabel,
           memberId: tx.member_id ?? '—',
-          memberName: tx.members?.full_name ?? 'Unknown',
-          type: mapTransactionType(tx.type),
-          amount: Number(tx.amount),
-          currency: tx.currency,
-          channel: tx.channel as Transaction['channel'],
-          status: mapTransactionStatus(tx.status),
-          reference: tx.reference ?? '—',
+          memberName: tx.counterparty ?? 'Unknown',
+          type: mapTransactionType(tx.txn_type || tx.type),
+          amount: Number(tx.amount) || 0,
+          currency: tx.currency || 'RWF',
+          channel: 'MoMo' as Transaction['channel'],
+          status: mapTransactionStatus(tx.reconciled ? 'RECONCILED' : tx.status),
+          reference: tx.reference || tx.txn_id || '—',
           groupId: tx.group_id ?? undefined
         };
       });
@@ -104,14 +104,14 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
         <h2 className="text-lg font-semibold text-slate-800">Ledger</h2>
         <div className="flex gap-2">
           <div className="relative">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-             <input 
-               type="text" 
-               placeholder="Search Ref or Member" 
-               className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-             />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search Ref or Member"
+              className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
           <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">
             <Filter size={16} /> Filter
@@ -143,7 +143,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                   <div className="text-xs text-slate-400">{tx.date.split(' ')[1]}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button 
+                  <button
                     onClick={() => onNavigate && onNavigate(ViewState.MEMBERS)}
                     className="text-left group"
                   >
@@ -157,7 +157,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm text-slate-700 block">{tx.type}</span>
                   {tx.groupId && (
-                    <button 
+                    <button
                       onClick={() => onNavigate && onNavigate(ViewState.GROUPS)}
                       className="text-xs text-blue-600 hover:underline"
                     >
@@ -172,18 +172,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                   <div className="text-xs text-slate-400 mt-0.5">{tx.reference}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className={`text-sm font-bold ${
-                    tx.type === 'Deposit' || tx.type === 'Loan Repayment' || tx.type === 'Group Contribution' ? 'text-green-600' : 'text-slate-900'
-                  }`}>
-                     {tx.currency === 'USD' ? '$' : ''}{tx.amount.toLocaleString()} {tx.currency !== 'USD' ? tx.currency : ''}
+                  <div className={`text-sm font-bold ${tx.type === 'Deposit' || tx.type === 'Loan Repayment' || tx.type === 'Group Contribution' ? 'text-green-600' : 'text-slate-900'
+                    }`}>
+                    {tx.currency === 'USD' ? '$' : ''}{tx.amount.toLocaleString()} {tx.currency !== 'USD' ? tx.currency : ''}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    tx.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tx.status === 'Completed' ? 'bg-green-100 text-green-800' :
                     tx.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
+                      'bg-red-100 text-red-800'
+                    }`}>
                     {tx.status}
                   </span>
                 </td>

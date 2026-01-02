@@ -65,10 +65,9 @@ const Reconciliation: React.FC = () => {
       // Load today's cash transactions for Branch Cash tab
       const today = new Date().toISOString().split('T')[0];
       const { data: txData } = await supabase
-        .from('transactions')
+        .from('payment_ledger')
         .select('*')
         .eq('institution_id', institutionId)
-        .eq('channel', 'Cash')
         .gte('created_at', today)
         .order('created_at', { ascending: true });
 
@@ -175,8 +174,8 @@ const Reconciliation: React.FC = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as RecTab)}
               className={`px-6 py-4 text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === tab.id
-                  ? 'bg-white border-t-2 border-t-blue-600 text-blue-600'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                ? 'bg-white border-t-2 border-t-blue-600 text-blue-600'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                 }`}
             >
               <tab.icon size={16} />
