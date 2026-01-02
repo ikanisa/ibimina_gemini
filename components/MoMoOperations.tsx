@@ -20,6 +20,54 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [isCreatingTx, setIsCreatingTx] = useState(false);
+
+  // Handle Create Transaction from parsed SMS
+  const handleCreateTransaction = async () => {
+    if (!selectedSms || !selectedSms.parsedData || !institutionId) return;
+
+    setIsCreatingTx(true);
+
+    // Create transaction from parsed SMS data
+    const { data: txData, error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        institution_id: institutionId,
+        type: 'Deposit',
+        amount: selectedSms.parsedData.amount,
+        currency: selectedSms.parsedData.currency || 'RWF',
+        channel: 'MoMo',
+        status: 'COMPLETED',
+        reference: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`
+      })
+      .select()
+      .single();
+
+    if (txError) {
+      console.error('Error creating transaction:', txError);
+      setIsCreatingTx(false);
+      return;
+    }
+
+    // Link the transaction to the SMS record
+    const { error: linkError } = await supabase
+      .from('sms_messages')
+      .update({ linked_transaction_id: txData.id })
+      .eq('id', selectedSms.id);
+
+    if (linkError) {
+      console.error('Error linking transaction to SMS:', linkError);
+    }
+
+    // Update local state
+    setSmsRecords(prev => prev.map(sms =>
+      sms.id === selectedSms.id
+        ? { ...sms, linkedTransactionId: txData.id }
+        : sms
+    ));
+    setSelectedSms(prev => prev ? { ...prev, linkedTransactionId: txData.id } : null);
+    setIsCreatingTx(false);
+  };
 
   useEffect(() => {
     if (useMockData) {
@@ -66,11 +114,11 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
           isParsed: sms.is_parsed,
           parsedData: sms.is_parsed
             ? {
-                amount: Number(sms.parsed_amount ?? 0),
-                currency: sms.parsed_currency ?? 'RWF',
-                transactionId: sms.parsed_transaction_id ?? '',
-                counterparty: sms.parsed_counterparty ?? ''
-              }
+              amount: Number(sms.parsed_amount ?? 0),
+              currency: sms.parsed_currency ?? 'RWF',
+              transactionId: sms.parsed_transaction_id ?? '',
+              counterparty: sms.parsed_counterparty ?? ''
+            }
             : undefined,
           linkedTransactionId: sms.linked_transaction_id ?? undefined
         }));
@@ -103,16 +151,16 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                 ? 'Failed'
                 : 'Pending SMS';
           return {
-          id: log.id,
-          timestamp: formatTimestamp(log.timestamp),
-          deviceId: log.device_id,
-          tagId: log.tag_id,
-          action: log.action,
-          status: statusLabel,
-          memberId: log.member_id ?? undefined,
-          amount: log.amount ?? undefined,
-          linkedSms: log.linked_sms
-        };
+            id: log.id,
+            timestamp: formatTimestamp(log.timestamp),
+            deviceId: log.device_id,
+            tagId: log.tag_id,
+            action: log.action,
+            status: statusLabel,
+            memberId: log.member_id ?? undefined,
+            amount: log.amount ?? undefined,
+            linkedSms: log.linked_sms
+          };
         });
 
         setNfcRecords(mapped);
@@ -143,23 +191,23 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
       {/* Header */}
       <div className="flex justify-between items-center shrink-0">
         <div>
-           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-             {mode === 'nfc' ? <Smartphone className="text-blue-600" /> : <MessageSquare className="text-blue-600" />}
-             {mode === 'nfc' ? 'NFC & USSD System Logs' : 'MoMo SMS Inbox & Parsing'}
-           </h2>
-           <p className="text-sm text-slate-500">
-             {mode === 'nfc' 
-               ? 'System-wide audit trail of all NFC tag interactions and USSD sessions.' 
-               : 'AI-powered parsing of incoming Mobile Money notification messages.'}
-           </p>
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            {mode === 'nfc' ? <Smartphone className="text-blue-600" /> : <MessageSquare className="text-blue-600" />}
+            {mode === 'nfc' ? 'NFC & USSD System Logs' : 'MoMo SMS Inbox & Parsing'}
+          </h2>
+          <p className="text-sm text-slate-500">
+            {mode === 'nfc'
+              ? 'System-wide audit trail of all NFC tag interactions and USSD sessions.'
+              : 'AI-powered parsing of incoming Mobile Money notification messages.'}
+          </p>
         </div>
         {mode === 'sms' && (
-           <button
-             onClick={handleRefresh}
-             className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors"
-           >
-             <RefreshCw size={16} /> Sync Inbox
-           </button>
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors"
+          >
+            <RefreshCw size={16} /> Sync Inbox
+          </button>
         )}
       </div>
 
@@ -192,10 +240,9 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                   )}
                 </div>
                 <div className="col-span-2 text-right">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    log.status === 'Success' ? 'bg-green-100 text-green-700' :
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${log.status === 'Success' ? 'bg-green-100 text-green-700' :
                     log.status === 'Pending SMS' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                  }`}>
+                    }`}>
                     {log.status}
                   </span>
                 </div>
@@ -215,20 +262,20 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
         <div className="space-y-4 flex-1 flex flex-col">
           {/* View Mode Toggle */}
           <div className="flex justify-end gap-2 shrink-0">
-             <div className="bg-white border border-slate-200 rounded-lg p-1 flex gap-1 shadow-sm">
-               <button 
-                 onClick={() => setSmsViewMode('split')}
-                 className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${smsViewMode === 'split' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}
-               >
-                 <LayoutList size={14} /> Split View
-               </button>
-               <button 
-                 onClick={() => setSmsViewMode('table')}
-                 className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${smsViewMode === 'table' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}
-               >
-                 <TableIcon size={14} /> Table View
-               </button>
-             </div>
+            <div className="bg-white border border-slate-200 rounded-lg p-1 flex gap-1 shadow-sm">
+              <button
+                onClick={() => setSmsViewMode('split')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${smsViewMode === 'split' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                <LayoutList size={14} /> Split View
+              </button>
+              <button
+                onClick={() => setSmsViewMode('table')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${smsViewMode === 'table' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                <TableIcon size={14} /> Table View
+              </button>
+            </div>
           </div>
 
           {smsViewMode === 'split' ? (
@@ -241,8 +288,8 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {smsRecords.map(sms => (
-                    <div 
-                      key={sms.id} 
+                    <div
+                      key={sms.id}
                       onClick={() => setSelectedSms(sms)}
                       className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors ${selectedSms?.id === sms.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
                     >
@@ -310,24 +357,35 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                               <p className="text-sm font-medium text-slate-900">{selectedSms.parsedData.counterparty}</p>
                             </div>
                           </div>
-                          
+
                           <div className="pt-4 border-t border-blue-100 flex justify-end gap-3">
-                             {!selectedSms.linkedTransactionId ? (
-                               <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors">
-                                 Create Transaction
-                               </button>
-                             ) : (
-                               <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium">
-                                 <CheckCircle2 size={16} /> Linked to {selectedSms.linkedTransactionId}
-                               </div>
-                             )}
+                            {!selectedSms.linkedTransactionId ? (
+                              <button
+                                onClick={handleCreateTransaction}
+                                disabled={isCreatingTx}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              >
+                                {isCreatingTx ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Creating...
+                                  </>
+                                ) : (
+                                  'Create Transaction'
+                                )}
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium">
+                                <CheckCircle2 size={16} /> Linked to {selectedSms.linkedTransactionId}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
-                         <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-xl">
-                           <p className="text-slate-500 text-sm mb-3">AI could not confidently parse this message.</p>
-                           <button className="text-blue-600 font-medium text-sm hover:underline">Manually Map Fields</button>
-                         </div>
+                        <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-xl">
+                          <p className="text-slate-500 text-sm mb-3">AI could not confidently parse this message.</p>
+                          <button className="text-blue-600 font-medium text-sm hover:underline">Manually Map Fields</button>
+                        </div>
                       )}
                     </div>
                   </>
@@ -336,70 +394,70 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1">
-               {/* Full Table View */}
-               <div className="overflow-x-auto h-full">
-                 <table className="w-full text-left">
-                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
-                     <tr>
-                       <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Timestamp</th>
-                       <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sender</th>
-                       <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/3">Message Snippet</th>
-                       <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Parsing Status</th>
-                       <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Transaction</th>
-                       <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-100">
-                     {smsRecords.map(sms => (
-                       <tr key={sms.id} className="hover:bg-slate-50 transition-colors">
-                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{sms.timestamp}</td>
-                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{sms.sender}</td>
-                         <td className="px-6 py-4 text-sm text-slate-500 truncate max-w-xs" title={sms.body}>
-                           {sms.body}
-                         </td>
-                         <td className="px-6 py-4 whitespace-nowrap">
-                            {sms.isParsed ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full">
-                                <CheckCircle2 size={12} /> Parsed
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
-                                <AlertCircle size={12} /> Failed
-                              </span>
-                            )}
-                         </td>
-                         <td className="px-6 py-4 whitespace-nowrap">
-                            {sms.linkedTransactionId ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                                <CheckCircle2 size={12} /> {sms.linkedTransactionId}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 text-xs italic">Unlinked</span>
-                            )}
-                         </td>
-                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <button 
-                              onClick={() => {
-                                setSmsViewMode('split');
-                                setSelectedSms(sms);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline flex items-center justify-end gap-1"
-                            >
-                              View Details <ArrowRight size={14} />
-                            </button>
-                         </td>
-                       </tr>
-                     ))}
-                     {smsRecords.length === 0 && (
-                       <tr>
-                         <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-sm">
-                           {useMockData ? 'No SMS messages.' : 'No SMS data yet. Connect this module to Supabase.'}
-                         </td>
-                       </tr>
-                     )}
-                   </tbody>
-                 </table>
-               </div>
+              {/* Full Table View */}
+              <div className="overflow-x-auto h-full">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Timestamp</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sender</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/3">Message Snippet</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Parsing Status</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Transaction</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {smsRecords.map(sms => (
+                      <tr key={sms.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{sms.timestamp}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{sms.sender}</td>
+                        <td className="px-6 py-4 text-sm text-slate-500 truncate max-w-xs" title={sms.body}>
+                          {sms.body}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {sms.isParsed ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full">
+                              <CheckCircle2 size={12} /> Parsed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
+                              <AlertCircle size={12} /> Failed
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {sms.linkedTransactionId ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                              <CheckCircle2 size={12} /> {sms.linkedTransactionId}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-xs italic">Unlinked</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => {
+                              setSmsViewMode('split');
+                              setSelectedSms(sms);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline flex items-center justify-end gap-1"
+                          >
+                            View Details <ArrowRight size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {smsRecords.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-sm">
+                          {useMockData ? 'No SMS messages.' : 'No SMS data yet. Connect this module to Supabase.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
