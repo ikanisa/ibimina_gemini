@@ -68,6 +68,14 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
       setLoading(true);
       setError(null);
 
+      console.log('[Saccos] Loading institutions...', {
+         supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.substring(0, 30) + '...',
+         hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+         currentPage,
+         typeFilter,
+         debouncedSearch
+      });
+
       try {
          const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
@@ -90,6 +98,8 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
 
          const { data, error: fetchError, count } = await query;
 
+         console.log('[Saccos] Query result:', { dataCount: data?.length, totalCount: count, error: fetchError });
+
          if (fetchError) {
             console.error('Error loading institutions:', fetchError);
             setError(`Unable to load institutions: ${fetchError.message}`);
@@ -97,6 +107,7 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
             setTotalCount(0);
             return;
          }
+
 
          const institutions = (data as Institution[]) || [];
          setTotalCount(count ?? 0);
@@ -406,8 +417,8 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
                                  </td>
                                  <td className="px-4 py-3">
                                     <span className={`text-xs px-2 py-1 rounded font-medium ${(sacco as any).type === 'BANK' ? 'bg-purple-50 text-purple-700' :
-                                          (sacco as any).type === 'MFI' ? 'bg-orange-50 text-orange-700' :
-                                             'bg-blue-50 text-blue-700'
+                                       (sacco as any).type === 'MFI' ? 'bg-orange-50 text-orange-700' :
+                                          'bg-blue-50 text-blue-700'
                                        }`}>
                                        {(sacco as any).type || 'SACCO'}
                                     </span>
@@ -426,8 +437,8 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
                                  </td>
                                  <td className="px-4 py-3 text-center">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${sacco.status === 'Active' ? 'bg-green-50 text-green-700' :
-                                          sacco.status === 'Pending' ? 'bg-yellow-50 text-yellow-700' :
-                                             'bg-red-50 text-red-700'
+                                       sacco.status === 'Pending' ? 'bg-yellow-50 text-yellow-700' :
+                                          'bg-red-50 text-red-700'
                                        }`}>
                                        {sacco.status}
                                     </span>
@@ -512,8 +523,8 @@ const Saccos: React.FC<SaccosProps> = ({ onNavigate }) => {
                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs font-mono bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">{selectedSacco.code}</span>
                         <span className={`text-xs px-2 py-0.5 rounded border ${selectedSacco.status === 'Active' ? 'bg-green-50 text-green-700 border-green-100' :
-                              selectedSacco.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                                 'bg-red-50 text-red-700 border-red-100'
+                           selectedSacco.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                              'bg-red-50 text-red-700 border-red-100'
                            }`}>{selectedSacco.status}</span>
                      </div>
                   </div>

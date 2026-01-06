@@ -29,6 +29,7 @@ const Groups = lazy(() => import('./components/Groups'));
 const Members = lazy(() => import('./components/Members'));
 const Transactions = lazy(() => import('./components/Transactions'));
 const MoMoOperations = lazy(() => import('./components/MoMoOperations'));
+const Payments = lazy(() => import('./components/Payments'));
 const Saccos = lazy(() => import('./components/Saccos'));
 
 const Reconciliation = lazy(() => import('./components/Reconciliation'));
@@ -319,7 +320,7 @@ const App: React.FC = () => {
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Operations</p>
               <NavItem view={ViewState.MOMO_OPERATIONS} icon={<Smartphone size={18} />} label="MoMo SMS (Staff)" />
-
+              <NavItem view={ViewState.PAYMENTS} icon={<CreditCard size={18} />} label="All Payments" />
               <NavItem view={ViewState.RECONCILIATION} icon={<Scale size={18} />} label="Reconciliation" />
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">System</p>
@@ -492,6 +493,9 @@ const App: React.FC = () => {
 
                 {/* Mobile Money SMS Parsing */}
                 {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations />}
+
+                {/* Consolidated Payments */}
+                {currentView === ViewState.PAYMENTS && canAccess(ViewState.PAYMENTS) && <Payments />}
 
                 {currentView === ViewState.RECONCILIATION && canAccess(ViewState.RECONCILIATION) && <Reconciliation />}
                 {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && <Loans onNavigate={setCurrentView} />}
