@@ -197,19 +197,7 @@ export interface SupabaseSmsMessage {
   created_at: string;
 }
 
-export interface SupabaseNfcLog {
-  id: string;
-  institution_id: string;
-  timestamp: string;
-  device_id: string;
-  tag_id: string;
-  action: string;
-  status: string;
-  member_id?: string | null;
-  amount?: number | null;
-  linked_sms: boolean;
-  created_at: string;
-}
+
 
 export interface SupabaseReconciliationIssue {
   id: string;
@@ -251,9 +239,7 @@ export enum ViewState {
   ACCOUNTS = 'ACCOUNTS',
   LOANS = 'LOANS',
   TRANSACTIONS = 'TRANSACTIONS',
-  MOMO_OPERATIONS = 'MOMO_OPERATIONS', // SMS Parsing (Staff)
-  NFC_LOGS = 'NFC_LOGS', // NFC Logs (Admin)
-  TOKENS = 'TOKENS',
+  MOMO_OPERATIONS = 'MOMO_OPERATIONS',
   RECONCILIATION = 'RECONCILIATION',
   STAFF = 'STAFF',
   SETTINGS = 'SETTINGS',
@@ -371,17 +357,7 @@ export interface SmsMessage {
   linkedTransactionId?: string;
 }
 
-export interface NfcLog {
-  id: string;
-  timestamp: string;
-  deviceId: string;
-  tagId: string;
-  action: string;
-  status: 'Success' | 'Failed' | 'Pending SMS';
-  memberId?: string;
-  amount?: number;
-  linkedSms?: boolean;
-}
+
 
 export interface KpiStats {
   totalMembers: number;

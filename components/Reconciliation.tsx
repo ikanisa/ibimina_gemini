@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, AlertTriangle, FileText, ArrowRight, Scale, Wallet, Smartphone, DollarSign, Filter, Check } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, FileText, ArrowRight, Scale, Smartphone, DollarSign, Filter, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { SupabaseReconciliationIssue } from '../types';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, Badge } from './ui';
 
-type RecTab = 'MoMo vs Ledger' | 'Branch Cash' | 'Token Reserve';
+type RecTab = 'MoMo vs Ledger' | 'Branch Cash';
 
 const Reconciliation: React.FC = () => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
@@ -165,7 +165,6 @@ const Reconciliation: React.FC = () => {
           {[
             { id: 'MoMo vs Ledger', icon: Smartphone },
             { id: 'Branch Cash', icon: DollarSign },
-            { id: 'Token Reserve', icon: Wallet },
           ].map(tab => (
             <button
               key={tab.id}
@@ -300,32 +299,7 @@ const Reconciliation: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'Token Reserve' && (
-            <div className="p-6 max-w-4xl mx-auto">
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6">
-                  <p className="text-xs font-bold text-indigo-600 uppercase mb-1">Total Tokens Issued</p>
-                  <p className="text-3xl font-bold text-indigo-900">12,450 TKN</p>
-                  <p className="text-xs text-indigo-400 mt-1">Pegged at $1 USD</p>
-                </div>
-                <div className="bg-green-50 border border-green-100 rounded-xl p-6">
-                  <p className="text-xs font-bold text-green-600 uppercase mb-1">USD Reserve Account</p>
-                  <p className="text-3xl font-bold text-green-900">$12,450.00</p>
-                  <p className="text-xs text-green-600 mt-1">Held in Bank</p>
-                </div>
-              </div>
 
-              <div className="bg-white p-6 rounded-xl border border-slate-200 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 text-green-600 rounded-full mb-4">
-                  <Check size={32} />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Reserve is Balanced</h3>
-                <p className="text-slate-500 text-sm max-w-md mx-auto mt-2">
-                  The total circulating token supply exactly matches the USD funds held in the designated reserve account. No action needed.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

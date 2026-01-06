@@ -1,21 +1,17 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { MessageSquare, CheckCircle2, AlertCircle, ArrowRight, Cpu, Smartphone, LayoutList, Table as TableIcon, RefreshCw } from 'lucide-react';
-import { MOCK_SMS, MOCK_NFC_LOGS } from '../constants';
-import { SmsMessage, NfcLog, SupabaseNfcLog, SupabaseSmsMessage } from '../types';
+import { MessageSquare, CheckCircle2, AlertCircle, ArrowRight, Cpu, LayoutList, Table as TableIcon, RefreshCw } from 'lucide-react';
+import { MOCK_SMS } from '../constants';
+import { SmsMessage, SupabaseSmsMessage } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmsMessages } from '../hooks';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, Badge } from './ui';
 
-interface MoMoOperationsProps {
-  mode?: 'sms' | 'nfc'; // 'sms' for Staff, 'nfc' for Admin logs
-}
-
-const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
+const MoMoOperations: React.FC = () => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
-  
+
   // Use the new hook for SMS messages
   const {
     messages: supabaseMessages,
@@ -24,7 +20,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
     refetch: refetchSms,
     linkToTransaction: linkSmsToTransaction
   } = useSmsMessages({
-    autoFetch: !useMockData && mode === 'sms'
+    autoFetch: !useMockData
   });
 
   // Transform Supabase messages to UI format
@@ -36,7 +32,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
   const smsRecords = useMemo(() => {
     if (useMockData) return MOCK_SMS;
     if (!supabaseMessages.length) return [];
-    
+
     return supabaseMessages.map((sms: SupabaseSmsMessage) => ({
       id: sms.id,
       sender: sms.sender,
@@ -45,11 +41,11 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
       isParsed: sms.is_parsed,
       parsedData: sms.is_parsed
         ? {
-            amount: Number(sms.parsed_amount ?? 0),
-            currency: sms.parsed_currency ?? 'RWF',
-            transactionId: sms.parsed_transaction_id ?? '',
-            counterparty: sms.parsed_counterparty ?? ''
-          }
+          amount: Number(sms.parsed_amount ?? 0),
+          currency: sms.parsed_currency ?? 'RWF',
+          transactionId: sms.parsed_transaction_id ?? '',
+          counterparty: sms.parsed_counterparty ?? ''
+        }
         : undefined,
       linkedTransactionId: sms.linked_transaction_id ?? undefined
     }));
@@ -57,9 +53,6 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
 
   const [smsViewMode, setSmsViewMode] = useState<'split' | 'table'>('split');
   const [selectedSms, setSelectedSms] = useState<SmsMessage | null>(null);
-  const [nfcRecords, setNfcRecords] = useState<NfcLog[]>(useMockData ? MOCK_NFC_LOGS : []);
-  const [nfcLoading, setNfcLoading] = useState(false);
-  const [nfcError, setNfcError] = useState<string | null>(null);
   const [isCreatingTx, setIsCreatingTx] = useState(false);
 
   // Handle Create Transaction from parsed SMS
@@ -93,26 +86,9 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
       // Link the transaction to the SMS record using the hook method
       await linkSmsToTransaction(selectedSms.id, txData.id);
 
-      // Also create a payment_ledger entry for reconciliation
-      if (txData && selectedSms.parsedData) {
-        await supabase
-          .from('payment_ledger')
-          .insert({
-            institution_id: institutionId,
-            txn_type: 'Deposit',
-            amount: selectedSms.parsedData.amount,
-            currency: selectedSms.parsedData.currency || 'RWF',
-            counterparty: selectedSms.parsedData.counterparty || selectedSms.sender,
-            reference: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`,
-            txn_id: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`,
-            reconciled: true,
-            timestamp: new Date().toISOString()
-          });
-      }
-
       // Update selected SMS to reflect the link
       setSelectedSms(prev => prev ? { ...prev, linkedTransactionId: txData.id } : null);
-      
+
       // Refetch to update the list
       await refetchSms();
     } catch (err) {
@@ -122,379 +98,254 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
     }
   };
 
-  // Load NFC logs (no hook available yet)
-  useEffect(() => {
-    if (mode !== 'nfc') return;
-    
-    if (useMockData) {
-      setNfcRecords(MOCK_NFC_LOGS);
-      return;
-    }
-
-    if (!institutionId) {
-      setNfcRecords([]);
-      return;
-    }
-
-    const formatTimestamp = (value: string) => {
-      const date = new Date(value);
-      return `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
-    };
-
-    const loadNfcData = async () => {
-      setNfcLoading(true);
-      setNfcError(null);
-
-      const { data, error } = await supabase
-        .from('nfc_logs')
-        .select('*')
-        .eq('institution_id', institutionId)
-        .order('timestamp', { ascending: false });
-
-      if (error) {
-        console.error('Error loading NFC logs:', error);
-        setNfcError('Unable to load NFC logs. Check your connection and permissions.');
-        setNfcRecords([]);
-        setNfcLoading(false);
-        return;
-      }
-
-      const mapped = (data as SupabaseNfcLog[]).map((log) => {
-        const normalizedStatus = log.status.toUpperCase().replace(/\s+/g, '_');
-        const statusLabel: NfcLog['status'] =
-          normalizedStatus === 'SUCCESS'
-            ? 'Success'
-            : normalizedStatus === 'FAILED'
-              ? 'Failed'
-              : 'Pending SMS';
-        return {
-          id: log.id,
-          timestamp: formatTimestamp(log.timestamp),
-          deviceId: log.device_id,
-          tagId: log.tag_id,
-          action: log.action,
-          status: statusLabel,
-          memberId: log.member_id ?? undefined,
-          amount: log.amount ?? undefined,
-          linkedSms: log.linked_sms
-        };
-      });
-
-      setNfcRecords(mapped);
-      setNfcLoading(false);
-    };
-
-    loadNfcData();
-  }, [useMockData, institutionId, mode]);
-
   // Set first SMS as selected when records load
   useEffect(() => {
-    if (mode === 'sms' && smsRecords.length > 0 && !selectedSms) {
+    if (smsRecords.length > 0 && !selectedSms) {
       setSelectedSms(smsRecords[0]);
     }
-  }, [smsRecords, mode, selectedSms]);
+  }, [smsRecords, selectedSms]);
 
   const handleRefresh = () => {
     refetchSms();
   };
 
-  // Determine loading and error states
-  const loading = mode === 'sms' ? smsLoading : nfcLoading;
-  const error = mode === 'sms' ? smsError : nfcError;
-
   return (
     <div className="space-y-6 h-full flex flex-col">
       {/* Error Display */}
-      {error && (
-        <ErrorDisplay error={error} variant="banner" />
+      {smsError && (
+        <ErrorDisplay error={smsError} variant="banner" />
       )}
       {/* Loading State */}
-      {loading && (
-        <LoadingSpinner size="lg" text={mode === 'sms' ? 'Loading SMS messages...' : 'Loading NFC logs...'} className="h-32" />
+      {smsLoading && (
+        <LoadingSpinner size="lg" text="Loading SMS messages..." className="h-32" />
       )}
       {/* Header */}
       <div className="flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            {mode === 'nfc' ? <Smartphone className="text-blue-600" /> : <MessageSquare className="text-blue-600" />}
-            {mode === 'nfc' ? 'NFC & USSD System Logs' : 'MoMo SMS Inbox & Parsing'}
+            <MessageSquare className="text-blue-600" />
+            MoMo SMS Inbox & Parsing
           </h2>
           <p className="text-sm text-slate-500">
-            {mode === 'nfc'
-              ? 'System-wide audit trail of all NFC tag interactions and USSD sessions.'
-              : 'AI-powered parsing of incoming Mobile Money notification messages.'}
+            AI-powered parsing of incoming Mobile Money notification messages.
           </p>
         </div>
-        {mode === 'sms' && (
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<RefreshCw size={16} />}
-            onClick={handleRefresh}
-            isLoading={smsLoading}
-          >
-            Sync Inbox
-          </Button>
-        )}
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<RefreshCw size={16} />}
+          onClick={handleRefresh}
+          isLoading={smsLoading}
+        >
+          Sync Inbox
+        </Button>
       </div>
 
-      {/* NFC View (Admin Only) */}
-      {mode === 'nfc' && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          <div className="grid grid-cols-12 px-4 md:px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            <div className="col-span-2">Date & Time</div>
-            <div className="col-span-2">Member</div>
-            <div className="col-span-2">Amount</div>
-            <div className="col-span-3">Device / Tag</div>
-            <div className="col-span-1">SMS Link</div>
-            <div className="col-span-2 text-right">Status</div>
+      {/* SMS Parsing View */}
+      <div className="space-y-4 flex-1 flex flex-col">
+        {/* View Mode Toggle */}
+        <div className="flex justify-end gap-2 shrink-0">
+          <div className="bg-white border border-slate-200 rounded-lg p-1 flex gap-1">
+            <button
+              onClick={() => setSmsViewMode('split')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all min-h-[44px] touch-manipulation ${smsViewMode === 'split' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 active:scale-[0.98]'}`}
+            >
+              <LayoutList size={14} /> Split View
+            </button>
+            <button
+              onClick={() => setSmsViewMode('table')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all min-h-[44px] touch-manipulation ${smsViewMode === 'table' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 active:scale-[0.98]'}`}
+            >
+              <TableIcon size={14} /> Table View
+            </button>
           </div>
-          <div className="overflow-y-auto flex-1">
-            {nfcRecords.map(log => (
-              <div key={log.id} className="grid grid-cols-12 px-4 md:px-6 py-4 items-center border-b border-slate-50 hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
-                <div className="col-span-2 text-sm text-slate-900">{log.timestamp}</div>
-                <div className="col-span-2 text-sm text-slate-600">{log.memberId || 'Unknown'}</div>
-                <div className="col-span-2 text-sm font-medium text-slate-900">{log.amount ? `${log.amount.toLocaleString()} RWF` : '-'}</div>
-                <div className="col-span-3">
-                  <div className="text-xs text-slate-500">Dev: {log.deviceId}</div>
-                  <div className="text-xs font-mono bg-slate-100 px-1 rounded w-fit mt-0.5">{log.tagId}</div>
-                </div>
-                <div className="col-span-1">
-                  {log.linkedSms ? (
-                    <CheckCircle2 size={16} className="text-green-500" />
-                  ) : (
-                    <span className="text-slate-300">-</span>
-                  )}
-                </div>
-                <div className="col-span-2 text-right">
-                  <Badge
-                    variant={log.status === 'Success' ? 'success' : log.status === 'Pending SMS' ? 'warning' : 'danger'}
-                  >
-                    {log.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-          {nfcRecords.length === 0 && !nfcLoading && (
-            <EmptyState
-              icon={Smartphone}
-              title={useMockData ? 'No NFC logs found' : 'No NFC logs yet'}
-              description={useMockData 
-                ? 'No NFC logs match your criteria.' 
-                : 'Connect this module to Supabase to see NFC logs.'}
-            />
-          )}
         </div>
-      )}
 
-      {/* SMS Parsing View (Staff) */}
-      {mode === 'sms' && (
-        <div className="space-y-4 flex-1 flex flex-col">
-          {/* View Mode Toggle */}
-          <div className="flex justify-end gap-2 shrink-0">
-            <div className="bg-white border border-slate-200 rounded-lg p-1 flex gap-1">
-              <button
-                onClick={() => setSmsViewMode('split')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all min-h-[44px] touch-manipulation ${smsViewMode === 'split' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 active:scale-[0.98]'}`}
-              >
-                <LayoutList size={14} /> Split View
-              </button>
-              <button
-                onClick={() => setSmsViewMode('table')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all min-h-[44px] touch-manipulation ${smsViewMode === 'table' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 active:scale-[0.98]'}`}
-              >
-                <TableIcon size={14} /> Table View
-              </button>
-            </div>
-          </div>
-
-          {smsViewMode === 'split' ? (
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1 overflow-hidden">
-              {/* Inbox List */}
-              <div className="w-full md:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-slate-700">SMS Inbox</h3>
-                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Live Sync</span>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  {smsRecords.map(sms => (
-                    <div
-                      key={sms.id}
-                      onClick={() => setSelectedSms(sms)}
-                      className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-all duration-150 touch-manipulation min-h-[60px] ${selectedSms?.id === sms.id ? 'bg-blue-50 border-l-4 border-l-blue-500 ring-2 ring-blue-200' : 'border-l-4 border-l-transparent'}`}
-                    >
-                      <div className="flex justify-between mb-1">
-                        <span className="font-semibold text-sm text-slate-900">{sms.sender}</span>
-                        <span className="text-xs text-slate-400">{sms.timestamp.split(' ')[1]}</span>
-                      </div>
-                      <p className="text-xs text-slate-600 line-clamp-2">{sms.body}</p>
-                      <div className="mt-2 flex items-center gap-2">
-                        {sms.isParsed ? (
-                          <span className="text-[10px] text-green-600 flex items-center gap-1"><CheckCircle2 size={10} /> Parsed</span>
-                        ) : (
-                          <span className="text-[10px] text-amber-600 flex items-center gap-1"><AlertCircle size={10} /> Unparsed</span>
-                        )}
-                        {sms.linkedTransactionId && (
-                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded">Linked</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {smsRecords.length === 0 && !smsLoading && (
-                    <EmptyState
-                      icon={MessageSquare}
-                      title={useMockData ? 'No SMS messages' : 'No SMS data yet'}
-                      description={useMockData 
-                        ? 'No SMS messages available.' 
-                        : 'Connect this module to Supabase to see SMS messages.'}
-                    />
-                  )}
-                </div>
+        {smsViewMode === 'split' ? (
+          <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1 overflow-hidden">
+            {/* Inbox List */}
+            <div className="w-full md:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-slate-700">SMS Inbox</h3>
+                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Live Sync</span>
               </div>
-
-              {/* Parsing Details */}
-              <div className="w-full md:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden relative">
-                {!selectedSms ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-10 text-center">
-                    <Cpu size={48} className="mb-4 text-slate-200" />
-                    <p>Select an SMS message to inspect AI parsing details.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-4 border-b border-slate-100 bg-slate-50">
-                      <h3 className="text-sm font-semibold text-slate-700">Parser Output</h3>
+              <div className="flex-1 overflow-y-auto">
+                {smsRecords.map(sms => (
+                  <div
+                    key={sms.id}
+                    onClick={() => setSelectedSms(sms)}
+                    className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-all duration-150 touch-manipulation min-h-[60px] ${selectedSms?.id === sms.id ? 'bg-blue-50 border-l-4 border-l-blue-500 ring-2 ring-blue-200' : 'border-l-4 border-l-transparent'}`}
+                  >
+                    <div className="flex justify-between mb-1">
+                      <span className="font-semibold text-sm text-slate-900">{sms.sender}</span>
+                      <span className="text-xs text-slate-400">{sms.timestamp.split(' ')[1]}</span>
                     </div>
-                    <div className="p-6 space-y-6 flex-1 overflow-y-auto">
-                      <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 font-mono text-xs text-slate-600 leading-relaxed">
-                        {selectedSms.body}
-                      </div>
-
-                      <div className="relative">
-                        <div className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2">
-                          <ArrowRight size={16} className="text-slate-300 rotate-90" />
-                        </div>
-                      </div>
-
-                      {selectedSms.parsedData ? (
-                        <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100 space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs font-medium text-slate-500 uppercase">Amount</label>
-                              <p className="text-lg font-bold text-slate-900">{selectedSms.parsedData.amount.toLocaleString()} <span className="text-sm font-normal text-slate-500">{selectedSms.parsedData.currency}</span></p>
-                            </div>
-                            <div>
-                              <label className="text-xs font-medium text-slate-500 uppercase">Transaction ID</label>
-                              <p className="text-base font-mono font-medium text-slate-900">{selectedSms.parsedData.transactionId}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <label className="text-xs font-medium text-slate-500 uppercase">Counterparty</label>
-                              <p className="text-sm font-medium text-slate-900">{selectedSms.parsedData.counterparty}</p>
-                            </div>
-                          </div>
-
-                          <div className="pt-4 border-t border-blue-100 flex justify-end gap-3">
-                            {!selectedSms.linkedTransactionId ? (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={handleCreateTransaction}
-                                isLoading={isCreatingTx}
-                              >
-                                Create Transaction
-                              </Button>
-                            ) : (
-                              <Badge variant="success" className="flex items-center gap-2">
-                                <CheckCircle2 size={16} /> Linked to {selectedSms.linkedTransactionId.slice(0, 8)}...
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                    <p className="text-xs text-slate-600 line-clamp-2">{sms.body}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      {sms.isParsed ? (
+                        <span className="text-[10px] text-green-600 flex items-center gap-1"><CheckCircle2 size={10} /> Parsed</span>
                       ) : (
-                        <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-xl">
-                          <p className="text-slate-500 text-sm mb-3">AI could not confidently parse this message.</p>
-                          <button className="text-blue-600 font-medium text-sm hover:underline">Manually Map Fields</button>
-                        </div>
+                        <span className="text-[10px] text-amber-600 flex items-center gap-1"><AlertCircle size={10} /> Unparsed</span>
+                      )}
+                      {sms.linkedTransactionId && (
+                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded">Linked</span>
                       )}
                     </div>
-                  </>
+                  </div>
+                ))}
+                {smsRecords.length === 0 && !smsLoading && (
+                  <EmptyState
+                    icon={MessageSquare}
+                    title={useMockData ? 'No SMS messages' : 'No SMS data yet'}
+                    description={useMockData
+                      ? 'No SMS messages available.'
+                      : 'Connect this module to Supabase to see SMS messages.'}
+                  />
                 )}
               </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1">
-              {/* Full Table View */}
-              <div className="overflow-x-auto h-full">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
-                    <tr>
-                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Timestamp</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sender</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/3">Message Snippet</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Parsing Status</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Transaction</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {smsRecords.map(sms => (
-                      <tr key={sms.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{sms.timestamp}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{sms.sender}</td>
-                        <td className="px-6 py-4 text-sm text-slate-500 truncate max-w-xs" title={sms.body}>
-                          {sms.body}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            variant={sms.isParsed ? 'success' : 'warning'}
-                            className="flex items-center gap-1 w-fit"
-                          >
-                            {sms.isParsed ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                            {sms.isParsed ? 'Parsed' : 'Failed'}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {sms.linkedTransactionId ? (
-                            <Badge variant="info" className="flex items-center gap-1 w-fit">
-                              <CheckCircle2 size={12} /> {sms.linkedTransactionId.slice(0, 8)}...
-                            </Badge>
+
+            {/* Parsing Details */}
+            <div className="w-full md:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden relative">
+              {!selectedSms ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-10 text-center">
+                  <Cpu size={48} className="mb-4 text-slate-200" />
+                  <p>Select an SMS message to inspect AI parsing details.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-sm font-semibold text-slate-700">Parser Output</h3>
+                  </div>
+                  <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 font-mono text-xs text-slate-600 leading-relaxed">
+                      {selectedSms.body}
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2">
+                        <ArrowRight size={16} className="text-slate-300 rotate-90" />
+                      </div>
+                    </div>
+
+                    {selectedSms.parsedData ? (
+                      <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase">Amount</label>
+                            <p className="text-lg font-bold text-slate-900">{selectedSms.parsedData.amount.toLocaleString()} <span className="text-sm font-normal text-slate-500">{selectedSms.parsedData.currency}</span></p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase">Transaction ID</label>
+                            <p className="text-base font-mono font-medium text-slate-900">{selectedSms.parsedData.transactionId}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <label className="text-xs font-medium text-slate-500 uppercase">Counterparty</label>
+                            <p className="text-sm font-medium text-slate-900">{selectedSms.parsedData.counterparty}</p>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-blue-100 flex justify-end gap-3">
+                          {!selectedSms.linkedTransactionId ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={handleCreateTransaction}
+                              isLoading={isCreatingTx}
+                            >
+                              Create Transaction
+                            </Button>
                           ) : (
-                            <span className="text-slate-400 text-xs italic">Unlinked</span>
+                            <Badge variant="success" className="flex items-center gap-2">
+                              <CheckCircle2 size={16} /> Linked to {selectedSms.linkedTransactionId.slice(0, 8)}...
+                            </Badge>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => {
-                              setSmsViewMode('split');
-                              setSelectedSms(sms);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline flex items-center justify-end gap-1"
-                          >
-                            View Details <ArrowRight size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {smsRecords.length === 0 && !smsLoading && (
-                      <tr>
-                        <td colSpan={6}>
-                          <EmptyState
-                            icon={MessageSquare}
-                            title={useMockData ? 'No SMS messages' : 'No SMS data yet'}
-                            description={useMockData 
-                              ? 'No SMS messages match your criteria.' 
-                              : 'Connect this module to Supabase to see SMS messages.'}
-                          />
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-xl">
+                        <p className="text-slate-500 text-sm mb-3">AI could not confidently parse this message.</p>
+                        <button className="text-blue-600 font-medium text-sm hover:underline">Manually Map Fields</button>
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1">
+            {/* Full Table View */}
+            <div className="overflow-x-auto h-full">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Timestamp</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sender</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/3">Message Snippet</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Parsing Status</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Transaction</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {smsRecords.map(sms => (
+                    <tr key={sms.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{sms.timestamp}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{sms.sender}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500 truncate max-w-xs" title={sms.body}>
+                        {sms.body}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge
+                          variant={sms.isParsed ? 'success' : 'warning'}
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          {sms.isParsed ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                          {sms.isParsed ? 'Parsed' : 'Failed'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {sms.linkedTransactionId ? (
+                          <Badge variant="info" className="flex items-center gap-1 w-fit">
+                            <CheckCircle2 size={12} /> {sms.linkedTransactionId.slice(0, 8)}...
+                          </Badge>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">Unlinked</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={() => {
+                            setSmsViewMode('split');
+                            setSelectedSms(sms);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline flex items-center justify-end gap-1"
+                        >
+                          View Details <ArrowRight size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {smsRecords.length === 0 && !smsLoading && (
+                    <tr>
+                      <td colSpan={6}>
+                        <EmptyState
+                          icon={MessageSquare}
+                          title={useMockData ? 'No SMS messages' : 'No SMS data yet'}
+                          description={useMockData
+                            ? 'No SMS messages match your criteria.'
+                            : 'Connect this module to Supabase to see SMS messages.'}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { KpiStats, Member, NfcLog, Sacco, SmsMessage, StaffMember, Transaction, Group, GroupMember, Meeting, Contribution, Loan } from './types';
+import { KpiStats, Member, Sacco, SmsMessage, StaffMember, Transaction, Group, GroupMember, Meeting, Contribution, Loan } from './types';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
@@ -307,37 +307,7 @@ export const MOCK_SMS: SmsMessage[] = USE_MOCK_DATA ? [
   }
 ] : [];
 
-export const MOCK_NFC_LOGS: NfcLog[] = USE_MOCK_DATA ? [
-  {
-    id: 'NFC-001',
-    timestamp: '14:28:10',
-    deviceId: 'POS-01',
-    tagId: 'TAG-8829',
-    action: 'Initiate Deposit',
-    status: 'Success',
-    memberId: 'M-1001',
-    amount: 50000,
-    linkedSms: true
-  },
-  {
-    id: 'NFC-002',
-    timestamp: '12:00:05',
-    deviceId: 'POS-02',
-    tagId: 'TAG-1102',
-    action: 'Balance Check',
-    status: 'Success',
-    memberId: 'M-1004'
-  },
-  {
-    id: 'NFC-003',
-    timestamp: '11:40:00',
-    deviceId: 'POS-01',
-    tagId: 'TAG-UNKNOWN',
-    action: 'Registration',
-    status: 'Pending SMS',
-    linkedSms: false
-  }
-] : [];
+
 
 export const MOCK_STAFF: StaffMember[] = USE_MOCK_DATA ? [
   {

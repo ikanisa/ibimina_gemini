@@ -17,7 +17,7 @@ import {
   Briefcase,
   Scale,
   ShieldCheck,
-  Wallet,
+
   PieChart,
   ChevronDown,
   UserCircle,
@@ -30,7 +30,7 @@ const Members = lazy(() => import('./components/Members'));
 const Transactions = lazy(() => import('./components/Transactions'));
 const MoMoOperations = lazy(() => import('./components/MoMoOperations'));
 const Saccos = lazy(() => import('./components/Saccos'));
-const TokenWallet = lazy(() => import('./components/TokenWallet'));
+
 const Reconciliation = lazy(() => import('./components/Reconciliation'));
 const Staff = lazy(() => import('./components/Staff'));
 const Profile = lazy(() => import('./components/Profile'));
@@ -203,7 +203,7 @@ const App: React.FC = () => {
       case ViewState.SACCOS:
       case ViewState.STAFF:
       case ViewState.SETTINGS:
-      case ViewState.NFC_LOGS: // Only Admins see raw NFC logs
+
         return ['Super Admin'].includes(effectiveRole);
       case ViewState.RECONCILIATION:
         return ['Super Admin', 'Branch Manager', 'Auditor'].includes(effectiveRole);
@@ -215,8 +215,7 @@ const App: React.FC = () => {
         return ['Super Admin', 'Branch Manager', 'Loan Officer'].includes(effectiveRole);
       case ViewState.MOMO_OPERATIONS: // Staff see SMS parsing
         return ['Super Admin', 'Branch Manager', 'Teller', 'Loan Officer'].includes(effectiveRole);
-      case ViewState.TOKENS:
-        return ['Super Admin', 'Branch Manager'].includes(effectiveRole);
+
       default:
         return false;
     }
@@ -313,11 +312,11 @@ const App: React.FC = () => {
           <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Finance</p>
           <NavItem view={ViewState.LOANS} icon={<FileText size={18} />} label="Loans" />
           <NavItem view={ViewState.TRANSACTIONS} icon={<FileText size={18} />} label="Transactions" />
-          <NavItem view={ViewState.TOKENS} icon={<CreditCard size={18} />} label="Token Wallets (USD)" />
+
 
           <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Operations</p>
           <NavItem view={ViewState.MOMO_OPERATIONS} icon={<Smartphone size={18} />} label="MoMo SMS (Staff)" />
-          <NavItem view={ViewState.NFC_LOGS} icon={<CreditCard size={18} />} label="NFC Logs (Admin)" />
+
           <NavItem view={ViewState.RECONCILIATION} icon={<Scale size={18} />} label="Reconciliation" />
 
           <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">System</p>
@@ -368,8 +367,8 @@ const App: React.FC = () => {
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 backdrop-blur-sm bg-white/95">
           <div className="flex items-center gap-4">
-            <button 
-              className="md:hidden text-slate-500 p-2 -ml-2 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" 
+            <button
+              className="md:hidden text-slate-500 p-2 -ml-2 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -382,8 +381,7 @@ const App: React.FC = () => {
               {currentView === ViewState.MEMBERS && 'Member Management'}
               {currentView === ViewState.TRANSACTIONS && 'Ledger'}
               {currentView === ViewState.MOMO_OPERATIONS && 'Mobile Money SMS Parsing'}
-              {currentView === ViewState.NFC_LOGS && 'NFC System Logs'}
-              {currentView === ViewState.TOKENS && 'USD Token Wallets'}
+
               {currentView === ViewState.RECONCILIATION && 'Reconciliation Center'}
               {currentView === ViewState.ACCOUNTS && 'Accounts & Products'}
               {currentView === ViewState.LOANS && 'Loan Management'}
@@ -401,13 +399,13 @@ const App: React.FC = () => {
             )}
             <div className="relative hidden lg:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Global search..." 
-                className="pl-9 pr-4 py-2 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 xl:w-64 transition-all" 
+              <input
+                type="text"
+                placeholder="Global search..."
+                className="pl-9 pr-4 py-2 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 xl:w-64 transition-all"
               />
             </div>
-            <button 
+            <button
               className="relative text-slate-500 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-slate-100 active:scale-95 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Notifications"
             >
@@ -489,11 +487,9 @@ const App: React.FC = () => {
               <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
             )}
 
-            {/* Split Mobile Money Views */}
-            {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations mode="sms" />}
-            {currentView === ViewState.NFC_LOGS && canAccess(ViewState.NFC_LOGS) && <MoMoOperations mode="nfc" />}
+            {/* Mobile Money SMS Parsing */}
+            {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations />}
 
-            {currentView === ViewState.TOKENS && canAccess(ViewState.TOKENS) && <TokenWallet />}
             {currentView === ViewState.RECONCILIATION && canAccess(ViewState.RECONCILIATION) && <Reconciliation />}
             {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && <Loans onNavigate={setCurrentView} />}
             {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
