@@ -10,11 +10,8 @@ import * as Sentry from '@sentry/react';
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 
 export function initSentry() {
-    // Only initialize in production or if explicitly enabled
+    // Only initialize if DSN is configured (Sentry is optional)
     if (!SENTRY_DSN) {
-        if (import.meta.env.PROD) {
-            console.warn('Sentry DSN not configured. Set VITE_SENTRY_DSN to enable error tracking.');
-        }
         return;
     }
 
