@@ -13,24 +13,31 @@ The `public/_headers` file defines security headers that Cloudflare Pages applie
 #### 1. Content-Security-Policy (CSP)
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co;
+script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.cloudflare.com;
 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-font-src 'self' https://fonts.gstatic.com;
+font-src 'self' https://fonts.gstatic.com data:;
 img-src 'self' data: https: blob:;
-connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflare.com https://generativelanguage.googleapis.com;
 frame-src 'self' https://*.supabase.co;
 worker-src 'self' blob:;
 manifest-src 'self';
 base-uri 'self';
 form-action 'self';
+object-src 'none';
+media-src 'self' blob:;
+upgrade-insecure-requests;
 ```
 
 **Purpose:** Prevents XSS attacks by controlling resource loading
 
 **Notes:**
-- `'unsafe-inline'` and `'unsafe-eval'` are required for Vite's development mode
+- `'unsafe-inline'` and `'unsafe-eval'` are required for Vite's development mode and some build outputs
 - In production, Vite should eliminate these, but they're kept for compatibility
 - Supabase domains are explicitly allowed for API calls
+- Cloudflare domains are allowed for Pages and CDN resources
+- Gemini API (generativelanguage.googleapis.com) is allowed for AI features
+- `object-src 'none'` prevents plugin-based attacks
+- `upgrade-insecure-requests` forces HTTPS for all resources
 
 #### 2. X-Frame-Options
 ```
@@ -170,11 +177,31 @@ curl -I https://sacco1.pages.dev | grep -i "x-frame\|x-content-type\|content-sec
 - Images don't load
 - API calls fail
 - Styles broken
+- Console errors showing "Content Security Policy" violations
 
 **Solutions:**
-1. Check browser console for CSP violation reports
-2. Add required domains to appropriate CSP directive
-3. Test incrementally (add one domain at a time)
+1. **Check browser console for CSP violation reports:**
+   - Open DevTools → Console tab
+   - Look for errors like: "Refused to load... because it violates the following Content Security Policy directive"
+   - Note the blocked resource URL and the directive that blocked it
+
+2. **Add required domains to appropriate CSP directive:**
+   - `connect-src` - for API calls, WebSockets, fetch requests
+   - `script-src` - for external JavaScript files
+   - `style-src` - for external stylesheets
+   - `img-src` - for images from external domains
+   - `font-src` - for web fonts
+
+3. **Test incrementally:**
+   - Add one domain at a time
+   - Test after each addition
+   - Use wildcards (`*.example.com`) for subdomains
+
+4. **Common fixes:**
+   - If Supabase calls fail: Ensure `https://*.supabase.co` is in `connect-src`
+   - If Gemini API fails: Add `https://generativelanguage.googleapis.com` to `connect-src`
+   - If Cloudflare resources fail: Add `https://*.cloudflare.com` to appropriate directives
+   - If inline styles/scripts needed: Add `'unsafe-inline'` (less secure, use sparingly)
 
 ### Issue: Service Worker Not Updating
 
