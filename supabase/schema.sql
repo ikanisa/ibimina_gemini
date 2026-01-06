@@ -88,7 +88,7 @@ create table if not exists public.groups (
   group_name text not null,
   status group_status not null default 'ACTIVE',
   expected_amount numeric(14, 2) not null default 0,
-  frequency text not null check (frequency in ('Weekly', 'Monthly')),
+  frequency text not null,
   grace_days integer not null default 0,
   bank_name text,
   account_ref text,
@@ -303,6 +303,10 @@ alter table public.members add column if not exists join_date date;
 alter table public.contributions add column if not exists meeting_id uuid references public.meetings(id) on delete set null;
 alter table public.contributions add column if not exists channel text;
 
+-- Data validation constraints
+alter table public.groups add constraint if not exists check_frequency 
+  check (frequency in ('Weekly', 'Monthly'));
+
 -- Indexes
 create index if not exists idx_profiles_institution_id on public.profiles (institution_id);
 create index if not exists idx_groups_institution_id on public.groups (institution_id);
@@ -327,6 +331,13 @@ create index if not exists idx_loans_group_id on public.loans (group_id);
 create index if not exists idx_sms_messages_institution_id on public.sms_messages (institution_id);
 create index if not exists idx_nfc_logs_institution_id on public.nfc_logs (institution_id);
 create index if not exists idx_reconciliation_issues_institution_id on public.reconciliation_issues (institution_id);
+
+-- Performance indexes for common queries
+create index if not exists idx_transactions_created_at on public.transactions (created_at DESC);
+create index if not exists idx_contributions_date on public.contributions (date DESC);
+create index if not exists idx_sms_messages_timestamp on public.sms_messages (timestamp DESC);
+create index if not exists idx_transactions_institution_status on public.transactions (institution_id, status);
+create index if not exists idx_contributions_institution_date on public.contributions (institution_id, date DESC);
 
 -- Updated-at trigger
 create or replace function public.set_updated_at()

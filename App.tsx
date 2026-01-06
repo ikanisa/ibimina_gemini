@@ -231,9 +231,9 @@ const App: React.FC = () => {
           setCurrentView(view);
           setIsMobileMenuOpen(false);
         }}
-        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors rounded-lg mb-1 ${currentView === view
-          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 rounded-lg mb-1 min-h-[44px] touch-manipulation ${currentView === view
+          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 scale-[1.02]'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white active:scale-[0.98]'
           }`}
       >
         {icon}
@@ -290,7 +290,7 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-inter">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col shadow-xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white">S+</div>
           <h1 className="text-xl font-bold tracking-tight">SACCO+</h1>
@@ -366,12 +366,16 @@ const App: React.FC = () => {
         )}
 
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-40">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 backdrop-blur-sm bg-white/95">
           <div className="flex items-center gap-4">
-            <button className="md:hidden text-slate-500" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <button 
+              className="md:hidden text-slate-500 p-2 -ml-2 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
               <Menu size={24} />
             </button>
-            <h2 className="text-lg font-semibold text-slate-800 hidden md:block">
+            <h2 className="text-base md:text-lg font-semibold text-slate-800 truncate">
               {currentView === ViewState.DASHBOARD && `${currentUser.role} Dashboard`}
               {currentView === ViewState.GROUPS && 'Ibimina (Groups Management)'}
               {currentView === ViewState.SACCOS && 'SACCOs & Branches'}
@@ -395,13 +399,20 @@ const App: React.FC = () => {
                 <WifiOff size={14} /> Offline Mode
               </div>
             )}
-            <div className="relative hidden md:block">
+            <div className="relative hidden lg:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input type="text" placeholder="Global search..." className="pl-9 pr-4 py-2 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 transition-all" />
+              <input 
+                type="text" 
+                placeholder="Global search..." 
+                className="pl-9 pr-4 py-2 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 xl:w-64 transition-all" 
+              />
             </div>
-            <button className="relative text-slate-500 hover:text-blue-600 transition-colors">
+            <button 
+              className="relative text-slate-500 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-slate-100 active:scale-95 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Notifications"
+            >
               <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             </button>
 
             <div className="relative">
@@ -454,7 +465,7 @@ const App: React.FC = () => {
         </header>
 
         {/* View Area */}
-        <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth">
           <Suspense fallback={<SectionLoading />}>
             {currentView === ViewState.DASHBOARD && (
               showSupabaseDashboard ? (

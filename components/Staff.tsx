@@ -1,10 +1,9 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Users, 
   Shield, 
   Plus, 
-  Search, 
   MoreHorizontal, 
   Check, 
   X, 
@@ -28,6 +27,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { buildInitialsAvatar } from '../lib/avatars';
 import { mapStaffRole, mapStaffStatus } from '../lib/mappers';
+import { LoadingSpinner, ErrorDisplay, EmptyState, Button, FormField, SearchInput, Badge, Modal } from './ui';
 
 type Tab = 'Staff List' | 'Roles & Permissions';
 type ImportStep = 'upload' | 'processing' | 'review' | 'success';
@@ -125,11 +125,16 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     loadStaff();
   }, [useMockData, institutionId]);
 
-  const filteredStaff = staffMembers.filter(staff => 
-    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter staff with useMemo
+  const filteredStaff = useMemo(() => {
+    if (!searchTerm.trim()) return staffMembers;
+    const term = searchTerm.toLowerCase();
+    return staffMembers.filter(staff => 
+      staff.name.toLowerCase().includes(term) || 
+      staff.email.toLowerCase().includes(term) ||
+      staff.role.toLowerCase().includes(term)
+    );
+  }, [staffMembers, searchTerm]);
 
   // Mock permissions matrix data
   const features = ['Members', 'Savings', 'Loans', 'Tokens', 'NFC Operations', 'Reconciliation', 'Reports', 'Settings'];
@@ -317,45 +322,44 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
         
         {activeTab === 'Staff List' && (
           <div className="flex gap-2">
-            <button 
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Sparkles size={16} className="text-purple-600" />}
               onClick={() => setIsImportModalOpen(true)}
-              className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
             >
-              <Sparkles size={16} className="text-purple-600" />
               Bulk Import via AI
-            </button>
-            <button 
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={16} />}
               onClick={() => setIsAddModalOpen(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
             >
-              <Plus size={16} /> Add Staff
-            </button>
+              Add Staff
+            </Button>
           </div>
         )}
       </div>
 
       {activeTab === 'Staff List' ? (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border-b border-red-200 text-red-700 px-4 py-3 text-sm">
-              {error}
-            </div>
+            <ErrorDisplay error={error} variant="banner" />
           )}
+          {/* Loading State */}
           {loading && (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
+            <LoadingSpinner size="lg" text="Loading staff..." className="h-32" />
           )}
           {/* Toolbar */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search staff by name, email, or role..." 
-                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <SearchInput
+                placeholder="Search staff by name, email, or role..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onClear={() => setSearchTerm('')}
               />
             </div>
           </div>
@@ -374,7 +378,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredStaff.map((staff) => (
-                <tr key={staff.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={staff.id} className="hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <img src={staff.avatarUrl} alt="" className="w-8 h-8 rounded-full" />

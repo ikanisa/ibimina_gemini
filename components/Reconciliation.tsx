@@ -4,6 +4,7 @@ import { CheckCircle2, AlertTriangle, FileText, ArrowRight, Scale, Wallet, Smart
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { SupabaseReconciliationIssue } from '../types';
+import { LoadingSpinner, ErrorDisplay, EmptyState, Button, Badge } from './ui';
 
 type RecTab = 'MoMo vs Ledger' | 'Branch Cash' | 'Token Reserve';
 
@@ -74,10 +75,10 @@ const Reconciliation: React.FC = () => {
       if (txData && txData.length > 0) {
         const movements = txData.map((tx: any) => {
           const date = new Date(tx.created_at);
-          const isDeposit = tx.type === 'Deposit' || tx.type === 'Group Contribution';
+          const isDeposit = tx.txn_type === 'Deposit' || tx.txn_type === 'Group Contribution';
           return {
             time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-            description: tx.type + (tx.member_id ? ' (Member)' : ''),
+            description: tx.txn_type + (tx.member_id ? ' (Member)' : ''),
             amount: Number(tx.amount),
             isDeposit
           };
@@ -118,18 +119,14 @@ const Reconciliation: React.FC = () => {
   return (
     <div className="space-y-6 h-full flex flex-col">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
-        </div>
+        <ErrorDisplay error={error} variant="banner" />
       )}
       {loading && (
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+        <LoadingSpinner size="lg" text="Loading reconciliation data..." className="h-32" />
       )}
       {/* KPI Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Digital Balance</p>
             <p className="text-2xl font-bold text-green-600">99.8%</p>
@@ -139,7 +136,7 @@ const Reconciliation: React.FC = () => {
             <CheckCircle2 size={24} />
           </div>
         </div>
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between border-l-4 border-l-amber-500">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between border-l-4 border-l-amber-500">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase">Pending Issues</p>
             <p className="text-2xl font-bold text-amber-600">{issues.length}</p>
@@ -149,7 +146,7 @@ const Reconciliation: React.FC = () => {
             <AlertTriangle size={24} />
           </div>
         </div>
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase">Last Closed</p>
             <p className="text-2xl font-bold text-slate-900">{lastClosedLabel}</p>
@@ -162,7 +159,7 @@ const Reconciliation: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
         {/* Tabs */}
         <div className="flex border-b border-slate-200 bg-slate-50">
           {[
@@ -187,16 +184,16 @@ const Reconciliation: React.FC = () => {
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div className="flex gap-2">
-            <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 flex items-center gap-2">
-              <Filter size={14} /> Filter: All Issues
-            </button>
-            <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600">
+            <Button variant="secondary" size="sm" leftIcon={<Filter size={14} />}>
+              Filter: All Issues
+            </Button>
+            <Button variant="secondary" size="sm">
               Date: Today
-            </button>
+            </Button>
           </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700">
+          <Button variant="primary" size="sm">
             Export Report
-          </button>
+          </Button>
         </div>
 
         {/* Tab Views */}
@@ -213,7 +210,7 @@ const Reconciliation: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {issues.map(issue => (
-                  <tr key={issue.id} className="hover:bg-slate-50">
+                  <tr key={issue.id} className="hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {new Date(issue.detected_at).toLocaleString()}
                     </td>
@@ -223,9 +220,9 @@ const Reconciliation: React.FC = () => {
                       <div className="text-xs text-blue-600 mt-0.5">Source: {issue.source}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-medium border border-red-100">
+                      <Badge variant="danger" className="flex items-center gap-1 w-fit">
                         <AlertTriangle size={12} /> {issue.ledger_status}
-                      </span>
+                      </Badge>
                       <p className="text-xs text-slate-400 mt-1">Review required for reconciliation.</p>
                     </td>
                     <td className="px-6 py-4 text-right">

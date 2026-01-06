@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, MoreHorizontal, Smartphone, ShieldCheck, UserCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle, Plus, Upload } from 'lucide-react';
-import { Member, ViewState, SupabaseGroup, SupabaseGroupMember, SupabaseMember } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Filter, MoreHorizontal, ShieldCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle, Plus, Upload } from 'lucide-react';
+import { Member, ViewState } from '../types';
 import { MOCK_MEMBERS } from '../constants';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { mapKycStatus, mapMemberStatus } from '../lib/mappers';
-import { buildInitialsAvatar } from '../lib/avatars';
+import { useMembers } from '../hooks';
+import { transformMembers } from '../lib/transformers/memberTransformer';
+import { validateMemberData } from '../lib/validation';
+import { Modal, LoadingSpinner, ErrorDisplay, EmptyState, Button, FormField, SearchInput, Badge } from './ui';
 import BulkMemberUpload from './BulkMemberUpload';
 
 interface MembersProps {
@@ -19,9 +20,39 @@ type Tab = 'Profile' | 'Accounts' | 'Transactions' | 'Documents' | 'Tokens';
 const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
-  const [members, setMembers] = useState<Member[]>(membersProp ?? (useMockData ? MOCK_MEMBERS : []));
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  
+  // Use the new hook instead of manual state management
+  const {
+    members: supabaseMembers,
+    loading,
+    error,
+    createMember: createMemberApi,
+    refetch
+  } = useMembers({
+    includeGroups: true,
+    autoFetch: !useMockData && !membersProp
+  });
+
+  // Transform Supabase members to UI format
+  const members = useMemo(() => {
+    if (membersProp) return membersProp;
+    if (useMockData) return MOCK_MEMBERS;
+    if (!supabaseMembers.length) return [];
+    
+    // Transform using the transformer utility
+    // Extract groups from the membersWithGroups structure
+    // The fetchMembersWithGroups returns members with groups property as array of strings
+    const groupsMap = new Map<string, string[]>();
+    supabaseMembers.forEach((member: any) => {
+      if (member.groups && Array.isArray(member.groups)) {
+        // groups is already an array of strings from the API
+        groupsMap.set(member.id, member.groups);
+      }
+    });
+    
+    return transformMembers(supabaseMembers, groupsMap);
+  }, [membersProp, useMockData, supabaseMembers]);
+
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('Profile');
@@ -29,7 +60,7 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
   // Add Member Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [newMemberData, setNewMemberData] = useState({
     full_name: '',
     phone: '',
@@ -39,158 +70,70 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
   // Bulk Upload Modal State
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  // Handle Add Member
+  // Handle Add Member with validation
   const handleAddMember = async () => {
     if (!institutionId) {
-      setAddError('No institution selected');
+      setFormErrors({ submit: 'No institution selected' });
       return;
     }
-    if (!newMemberData.full_name.trim()) {
-      setAddError('Full name is required');
-      return;
-    }
-    if (!newMemberData.phone.trim()) {
-      setAddError('Phone number is required');
+
+    // Validate using validation utility
+    const validation = validateMemberData(newMemberData);
+    
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
       return;
     }
 
     setIsSubmitting(true);
-    setAddError(null);
+    setFormErrors({});
 
-    const { data, error } = await supabase
-      .from('members')
-      .insert({
+    try {
+      await createMemberApi({
         institution_id: institutionId,
         full_name: newMemberData.full_name.trim(),
-        phone: newMemberData.phone.trim(),
-        branch: newMemberData.branch || 'HQ',
-        status: 'ACTIVE',
-        kyc_status: 'PENDING'
-      })
-      .select()
-      .single();
+        phone: validation.normalized?.phone || newMemberData.phone,
+        branch: newMemberData.branch || 'HQ'
+      });
 
-    if (error) {
-      console.error('Error adding member:', error);
-      setAddError('Failed to add member. Please try again.');
+      // Reset form and close modal
+      setNewMemberData({ full_name: '', phone: '', branch: 'HQ' });
+      setIsAddModalOpen(false);
+      // Hook automatically updates the members list
+    } catch (err) {
+      setFormErrors({ 
+        submit: err instanceof Error ? err.message : 'Failed to add member' 
+      });
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    // Add the new member to the list
-    const newMember: Member = {
-      id: data.id,
-      name: data.full_name,
-      phone: data.phone,
-      branch: data.branch || 'HQ',
-      status: mapMemberStatus(data.status),
-      kycStatus: mapKycStatus(data.kyc_status ?? null),
-      savingsBalance: 0,
-      loanBalance: 0,
-      tokenBalance: 0,
-      joinDate: new Date().toISOString().split('T')[0],
-      avatarUrl: buildInitialsAvatar(data.full_name),
-      groups: []
-    };
-    setMembers(prev => [newMember, ...prev]);
-
-    // Reset form and close modal
-    setNewMemberData({ full_name: '', phone: '', branch: 'HQ' });
-    setIsAddModalOpen(false);
-    setIsSubmitting(false);
   };
 
-  useEffect(() => {
-    if (membersProp !== undefined) {
-      setMembers(membersProp);
-      return;
-    }
-    if (useMockData) {
-      setMembers(MOCK_MEMBERS);
-      return;
-    }
-    if (!institutionId) {
-      setMembers([]);
-      return;
-    }
+  // Filter members
+  const filteredMembers = useMemo(() => {
+    if (!searchTerm.trim()) return members;
+    const term = searchTerm.toLowerCase();
+    return members.filter(m =>
+      m.name.toLowerCase().includes(term) ||
+      m.phone.includes(term)
+    );
+  }, [members, searchTerm]);
 
-    const loadMembers = async () => {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('institution_id', institutionId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading members:', error);
-        setError('Unable to load members. Check your connection and permissions.');
-        setMembers([]);
-        setLoading(false);
-        return;
-      }
-
-      const { data: groupData, error: groupError } = await supabase
-        .from('group_members')
-        .select('member_id, groups(group_name)')
-        .eq('institution_id', institutionId);
-
-      if (groupError) {
-        console.error('Error loading member groups:', groupError);
-      }
-
-      type GroupMembershipRow = {
-        member_id: string;
-        groups?: { group_name?: string | null }[] | { group_name?: string | null } | null;
-      };
-
-      const groupsByMember = new Map<string, string[]>();
-      (groupData as GroupMembershipRow[] | null)?.forEach((row) => {
-        const groupName = Array.isArray(row.groups)
-          ? row.groups[0]?.group_name
-          : row.groups?.group_name;
-        if (!groupName) return;
-        const current = groupsByMember.get(row.member_id) ?? [];
-        current.push(groupName);
-        groupsByMember.set(row.member_id, current);
-      });
-
-      const mappedMembers = (data as SupabaseMember[]).map((member) => {
-        const groupList = groupsByMember.get(member.id) ?? [];
-        return {
-          id: member.id,
-          name: member.full_name,
-          phone: member.phone,
-          branch: member.branch || 'HQ',
-          status: mapMemberStatus(member.status),
-          kycStatus: mapKycStatus(member.kyc_status ?? null),
-          savingsBalance: member.savings_balance ?? 0,
-          loanBalance: member.loan_balance ?? 0,
-          tokenBalance: member.token_balance ?? 0,
-          joinDate: member.join_date ?? member.created_at.split('T')[0],
-          avatarUrl: member.avatar_url || buildInitialsAvatar(member.full_name),
-          groups: groupList
-        };
-      });
-
-      setMembers(mappedMembers);
-      setLoading(false);
-    };
-
-    loadMembers();
-  }, [membersProp, useMockData, institutionId]);
-
-  const filteredMembers = members.filter(m =>
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.phone.includes(searchTerm)
-  );
-
+  // Loading state with skeleton
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-4">
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <div key={idx} className="bg-white rounded-xl border border-slate-200 p-4 animate-in fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-slate-200 rounded w-1/3 animate-pulse" />
+                <div className="h-3 bg-slate-200 rounded w-1/4 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -199,40 +142,44 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
     <>
       <div className="relative h-[calc(100vh-100px)] flex gap-6">
         {/* List Section */}
-        <div className={`flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 ${selectedMember ? 'w-1/2 hidden lg:flex' : 'w-full'}`}>
+        <div className={`flex-1 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden transition-all duration-300 ${selectedMember ? 'w-1/2 hidden lg:flex' : 'w-full'}`}>
+          {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border-b border-red-200 text-red-700 px-4 py-3 text-sm">
-              {error}
-            </div>
+            <ErrorDisplay 
+              error={error} 
+              variant="banner"
+            />
           )}
           {/* Toolbar */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center">
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                type="text"
+              <SearchInput
                 placeholder="Search members..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onClear={() => setSearchTerm('')}
               />
             </div>
             <div className="flex gap-2">
               <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
                 <Filter size={18} />
               </button>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Upload size={16} />}
                 onClick={() => setIsBulkUploadOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200"
               >
-                <Upload size={16} /> Bulk Upload
-              </button>
-              <button
+                Bulk Upload
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus size={16} />}
                 onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
               >
-                <Plus size={16} /> Add Member
-              </button>
+                Add Member
+              </Button>
             </div>
           </div>
 
@@ -251,7 +198,7 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
               <div
                 key={member.id}
                 onClick={() => { setSelectedMember(member); setActiveTab('Profile'); }}
-                className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-50 cursor-pointer hover:bg-blue-50/50 transition-colors ${selectedMember?.id === member.id ? 'bg-blue-50' : ''}`}
+                className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-50 cursor-pointer hover:bg-blue-50/50 active:bg-blue-100 transition-all duration-150 touch-manipulation min-h-[60px] ${selectedMember?.id === member.id ? 'bg-blue-50 ring-2 ring-blue-200' : ''}`}
               >
                 <div className="col-span-4 flex items-center gap-3">
                   <img src={member.avatarUrl} alt="" className="w-8 h-8 rounded-full bg-slate-200 object-cover" />
@@ -280,12 +227,11 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
                   {member.savingsBalance.toLocaleString()} RWF
                 </div>
                 <div className="col-span-2 flex justify-center">
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${member.status === 'Active' ? 'bg-green-50 text-green-700 border-green-100' :
-                    member.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                      'bg-red-50 text-red-700 border-red-100'
-                    }`}>
+                  <Badge
+                    variant={member.status === 'Active' ? 'success' : member.status === 'Pending' ? 'warning' : 'danger'}
+                  >
                     {member.status}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="col-span-1 flex justify-end text-slate-400">
                   <MoreHorizontal size={16} />
@@ -293,16 +239,31 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
               </div>
             ))}
             {filteredMembers.length === 0 && (
-              <div className="p-8 text-center text-slate-400 text-sm">
-                {useMockData ? 'No members found.' : 'No members yet. Add members to get started.'}
-              </div>
+              <EmptyState
+                icon={User}
+                title={useMockData ? 'No members found' : 'No members yet'}
+                description={useMockData 
+                  ? 'No members match your search.' 
+                  : 'Add members to get started.'}
+                action={
+                  !useMockData && (
+                    <Button
+                      variant="primary"
+                      leftIcon={<Plus size={16} />}
+                      onClick={() => setIsAddModalOpen(true)}
+                    >
+                      Add First Member
+                    </Button>
+                  )
+                }
+              />
             )}
           </div>
         </div>
 
         {/* Detail Drawer */}
         {selectedMember && (
-          <div className="w-full lg:w-1/2 bg-white rounded-xl border border-slate-200 shadow-lg flex flex-col overflow-hidden animate-in slide-in-from-right-10 duration-300">
+          <div className="w-full lg:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-right-10 duration-300">
             {/* Drawer Header */}
             <div className="p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50">
               <div className="flex items-center gap-3">
@@ -450,89 +411,86 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
         )}
       </div>
 
-      {/* Add Member Modal */}
-      {
-        isAddModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 animate-in zoom-in-95 duration-200">
-              <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                <h2 className="text-lg font-bold text-slate-900">Add New Member</h2>
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+      {/* Add Member Modal - Using new Modal component */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setFormErrors({});
+          setNewMemberData({ full_name: '', phone: '', branch: 'HQ' });
+        }}
+        title="Add New Member"
+        size="md"
+      >
+        <div className="p-6 space-y-4">
+          {formErrors.submit && (
+            <ErrorDisplay error={formErrors.submit} variant="inline" />
+          )}
 
-              <div className="p-6 space-y-4">
-                {addError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    {addError}
-                  </div>
-                )}
+          <FormField 
+            label="Full Name" 
+            required 
+            error={formErrors.full_name}
+          >
+            <input
+              type="text"
+              value={newMemberData.full_name}
+              onChange={(e) => setNewMemberData({ ...newMemberData, full_name: e.target.value })}
+              placeholder="e.g., Jean Pierre Habimana"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    value={newMemberData.full_name}
-                    onChange={(e) => setNewMemberData({ ...newMemberData, full_name: e.target.value })}
-                    placeholder="e.g., Jean Pierre Habimana"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+          <FormField 
+            label="Phone Number" 
+            required 
+            error={formErrors.phone}
+            hint="Format: +250XXXXXXXXX"
+          >
+            <input
+              type="tel"
+              value={newMemberData.phone}
+              onChange={(e) => setNewMemberData({ ...newMemberData, phone: e.target.value })}
+              placeholder="e.g., +250788123456"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label>
-                  <input
-                    type="tel"
-                    value={newMemberData.phone}
-                    onChange={(e) => setNewMemberData({ ...newMemberData, phone: e.target.value })}
-                    placeholder="e.g., +250788123456"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+          <FormField 
+            label="Branch" 
+            error={formErrors.branch}
+          >
+            <input
+              type="text"
+              value={newMemberData.branch}
+              onChange={(e) => setNewMemberData({ ...newMemberData, branch: e.target.value })}
+              placeholder="e.g., HQ, Kigali, Huye"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </FormField>
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Branch</label>
-                  <input
-                    type="text"
-                    value={newMemberData.branch}
-                    onChange={(e) => setNewMemberData({ ...newMemberData, branch: e.target.value })}
-                    placeholder="e.g., HQ, Kigali, Huye"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddMember}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={16} /> Add Member
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setIsAddModalOpen(false);
+              setFormErrors({});
+              setNewMemberData({ full_name: '', phone: '', branch: 'HQ' });
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleAddMember}
+            isLoading={isSubmitting}
+            leftIcon={<Plus size={16} />}
+          >
+            Add Member
+          </Button>
+        </div>
+      </Modal>
 
       {/* Bulk Upload Modal */}
       {isBulkUploadOpen && (
@@ -540,8 +498,8 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
           onClose={() => setIsBulkUploadOpen(false)}
           onSuccess={() => {
             setIsBulkUploadOpen(false);
-            // Reload members (trigger re-fetch)
-            window.location.reload();
+            // Hook will automatically refetch
+            refetch();
           }}
         />
       )}

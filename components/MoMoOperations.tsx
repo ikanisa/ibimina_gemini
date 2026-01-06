@@ -1,10 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { MessageSquare, CheckCircle2, AlertCircle, ArrowRight, Cpu, Smartphone, LayoutList, Table as TableIcon, RefreshCw } from 'lucide-react';
 import { MOCK_SMS, MOCK_NFC_LOGS } from '../constants';
 import { SmsMessage, NfcLog, SupabaseNfcLog, SupabaseSmsMessage } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useSmsMessages } from '../hooks';
+import { LoadingSpinner, ErrorDisplay, EmptyState, Button, Badge } from './ui';
 
 interface MoMoOperationsProps {
   mode?: 'sms' | 'nfc'; // 'sms' for Staff, 'nfc' for Admin logs
@@ -13,13 +15,51 @@ interface MoMoOperationsProps {
 const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
+  
+  // Use the new hook for SMS messages
+  const {
+    messages: supabaseMessages,
+    loading: smsLoading,
+    error: smsError,
+    refetch: refetchSms,
+    linkToTransaction: linkSmsToTransaction
+  } = useSmsMessages({
+    autoFetch: !useMockData && mode === 'sms'
+  });
+
+  // Transform Supabase messages to UI format
+  const formatTimestamp = (value: string) => {
+    const date = new Date(value);
+    return `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
+  };
+
+  const smsRecords = useMemo(() => {
+    if (useMockData) return MOCK_SMS;
+    if (!supabaseMessages.length) return [];
+    
+    return supabaseMessages.map((sms: SupabaseSmsMessage) => ({
+      id: sms.id,
+      sender: sms.sender,
+      timestamp: formatTimestamp(sms.timestamp),
+      body: sms.body,
+      isParsed: sms.is_parsed,
+      parsedData: sms.is_parsed
+        ? {
+            amount: Number(sms.parsed_amount ?? 0),
+            currency: sms.parsed_currency ?? 'RWF',
+            transactionId: sms.parsed_transaction_id ?? '',
+            counterparty: sms.parsed_counterparty ?? ''
+          }
+        : undefined,
+      linkedTransactionId: sms.linked_transaction_id ?? undefined
+    }));
+  }, [useMockData, supabaseMessages]);
+
   const [smsViewMode, setSmsViewMode] = useState<'split' | 'table'>('split');
   const [selectedSms, setSelectedSms] = useState<SmsMessage | null>(null);
-  const [smsRecords, setSmsRecords] = useState<SmsMessage[]>(useMockData ? MOCK_SMS : []);
   const [nfcRecords, setNfcRecords] = useState<NfcLog[]>(useMockData ? MOCK_NFC_LOGS : []);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState(0);
+  const [nfcLoading, setNfcLoading] = useState(false);
+  const [nfcError, setNfcError] = useState<string | null>(null);
   const [isCreatingTx, setIsCreatingTx] = useState(false);
 
   // Handle Create Transaction from parsed SMS
@@ -28,56 +68,70 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
 
     setIsCreatingTx(true);
 
-    // Create transaction from parsed SMS data
-    const { data: txData, error: txError } = await supabase
-      .from('transactions')
-      .insert({
-        institution_id: institutionId,
-        type: 'Deposit',
-        amount: selectedSms.parsedData.amount,
-        currency: selectedSms.parsedData.currency || 'RWF',
-        channel: 'MoMo',
-        status: 'COMPLETED',
-        reference: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`
-      })
-      .select()
-      .single();
+    try {
+      // Create transaction from parsed SMS data
+      const { data: txData, error: txError } = await supabase
+        .from('transactions')
+        .insert({
+          institution_id: institutionId,
+          type: 'Deposit',
+          amount: selectedSms.parsedData.amount,
+          currency: selectedSms.parsedData.currency || 'RWF',
+          channel: 'MoMo',
+          status: 'COMPLETED',
+          reference: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`
+        })
+        .select()
+        .single();
 
-    if (txError) {
-      console.error('Error creating transaction:', txError);
+      if (txError) {
+        console.error('Error creating transaction:', txError);
+        setIsCreatingTx(false);
+        return;
+      }
+
+      // Link the transaction to the SMS record using the hook method
+      await linkSmsToTransaction(selectedSms.id, txData.id);
+
+      // Also create a payment_ledger entry for reconciliation
+      if (txData && selectedSms.parsedData) {
+        await supabase
+          .from('payment_ledger')
+          .insert({
+            institution_id: institutionId,
+            txn_type: 'Deposit',
+            amount: selectedSms.parsedData.amount,
+            currency: selectedSms.parsedData.currency || 'RWF',
+            counterparty: selectedSms.parsedData.counterparty || selectedSms.sender,
+            reference: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`,
+            txn_id: selectedSms.parsedData.transactionId || `SMS-${selectedSms.id.slice(0, 8)}`,
+            reconciled: true,
+            timestamp: new Date().toISOString()
+          });
+      }
+
+      // Update selected SMS to reflect the link
+      setSelectedSms(prev => prev ? { ...prev, linkedTransactionId: txData.id } : null);
+      
+      // Refetch to update the list
+      await refetchSms();
+    } catch (err) {
+      console.error('Error in handleCreateTransaction:', err);
+    } finally {
       setIsCreatingTx(false);
-      return;
     }
-
-    // Link the transaction to the SMS record
-    const { error: linkError } = await supabase
-      .from('payment_ledger')
-      .update({ linked_transaction_id: txData.id })
-      .eq('id', selectedSms.id);
-
-    if (linkError) {
-      console.error('Error linking transaction to SMS:', linkError);
-    }
-
-    // Update local state
-    setSmsRecords(prev => prev.map(sms =>
-      sms.id === selectedSms.id
-        ? { ...sms, linkedTransactionId: txData.id }
-        : sms
-    ));
-    setSelectedSms(prev => prev ? { ...prev, linkedTransactionId: txData.id } : null);
-    setIsCreatingTx(false);
   };
 
+  // Load NFC logs (no hook available yet)
   useEffect(() => {
+    if (mode !== 'nfc') return;
+    
     if (useMockData) {
-      setSmsRecords(MOCK_SMS);
       setNfcRecords(MOCK_NFC_LOGS);
       return;
     }
 
     if (!institutionId) {
-      setSmsRecords([]);
       setNfcRecords([]);
       return;
     }
@@ -87,106 +141,76 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
       return `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
     };
 
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
+    const loadNfcData = async () => {
+      setNfcLoading(true);
+      setNfcError(null);
 
-      if (mode === 'sms') {
-        const { data, error } = await supabase
-          .from('payment_ledger')
-          .select('*')
-          .eq('institution_id', institutionId)
-          .order('timestamp', { ascending: false });
+      const { data, error } = await supabase
+        .from('nfc_logs')
+        .select('*')
+        .eq('institution_id', institutionId)
+        .order('timestamp', { ascending: false });
 
-        if (error) {
-          console.error('Error loading SMS messages:', error);
-          setError('Unable to load SMS messages. Check your connection and permissions.');
-          setSmsRecords([]);
-          setLoading(false);
-          return;
-        }
-
-        const mapped = (data as SupabaseSmsMessage[]).map((sms) => ({
-          id: sms.id,
-          sender: sms.sender,
-          timestamp: formatTimestamp(sms.timestamp),
-          body: sms.body,
-          isParsed: sms.is_parsed,
-          parsedData: sms.is_parsed
-            ? {
-              amount: Number(sms.parsed_amount ?? 0),
-              currency: sms.parsed_currency ?? 'RWF',
-              transactionId: sms.parsed_transaction_id ?? '',
-              counterparty: sms.parsed_counterparty ?? ''
-            }
-            : undefined,
-          linkedTransactionId: sms.linked_transaction_id ?? undefined
-        }));
-
-        setSmsRecords(mapped);
-        setSelectedSms(mapped[0] ?? null);
+      if (error) {
+        console.error('Error loading NFC logs:', error);
+        setNfcError('Unable to load NFC logs. Check your connection and permissions.');
+        setNfcRecords([]);
+        setNfcLoading(false);
+        return;
       }
 
-      if (mode === 'nfc') {
-        const { data, error } = await supabase
-          .from('nfc_logs')
-          .select('*')
-          .eq('institution_id', institutionId)
-          .order('timestamp', { ascending: false });
+      const mapped = (data as SupabaseNfcLog[]).map((log) => {
+        const normalizedStatus = log.status.toUpperCase().replace(/\s+/g, '_');
+        const statusLabel: NfcLog['status'] =
+          normalizedStatus === 'SUCCESS'
+            ? 'Success'
+            : normalizedStatus === 'FAILED'
+              ? 'Failed'
+              : 'Pending SMS';
+        return {
+          id: log.id,
+          timestamp: formatTimestamp(log.timestamp),
+          deviceId: log.device_id,
+          tagId: log.tag_id,
+          action: log.action,
+          status: statusLabel,
+          memberId: log.member_id ?? undefined,
+          amount: log.amount ?? undefined,
+          linkedSms: log.linked_sms
+        };
+      });
 
-        if (error) {
-          console.error('Error loading NFC logs:', error);
-          setError('Unable to load NFC logs. Check your connection and permissions.');
-          setNfcRecords([]);
-          setLoading(false);
-          return;
-        }
-
-        const mapped = (data as SupabaseNfcLog[]).map((log) => {
-          const normalizedStatus = log.status.toUpperCase().replace(/\s+/g, '_');
-          const statusLabel: NfcLog['status'] =
-            normalizedStatus === 'SUCCESS'
-              ? 'Success'
-              : normalizedStatus === 'FAILED'
-                ? 'Failed'
-                : 'Pending SMS';
-          return {
-            id: log.id,
-            timestamp: formatTimestamp(log.timestamp),
-            deviceId: log.device_id,
-            tagId: log.tag_id,
-            action: log.action,
-            status: statusLabel,
-            memberId: log.member_id ?? undefined,
-            amount: log.amount ?? undefined,
-            linkedSms: log.linked_sms
-          };
-        });
-
-        setNfcRecords(mapped);
-      }
-
-      setLoading(false);
+      setNfcRecords(mapped);
+      setNfcLoading(false);
     };
 
-    loadData();
-  }, [useMockData, institutionId, mode, refreshToken]);
+    loadNfcData();
+  }, [useMockData, institutionId, mode]);
+
+  // Set first SMS as selected when records load
+  useEffect(() => {
+    if (mode === 'sms' && smsRecords.length > 0 && !selectedSms) {
+      setSelectedSms(smsRecords[0]);
+    }
+  }, [smsRecords, mode, selectedSms]);
 
   const handleRefresh = () => {
-    setRefreshToken((prev) => prev + 1);
+    refetchSms();
   };
+
+  // Determine loading and error states
+  const loading = mode === 'sms' ? smsLoading : nfcLoading;
+  const error = mode === 'sms' ? smsError : nfcError;
 
   return (
     <div className="space-y-6 h-full flex flex-col">
+      {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
-        </div>
+        <ErrorDisplay error={error} variant="banner" />
       )}
+      {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+        <LoadingSpinner size="lg" text={mode === 'sms' ? 'Loading SMS messages...' : 'Loading NFC logs...'} className="h-32" />
       )}
       {/* Header */}
       <div className="flex justify-between items-center shrink-0">
@@ -202,19 +226,22 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
           </p>
         </div>
         {mode === 'sms' && (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<RefreshCw size={16} />}
             onClick={handleRefresh}
-            className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors"
+            isLoading={smsLoading}
           >
-            <RefreshCw size={16} /> Sync Inbox
-          </button>
+            Sync Inbox
+          </Button>
         )}
       </div>
 
       {/* NFC View (Admin Only) */}
       {mode === 'nfc' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-          <div className="grid grid-cols-12 px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          <div className="grid grid-cols-12 px-4 md:px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             <div className="col-span-2">Date & Time</div>
             <div className="col-span-2">Member</div>
             <div className="col-span-2">Amount</div>
@@ -224,7 +251,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
           </div>
           <div className="overflow-y-auto flex-1">
             {nfcRecords.map(log => (
-              <div key={log.id} className="grid grid-cols-12 px-6 py-4 items-center border-b border-slate-50 hover:bg-slate-50 transition-colors">
+              <div key={log.id} className="grid grid-cols-12 px-4 md:px-6 py-4 items-center border-b border-slate-50 hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
                 <div className="col-span-2 text-sm text-slate-900">{log.timestamp}</div>
                 <div className="col-span-2 text-sm text-slate-600">{log.memberId || 'Unknown'}</div>
                 <div className="col-span-2 text-sm font-medium text-slate-900">{log.amount ? `${log.amount.toLocaleString()} RWF` : '-'}</div>
@@ -240,19 +267,23 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                   )}
                 </div>
                 <div className="col-span-2 text-right">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${log.status === 'Success' ? 'bg-green-100 text-green-700' :
-                    log.status === 'Pending SMS' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                    }`}>
+                  <Badge
+                    variant={log.status === 'Success' ? 'success' : log.status === 'Pending SMS' ? 'warning' : 'danger'}
+                  >
                     {log.status}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             ))}
           </div>
-          {nfcRecords.length === 0 && (
-            <div className="p-10 text-center text-slate-400 text-sm">
-              {useMockData ? 'No NFC logs found.' : 'No NFC logs yet. Connect this module to Supabase.'}
-            </div>
+          {nfcRecords.length === 0 && !nfcLoading && (
+            <EmptyState
+              icon={Smartphone}
+              title={useMockData ? 'No NFC logs found' : 'No NFC logs yet'}
+              description={useMockData 
+                ? 'No NFC logs match your criteria.' 
+                : 'Connect this module to Supabase to see NFC logs.'}
+            />
           )}
         </div>
       )}
@@ -262,16 +293,16 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
         <div className="space-y-4 flex-1 flex flex-col">
           {/* View Mode Toggle */}
           <div className="flex justify-end gap-2 shrink-0">
-            <div className="bg-white border border-slate-200 rounded-lg p-1 flex gap-1 shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-lg p-1 flex gap-1">
               <button
                 onClick={() => setSmsViewMode('split')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${smsViewMode === 'split' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all min-h-[44px] touch-manipulation ${smsViewMode === 'split' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 active:scale-[0.98]'}`}
               >
                 <LayoutList size={14} /> Split View
               </button>
               <button
                 onClick={() => setSmsViewMode('table')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${smsViewMode === 'table' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all min-h-[44px] touch-manipulation ${smsViewMode === 'table' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'text-slate-500 hover:bg-slate-50 active:scale-[0.98]'}`}
               >
                 <TableIcon size={14} /> Table View
               </button>
@@ -279,9 +310,9 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
           </div>
 
           {smsViewMode === 'split' ? (
-            <div className="flex gap-6 flex-1 overflow-hidden">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1 overflow-hidden">
               {/* Inbox List */}
-              <div className="w-1/2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+              <div className="w-full md:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
                 <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                   <h3 className="text-sm font-semibold text-slate-700">SMS Inbox</h3>
                   <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Live Sync</span>
@@ -291,7 +322,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                     <div
                       key={sms.id}
                       onClick={() => setSelectedSms(sms)}
-                      className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors ${selectedSms?.id === sms.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
+                      className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-all duration-150 touch-manipulation min-h-[60px] ${selectedSms?.id === sms.id ? 'bg-blue-50 border-l-4 border-l-blue-500 ring-2 ring-blue-200' : 'border-l-4 border-l-transparent'}`}
                     >
                       <div className="flex justify-between mb-1">
                         <span className="font-semibold text-sm text-slate-900">{sms.sender}</span>
@@ -310,16 +341,20 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                       </div>
                     </div>
                   ))}
-                  {smsRecords.length === 0 && (
-                    <div className="p-6 text-center text-slate-400 text-sm">
-                      {useMockData ? 'No SMS messages.' : 'No SMS data yet. Connect this module to Supabase.'}
-                    </div>
+                  {smsRecords.length === 0 && !smsLoading && (
+                    <EmptyState
+                      icon={MessageSquare}
+                      title={useMockData ? 'No SMS messages' : 'No SMS data yet'}
+                      description={useMockData 
+                        ? 'No SMS messages available.' 
+                        : 'Connect this module to Supabase to see SMS messages.'}
+                    />
                   )}
                 </div>
               </div>
 
               {/* Parsing Details */}
-              <div className="w-1/2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden relative">
+              <div className="w-full md:w-1/2 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden relative">
                 {!selectedSms ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-10 text-center">
                     <Cpu size={48} className="mb-4 text-slate-200" />
@@ -360,24 +395,18 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
 
                           <div className="pt-4 border-t border-blue-100 flex justify-end gap-3">
                             {!selectedSms.linkedTransactionId ? (
-                              <button
+                              <Button
+                                variant="primary"
+                                size="sm"
                                 onClick={handleCreateTransaction}
-                                disabled={isCreatingTx}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                isLoading={isCreatingTx}
                               >
-                                {isCreatingTx ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Creating...
-                                  </>
-                                ) : (
-                                  'Create Transaction'
-                                )}
-                              </button>
+                                Create Transaction
+                              </Button>
                             ) : (
-                              <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium">
-                                <CheckCircle2 size={16} /> Linked to {selectedSms.linkedTransactionId}
-                              </div>
+                              <Badge variant="success" className="flex items-center gap-2">
+                                <CheckCircle2 size={16} /> Linked to {selectedSms.linkedTransactionId.slice(0, 8)}...
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -393,7 +422,7 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1">
               {/* Full Table View */}
               <div className="overflow-x-auto h-full">
                 <table className="w-full text-left">
@@ -416,21 +445,19 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                           {sms.body}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {sms.isParsed ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full">
-                              <CheckCircle2 size={12} /> Parsed
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
-                              <AlertCircle size={12} /> Failed
-                            </span>
-                          )}
+                          <Badge
+                            variant={sms.isParsed ? 'success' : 'warning'}
+                            className="flex items-center gap-1 w-fit"
+                          >
+                            {sms.isParsed ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                            {sms.isParsed ? 'Parsed' : 'Failed'}
+                          </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {sms.linkedTransactionId ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                              <CheckCircle2 size={12} /> {sms.linkedTransactionId}
-                            </span>
+                            <Badge variant="info" className="flex items-center gap-1 w-fit">
+                              <CheckCircle2 size={12} /> {sms.linkedTransactionId.slice(0, 8)}...
+                            </Badge>
                           ) : (
                             <span className="text-slate-400 text-xs italic">Unlinked</span>
                           )}
@@ -448,10 +475,16 @@ const MoMoOperations: React.FC<MoMoOperationsProps> = ({ mode = 'sms' }) => {
                         </td>
                       </tr>
                     ))}
-                    {smsRecords.length === 0 && (
+                    {smsRecords.length === 0 && !smsLoading && (
                       <tr>
-                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-sm">
-                          {useMockData ? 'No SMS messages.' : 'No SMS data yet. Connect this module to Supabase.'}
+                        <td colSpan={6}>
+                          <EmptyState
+                            icon={MessageSquare}
+                            title={useMockData ? 'No SMS messages' : 'No SMS data yet'}
+                            description={useMockData 
+                              ? 'No SMS messages match your criteria.' 
+                              : 'Connect this module to Supabase to see SMS messages.'}
+                          />
                         </td>
                       </tr>
                     )}

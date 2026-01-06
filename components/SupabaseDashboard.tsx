@@ -11,6 +11,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { SupabaseContribution } from '../types';
+import { LoadingSpinner, ErrorDisplay, StatsCardSkeleton } from './ui';
 
 // ============================================================================
 // COMPONENT: SUPABASE DASHBOARD
@@ -133,8 +134,12 @@ const SupabaseDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <StatsCardSkeleton key={idx} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -142,13 +147,11 @@ const SupabaseDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
-        </div>
+        <ErrorDisplay error={error} variant="banner" />
       )}
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
               <Briefcase size={24} />
@@ -159,42 +162,42 @@ const SupabaseDashboard: React.FC = () => {
           <p className="text-slate-500 text-sm mt-1">Total Groups</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-2 bg-green-50 rounded-lg text-green-600">
               <Users size={24} />
             </div>
             <TrendingUp size={16} className="text-green-500" />
           </div>
-          <p className="text-3xl font-bold text-slate-900">{stats.activeMembers}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{stats.activeMembers}</p>
           <p className="text-slate-500 text-sm mt-1">Active Members</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
               <DollarSign size={24} />
             </div>
             <span className="text-xs text-slate-500">This Month</span>
           </div>
-          <p className="text-3xl font-bold text-slate-900">{stats.monthlyContributions.toLocaleString()}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{stats.monthlyContributions.toLocaleString()}</p>
           <p className="text-slate-500 text-sm mt-1">Contributions (RWF)</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
               <Scale size={24} />
             </div>
             {stats.unreconciledPayments > 0 && <AlertCircle size={16} className="text-amber-500" />}
           </div>
-          <p className="text-3xl font-bold text-slate-900">{stats.unreconciledPayments}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{stats.unreconciledPayments}</p>
           <p className="text-slate-500 text-sm mt-1">Unreconciled Payments</p>
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200">
         <div className="p-6 border-b border-slate-100">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <Activity size={20} className="text-blue-600" />
@@ -203,7 +206,7 @@ const SupabaseDashboard: React.FC = () => {
         </div>
         <div className="divide-y divide-slate-100">
           {recentActivity.map((contrib) => (
-            <div key={contrib.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+            <div key={contrib.id} className="p-4 flex items-center justify-between hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
                   {contrib.members?.full_name?.charAt(0) || 'M'}

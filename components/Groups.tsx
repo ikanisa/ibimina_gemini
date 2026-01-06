@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   Calendar,
@@ -7,7 +7,6 @@ import {
   MoreHorizontal,
   ArrowRight,
   Filter,
-  Search,
   Plus,
   Briefcase,
   CheckCircle2,
@@ -47,40 +46,49 @@ import {
 } from '../types';
 import { supabase } from '../lib/supabase';
 import { mapGroupMemberRole, mapGroupMemberStatus, mapTransactionStatus, mapTransactionType } from '../lib/mappers';
+import { useGroups } from '../hooks';
+import { useAuth } from '../contexts/AuthContext';
+import { transformGroups } from '../lib/transformers/groupTransformer';
+import { validateGroupData } from '../lib/validation';
+import { Modal, LoadingSpinner, ErrorDisplay, EmptyState, Button, FormField, SearchInput, Badge } from './ui';
 
 type DetailTab = 'Overview' | 'Members' | 'Contributions' | 'Loans' | 'Meetings' | 'MoMo' | 'Settings';
 
-// Helper function to map Supabase group data to local Group type
-const mapSupabaseGroupToGroup = (item: SupabaseGroup, memberCount = 0): Group => ({
-  id: item.id,
-  name: item.group_name,
-  code: item.id.substring(0, 8).toUpperCase(),
-  saccoId: item.institution_id,
-  branch: 'Main',
-  status: item.status === 'ACTIVE' ? 'Active' : item.status === 'PAUSED' ? 'Suspended' : 'Completed',
-  cycleLabel: item.cycle_label ?? 'Current Cycle',
-  memberCount,
-  meetingDay: item.meeting_day ?? 'Monday',
-  contributionAmount: item.expected_amount,
-  contributionFrequency: item.frequency === 'Weekly' ? 'Weekly' : 'Monthly',
-  fundBalance: item.fund_balance ?? 0,
-  activeLoansCount: item.active_loans_count ?? 0,
-  nextMeeting: item.next_meeting_date ?? 'TBD'
-});
+// Note: mapSupabaseGroupToGroup is replaced by transformGroup from transformers
 
 interface GroupsProps {
   onNavigate?: (view: ViewState) => void;
   institutionId?: string | null;
 }
 
-const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
+const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionIdProp }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { institutionId: authInstitutionId } = useAuth();
+  const institutionId = institutionIdProp || authInstitutionId;
+
+  // Use the new hook instead of manual state management
+  const {
+    groups: supabaseGroups,
+    memberCounts,
+    loading,
+    error,
+    createGroup: createGroupApi,
+    refetch
+  } = useGroups({
+    includeMemberCounts: true,
+    autoFetch: !useMockData
+  });
+
+  // Transform Supabase groups to UI format
+  const groups = useMemo(() => {
+    if (useMockData) return MOCK_GROUPS;
+    if (!supabaseGroups.length) return [];
+    return transformGroups(supabaseGroups, memberCounts);
+  }, [useMockData, supabaseGroups, memberCounts]);
+
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>('Overview');
   const [viewMode, setViewMode] = useState<'Grid' | 'List'>('List');
-  const [groups, setGroups] = useState<Group[]>(useMockData ? MOCK_GROUPS : []);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>(useMockData ? MOCK_GROUP_MEMBERS : []);
@@ -93,35 +101,38 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
   // Create Group Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [newGroupData, setNewGroupData] = useState({
     group_name: '',
     meeting_day: 'Monday',
     expected_amount: 5000,
-    frequency: 'Weekly' as 'Daily' | 'Weekly' | 'Monthly',
+    frequency: 'Weekly' as 'Weekly' | 'Monthly',
     cycle_label: ''
   });
 
   // Bulk Upload Modal State
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
-  // Handle Create Group
+  // Handle Create Group with validation
   const handleCreateGroup = async () => {
     if (!institutionId) {
-      setCreateError('No institution selected');
+      setFormErrors({ submit: 'No institution selected' });
       return;
     }
-    if (!newGroupData.group_name.trim()) {
-      setCreateError('Group name is required');
+
+    // Validate using validation utility
+    const validation = validateGroupData(newGroupData);
+    
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
       return;
     }
 
     setIsSubmitting(true);
-    setCreateError(null);
+    setFormErrors({});
 
-    const { data, error } = await supabase
-      .from('groups')
-      .insert({
+    try {
+      await createGroupApi({
         institution_id: institutionId,
         group_name: newGroupData.group_name.trim(),
         meeting_day: newGroupData.meeting_day,
@@ -129,99 +140,32 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
         frequency: newGroupData.frequency,
         cycle_label: newGroupData.cycle_label || `Cycle ${new Date().getFullYear()}`,
         status: 'ACTIVE'
-      })
-      .select()
-      .single();
+      });
 
-    if (error) {
-      console.error('Error creating group:', error);
-      setCreateError('Failed to create group. Please try again.');
+      // Reset form and close modal
+      setNewGroupData({
+        group_name: '',
+        meeting_day: 'Monday',
+        expected_amount: 5000,
+        frequency: 'Weekly',
+        cycle_label: ''
+      });
+      setIsCreateModalOpen(false);
+      // Hook automatically updates the groups list
+    } catch (err) {
+      setFormErrors({ 
+        submit: err instanceof Error ? err.message : 'Failed to create group' 
+      });
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    // Add the new group to the list
-    const newGroup = mapSupabaseGroupToGroup(data as SupabaseGroup, 0);
-    setGroups(prev => [newGroup, ...prev]);
-
-    // Reset form and close modal
-    setNewGroupData({
-      group_name: '',
-      meeting_day: 'Monday',
-      expected_amount: 5000,
-      frequency: 'Weekly',
-      cycle_label: ''
-    });
-    setIsCreateModalOpen(false);
-    setIsSubmitting(false);
   };
 
-  // Load groups from Supabase when institutionId is provided
-  useEffect(() => {
-    const loadGroups = async () => {
-      setError(null);
-
-      if (useMockData) {
-        setGroups(MOCK_GROUPS);
-        setLoading(false);
-        return;
-      }
-
-      if (!institutionId) {
-        setGroups([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('groups')
-          .select('*')
-          .eq('institution_id', institutionId)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error loading groups:', error);
-          setError('Unable to load groups. Check your connection and permissions.');
-          setGroups([]);
-        } else if (data && Array.isArray(data) && data.length > 0) {
-          const { data: memberData, error: memberError } = await supabase
-            .from('group_members')
-            .select('group_id')
-            .eq('institution_id', institutionId);
-
-          if (memberError) {
-            console.error('Error loading group members:', memberError);
-          }
-
-          const memberCounts = (memberData as { group_id: string }[] | null)?.reduce((acc, row) => {
-            acc[row.group_id] = (acc[row.group_id] ?? 0) + 1;
-            return acc;
-          }, {} as Record<string, number>) ?? {};
-
-          // Map Supabase data to Group type using the helper function
-          const mappedGroups: Group[] = (data as SupabaseGroup[]).map((group) => (
-            mapSupabaseGroupToGroup(group, memberCounts[group.id] ?? 0)
-          ));
-          setGroups(mappedGroups);
-        } else {
-          setGroups([]);
-        }
-      } catch (err) {
-        console.error('Error loading groups:', err);
-        setError('Unable to load groups. Check your connection and permissions.');
-        setGroups([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadGroups();
-  }, [institutionId, useMockData]);
-
   // Filter groups based on search term
-  const filteredGroups = groups.filter(g =>
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm.trim()) return groups;
+    const term = searchTerm.toLowerCase();
+    return groups.filter(g =>
     g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     g.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -327,7 +271,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
           .eq('group_id', selectedGroup.id)
           .order('created_at', { ascending: false }),
         supabase
-          .from('payment_ledger')
+          .from('sms_messages')
           .select('*')
           .eq('institution_id', institutionId)
           .order('timestamp', { ascending: false })
@@ -504,7 +448,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
             <p className="text-sm text-slate-500 mt-2">Expected collection: {expectedCollection.toLocaleString()} RWF</p>
           </div>
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-5 rounded-xl border border-slate-200">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-500 text-xs font-semibold uppercase">Active Loans</p>
@@ -519,51 +463,69 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <h2 className="font-bold text-slate-800 whitespace-nowrap">All Groups</h2>
             <div className="h-6 w-px bg-slate-200 mx-2"></div>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                type="text"
+              <SearchInput
                 placeholder="Search by name or code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                onClear={() => setSearchTerm('')}
               />
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <button className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 flex-1 sm:flex-none">
-              <Filter size={16} /> Filter
-            </button>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Filter size={16} />}
+            >
+              Filter
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Upload size={16} />}
               onClick={() => setIsBulkUploadOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex-1 sm:flex-none"
             >
-              <Upload size={16} /> Bulk Upload
-            </button>
-            <button
+              Bulk Upload
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={16} />}
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex-1 sm:flex-none"
             >
-              <Plus size={16} /> New Group
-            </button>
+              New Group
+            </Button>
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Loading State with Skeleton */}
         {loading && (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 space-y-4">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="animate-in fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-slate-200 animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-5 bg-slate-200 rounded w-1/3 animate-pulse" />
+                      <div className="h-4 bg-slate-200 rounded w-1/4 animate-pulse" />
+                    </div>
+                    <div className="h-6 bg-slate-200 rounded w-20 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
+        {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
+          <ErrorDisplay error={error} variant="banner" />
         )}
 
         {/* Groups Table */}
@@ -586,7 +548,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
                   <tr
                     key={group.id}
                     onClick={() => setSelectedGroup(group)}
-                    className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                    className="hover:bg-blue-50/50 active:bg-blue-100 transition-all duration-150 cursor-pointer group touch-manipulation"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -645,114 +607,126 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId }) => {
           </div>
         )}
 
-        {/* Create Group Modal */}
-        {isCreateModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 animate-in zoom-in-95 duration-200">
-              <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                <h2 className="text-lg font-bold text-slate-900">Create New Group</h2>
-                <button
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+        {/* Create Group Modal - Using new Modal component */}
+        <Modal
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setFormErrors({});
+            setNewGroupData({
+              group_name: '',
+              meeting_day: 'Monday',
+              expected_amount: 5000,
+              frequency: 'Weekly',
+              cycle_label: ''
+            });
+          }}
+          title="Create New Group"
+          size="md"
+        >
+          <div className="p-6 space-y-4">
+            {formErrors.submit && (
+              <ErrorDisplay error={formErrors.submit} variant="inline" />
+            )}
+
+            <FormField 
+              label="Group Name" 
+              required 
+              error={formErrors.group_name}
+            >
+              <input
+                type="text"
+                value={newGroupData.group_name}
+                onChange={(e) => setNewGroupData({ ...newGroupData, group_name: e.target.value })}
+                placeholder="e.g., Ibimina y'Urubyiruko"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </FormField>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField 
+                label="Meeting Day" 
+                error={formErrors.meeting_day}
+              >
+                <select
+                  value={newGroupData.meeting_day}
+                  onChange={(e) => setNewGroupData({ ...newGroupData, meeting_day: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {createError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    {createError}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Group Name *</label>
-                  <input
-                    type="text"
-                    value={newGroupData.group_name}
-                    onChange={(e) => setNewGroupData({ ...newGroupData, group_name: e.target.value })}
-                    placeholder="e.g., Ibimina y'Urubyiruko"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Day</label>
-                    <select
-                      value={newGroupData.meeting_day}
-                      onChange={(e) => setNewGroupData({ ...newGroupData, meeting_day: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Frequency</label>
-                    <select
-                      value={newGroupData.frequency}
-                      onChange={(e) => setNewGroupData({ ...newGroupData, frequency: e.target.value as 'Weekly' | 'Monthly' })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      <option value="Weekly">Weekly</option>
-                      <option value="Monthly">Monthly</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Contribution Amount (RWF)</label>
-                  <input
-                    type="number"
-                    value={newGroupData.expected_amount}
-                    onChange={(e) => setNewGroupData({ ...newGroupData, expected_amount: Number(e.target.value) })}
-                    placeholder="5000"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Cycle Label (optional)</label>
-                  <input
-                    type="text"
-                    value={newGroupData.cycle_label}
-                    onChange={(e) => setNewGroupData({ ...newGroupData, cycle_label: e.target.value })}
-                    placeholder="e.g., Cycle 2026"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                <button
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField 
+                label="Frequency" 
+                error={formErrors.frequency}
+              >
+                <select
+                  value={newGroupData.frequency}
+                  onChange={(e) => setNewGroupData({ ...newGroupData, frequency: e.target.value as 'Weekly' | 'Monthly' })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateGroup}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={16} /> Create Group
-                    </>
-                  )}
-                </button>
-              </div>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                </select>
+              </FormField>
             </div>
+
+            <FormField 
+              label="Contribution Amount (RWF)" 
+              error={formErrors.expected_amount}
+            >
+              <input
+                type="number"
+                value={newGroupData.expected_amount}
+                onChange={(e) => setNewGroupData({ ...newGroupData, expected_amount: Number(e.target.value) })}
+                placeholder="5000"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </FormField>
+
+            <FormField 
+              label="Cycle Label (optional)" 
+              error={formErrors.cycle_label}
+            >
+              <input
+                type="text"
+                value={newGroupData.cycle_label}
+                onChange={(e) => setNewGroupData({ ...newGroupData, cycle_label: e.target.value })}
+                placeholder="e.g., Cycle 2026"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </FormField>
           </div>
-        )}
+
+          <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setFormErrors({});
+                setNewGroupData({
+                  group_name: '',
+                  meeting_day: 'Monday',
+                  expected_amount: 5000,
+                  frequency: 'Weekly',
+                  cycle_label: ''
+                });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreateGroup}
+              isLoading={isSubmitting}
+              leftIcon={<Plus size={16} />}
+            >
+              Create Group
+            </Button>
+          </div>
+        </Modal>
 
         {/* Bulk Upload Modal */}
         {isBulkUploadOpen && (
