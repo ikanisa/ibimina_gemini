@@ -4,7 +4,7 @@ import { Transaction, ViewState } from '../types';
 import { Download, Filter, ExternalLink, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { mapTransactionStatus, mapTransactionType } from '../lib/mappers';
+import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '../lib/mappers';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge } from './ui';
 
 interface TransactionsProps {
@@ -38,10 +38,11 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
       setError(null);
 
       const { data, error } = await supabase
-        .from('payment_ledger')
-        .select('*')
+        .from('transactions')
+        .select('*, members(full_name)')
         .eq('institution_id', institutionId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) {
         console.error('Error loading transactions:', error);
@@ -52,21 +53,19 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
       }
 
       const mapped = (data as any[]).map((tx) => {
-        const date = new Date(tx.created_at || tx.timestamp);
+        const date = new Date(tx.created_at);
         const dateLabel = `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
-        // Map payment_ledger status: if reconciled=true, status is COMPLETED, else use status field or default to PENDING
-        const txStatus = tx.reconciled ? 'COMPLETED' : (tx.status || 'PENDING');
         return {
           id: tx.id,
           date: dateLabel,
           memberId: tx.member_id ?? '—',
-          memberName: tx.counterparty ?? 'Unknown',
-          type: mapTransactionType(tx.txn_type || tx.type || 'Deposit'),
+          memberName: tx.members?.full_name ?? tx.counterparty ?? 'Unknown',
+          type: mapTransactionType(tx.type || 'Deposit'),
           amount: Number(tx.amount) || 0,
           currency: tx.currency || 'RWF',
-          channel: 'MoMo' as Transaction['channel'],
-          status: mapTransactionStatus(txStatus),
-          reference: tx.reference || tx.txn_id || '—',
+          channel: mapTransactionChannel(tx.channel),
+          status: mapTransactionStatus(tx.status || 'COMPLETED'),
+          reference: tx.reference || '—',
           groupId: tx.group_id ?? undefined
         };
       });
@@ -163,7 +162,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge variant="secondary">{tx.channel}</Badge>
+                  <Badge variant="default">{tx.channel}</Badge>
                   <div className="text-xs text-slate-400 mt-0.5">{tx.reference}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -187,8 +186,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                   <EmptyState
                     icon={FileText}
                     title={useMockData ? 'No transactions found' : 'No transactions yet'}
-                    description={useMockData 
-                      ? 'No transactions match your search.' 
+                    description={useMockData
+                      ? 'No transactions match your search.'
                       : 'Record activity to populate the ledger.'}
                   />
                 </td>

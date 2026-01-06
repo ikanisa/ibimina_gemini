@@ -44,15 +44,52 @@ export const mapTransactionStatus = (status: string): TransactionStatus => {
 export const mapTransactionType = (value?: string | null): Transaction['type'] => {
   switch (value) {
     case 'Deposit':
+    case 'DEPOSIT':
+      return 'Deposit';
     case 'Withdrawal':
+    case 'WITHDRAWAL':
+      return 'Withdrawal';
     case 'Loan Repayment':
+    case 'LOAN_REPAYMENT':
+      return 'Loan Repayment';
     case 'Loan Disbursement':
+    case 'LOAN_DISBURSEMENT':
+      return 'Loan Disbursement';
     case 'Token Purchase':
+    case 'TOKEN_PURCHASE':
+      return 'Token Purchase';
     case 'Token Redeem':
+    case 'TOKEN_REDEEM':
+      return 'Token Redeem';
     case 'Group Contribution':
-      return value;
+    case 'CONTRIBUTION':
+      return 'Group Contribution';
     default:
       return 'Deposit';
+  }
+};
+
+export const mapTransactionChannel = (channel?: string | null): Transaction['channel'] => {
+  switch (channel) {
+    case 'Cash':
+    case 'CASH':
+      return 'Cash';
+    case 'MoMo':
+    case 'MOMO':
+      return 'MoMo USSD';
+    case 'MoMo NFC':
+    case 'NFC':
+      return 'MoMo NFC';
+    case 'Token':
+    case 'TOKEN':
+      return 'Token';
+    case 'Bank':
+    case 'BANK':
+    case 'System':
+    case 'SYSTEM':
+      return 'System';
+    default:
+      return 'MoMo USSD';
   }
 };
 
