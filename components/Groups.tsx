@@ -169,6 +169,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
     g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     g.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  }, [searchTerm, groups]);
 
   const totalGroupFunds = groups.reduce((sum, group) => sum + group.fundBalance, 0);
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -832,7 +833,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100">
                   <div>
                     <p className="text-xs text-slate-500 uppercase">Expected / Meeting</p>
-                    <p className="text-lg font-bold text-slate-900">{((selectedGroup.contributionAmount * selectedGroup.memberCount)).toLocaleString()} RWF</p>
+                    <p className="text-lg font-bold text-slate-900">{(selectedGroup.contributionAmount * selectedGroup.memberCount).toLocaleString()} RWF</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase">Arrears Total</p>

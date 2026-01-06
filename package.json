@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No linter configured. Add ESLint or similar.' && exit 0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
