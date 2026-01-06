@@ -1,9 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { initSentry } from './lib/sentry';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
+
+// Initialize Sentry error tracking (before React renders)
+initSentry();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
