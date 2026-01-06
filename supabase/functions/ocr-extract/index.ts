@@ -8,6 +8,20 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// TODO: For production, replace '*' with specific allowed origins:
+// const ALLOWED_ORIGINS = [
+//   'https://your-production-domain.pages.dev',
+//   'https://your-custom-domain.com',
+// ];
+// 
+// function getCorsHeaders(origin: string) {
+//   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : '';
+//   return {
+//     'Access-Control-Allow-Origin': allowedOrigin,
+//     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+//   };
+// }
+
 interface OcrRequest {
     image: string; // base64 encoded image
     extractType: 'members' | 'groups';
