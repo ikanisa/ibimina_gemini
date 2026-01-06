@@ -1,10 +1,10 @@
 /**
  * Reusable Modal Component
  * 
- * Base modal component with consistent styling and behavior
+ * Accessible modal with proper ARIA attributes and focus management
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 
 export interface ModalProps {
@@ -15,6 +15,8 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
+  /** Unique ID for accessibility - auto-generated if not provided */
+  id?: string;
 }
 
 const sizeClasses = {
@@ -32,26 +34,70 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   size = 'md',
   showCloseButton = true,
-  closeOnOverlayClick = true
+  closeOnOverlayClick = true,
+  id
 }) => {
-  // Close on Escape key
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<Element | null>(null);
+  const modalId = id || `modal-${Math.random().toString(36).slice(2, 9)}`;
+  const titleId = `${modalId}-title`;
+
+  // Track previously focused element and restore on close
   useEffect(() => {
-    if (!isOpen) return;
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement;
+    } else if (previousFocusRef.current instanceof HTMLElement) {
+      previousFocusRef.current.focus();
+    }
+  }, [isOpen]);
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
+  // Focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isOpen || !modalRef.current) return;
+
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    }
   }, [isOpen, onClose]);
 
-  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Prevent body scroll and focus first element when modal opens
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      // Focus the modal or first focusable element
+      setTimeout(() => {
+        if (modalRef.current) {
+          const firstFocusable = modalRef.current.querySelector<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          (firstFocusable || modalRef.current).focus();
+        }
+      }, 0);
     } else {
       document.body.style.overflow = '';
     }
@@ -65,29 +111,44 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      role="presentation"
       onClick={closeOnOverlayClick ? onClose : undefined}
     >
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="absolute inset-0 bg-black/50"
+        aria-hidden="true"
+      />
 
       {/* Modal Content */}
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
         className={`relative bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200`}
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
       >
         {/* Header */}
         {(title || showCloseButton) && (
           <div className="p-6 border-b border-slate-200 flex justify-between items-center">
             {title && (
-              <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+              <h2
+                id={titleId}
+                className="text-lg font-bold text-slate-900"
+              >
+                {title}
+              </h2>
             )}
             {showCloseButton && (
               <button
+                type="button"
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Close modal"
               >
-                <X size={20} />
+                <X size={20} aria-hidden="true" />
               </button>
             )}
           </div>
