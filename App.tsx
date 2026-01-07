@@ -17,7 +17,7 @@ import {
   Briefcase,
   Scale,
   ShieldCheck,
-
+  Inbox,
   PieChart,
   ChevronDown,
   UserCircle,
@@ -28,6 +28,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const Groups = lazy(() => import('./components/Groups'));
 const Members = lazy(() => import('./components/Members'));
 const Transactions = lazy(() => import('./components/Transactions'));
+const AllocationQueue = lazy(() => import('./components/AllocationQueue'));
 const MoMoOperations = lazy(() => import('./components/MoMoOperations'));
 const Payments = lazy(() => import('./components/Payments'));
 const Saccos = lazy(() => import('./components/Saccos'));
@@ -211,6 +212,7 @@ const App: React.FC = () => {
         return ['Super Admin', 'Branch Manager', 'Auditor'].includes(effectiveRole);
       case ViewState.MEMBERS:
       case ViewState.TRANSACTIONS:
+      case ViewState.ALLOCATION_QUEUE:
         return true;
       case ViewState.ACCOUNTS:
       case ViewState.LOANS:
@@ -316,6 +318,7 @@ const App: React.FC = () => {
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Finance</p>
               <NavItem view={ViewState.LOANS} icon={<FileText size={18} />} label="Loans" />
               <NavItem view={ViewState.TRANSACTIONS} icon={<FileText size={18} />} label="Transactions" />
+              <NavItem view={ViewState.ALLOCATION_QUEUE} icon={<Inbox size={18} />} label="Allocation Queue" />
 
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Operations</p>
@@ -384,6 +387,7 @@ const App: React.FC = () => {
                   {currentView === ViewState.SACCOS && 'SACCOs & Branches'}
                   {currentView === ViewState.MEMBERS && 'Member Management'}
                   {currentView === ViewState.TRANSACTIONS && 'Ledger'}
+                  {currentView === ViewState.ALLOCATION_QUEUE && 'Allocation Queue'}
                   {currentView === ViewState.MOMO_OPERATIONS && 'Mobile Money SMS Parsing'}
 
                   {currentView === ViewState.RECONCILIATION && 'Reconciliation Center'}
@@ -489,6 +493,10 @@ const App: React.FC = () => {
                 )}
                 {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
                   <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
+                )}
+
+                {currentView === ViewState.ALLOCATION_QUEUE && canAccess(ViewState.ALLOCATION_QUEUE) && (
+                  <AllocationQueue />
                 )}
 
                 {/* Mobile Money SMS Parsing */}
