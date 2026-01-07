@@ -21,7 +21,7 @@ Not applicable - this is a static SPA with no Cloudflare Workers/Functions.
 | `VITE_SUPABASE_URL` | `https://local-project.supabase.co` | `https://preview-project.supabase.co` | `https://prod-project.supabase.co` | Cloudflare Pages → Settings → Environment Variables | Required |
 | `VITE_SUPABASE_ANON_KEY` | Local anon key | Preview anon key | Production anon key | Cloudflare Pages → Settings → Environment Variables | Required, public |
 | `VITE_USE_MOCK_DATA` | `true` (optional) | `false` | `false` | Cloudflare Pages → Settings → Environment Variables | Optional, defaults to false |
-| `NODE_VERSION` | `18` | `18` | `18` | `.nvmrc` file | Build environment |
+| `NODE_VERSION` | `20.19.0` | `20.19.0` | `20.19.0` | `.nvmrc` file | Build environment |
 | `GEMINI_API_KEY` | N/A (server-side) | N/A (server-side) | N/A (server-side) | Supabase Functions Secrets | Not used in frontend |
 
 ## Configuration Locations

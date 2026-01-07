@@ -6,6 +6,7 @@
 import React, { useEffect, useState, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, CheckCircle2, XCircle, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { clearAllAppCachesAndReload } from '../lib/pwa';
 
 interface BootStatus {
     envValid: boolean;
@@ -147,6 +148,13 @@ const AppBoot: React.FC<AppBootProps> = ({ children }) => {
                     >
                         <RefreshCw size={16} />
                         Retry
+                    </button>
+
+                    <button
+                        onClick={() => clearAllAppCachesAndReload()}
+                        className="mt-3 w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium py-3 rounded-lg transition-colors"
+                    >
+                        Clear cache & reload
                     </button>
 
                     <div className="mt-6 pt-4 border-t border-slate-100">

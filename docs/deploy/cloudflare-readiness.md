@@ -66,7 +66,7 @@ dist/
 | `VITE_SUPABASE_URL` | Local Supabase | Preview Supabase | Production Supabase | Required |
 | `VITE_SUPABASE_ANON_KEY` | Local key | Preview key | Production key | Required, public |
 | `VITE_USE_MOCK_DATA` | `true` (optional) | `false` | `false` | Optional |
-| `NODE_VERSION` | `18` | `18` | `18` | Build environment |
+| `NODE_VERSION` | `20.19.0` | `20.19.0` | `20.19.0` | Build environment |
 
 ### Runtime Variables (Not Used)
 - No Workers/Functions means no runtime env vars needed
@@ -87,7 +87,7 @@ dist/
 - Build output directory: `dist`
 - Root directory: `/` (empty)
 - Production branch: `main`
-- Node version: `18` (via `.nvmrc`)
+- Node version: `20.19.0` (via `.nvmrc`)
 
 ### 2. Required Files
 

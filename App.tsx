@@ -49,6 +49,7 @@ import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './const
 import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { buildInitialsAvatar } from './lib/avatars';
+import { clearAllAppCachesAndReload } from './lib/pwa';
 
 // Production guard: Fail loudly if mock data is enabled in production
 if (import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_DATA === 'true') {
@@ -101,14 +102,31 @@ const mapUserToStaffMember = (user: User, role: StaffRole | null, profile: Supab
   };
 };
 
-const LoadingScreen: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50">
-    <div className="flex flex-col items-center gap-3 text-slate-500">
-      <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
-      <p className="text-sm font-medium">Loading session...</p>
+const LoadingScreen: React.FC = () => {
+  const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setShowHelp(true), 8000);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-3 text-slate-500">
+        <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
+        <p className="text-sm font-medium">Loading session...</p>
+        {showHelp && (
+          <button
+            onClick={() => clearAllAppCachesAndReload()}
+            className="mt-2 text-xs font-medium text-blue-700 hover:text-blue-800 underline underline-offset-2"
+          >
+            Stuck loading? Clear cache & reload
+          </button>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SectionLoading: React.FC = () => (
   <div className="flex items-center justify-center h-64">

@@ -1,5 +1,6 @@
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { clearAllAppCachesAndReload } from '../lib/pwa';
 
 // ============================================================================
 // ERROR BOUNDARY COMPONENT
@@ -94,6 +95,13 @@ class ErrorBoundary extends React.Component<Props, State> {
                 className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
               >
                 Reload Page
+              </button>
+
+              <button
+                onClick={() => clearAllAppCachesAndReload()}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              >
+                Clear cache
               </button>
             </div>
           </div>
