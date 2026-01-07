@@ -35,6 +35,7 @@ const Payments = lazy(() => import('./components/Payments'));
 const Saccos = lazy(() => import('./components/Saccos'));
 
 const Reconciliation = lazy(() => import('./components/Reconciliation'));
+const Reports = lazy(() => import('./components/Reports'));
 const Staff = lazy(() => import('./components/Staff'));
 const Profile = lazy(() => import('./components/Profile'));
 const Loans = lazy(() => import('./components/Loans'));
@@ -210,6 +211,8 @@ const App: React.FC = () => {
         return ['Super Admin'].includes(effectiveRole);
       case ViewState.RECONCILIATION:
         return ['Super Admin', 'Branch Manager', 'Auditor'].includes(effectiveRole);
+      case ViewState.REPORTS:
+        return ['Super Admin', 'Branch Manager', 'Auditor', 'Loan Officer'].includes(effectiveRole);
       case ViewState.MEMBERS:
       case ViewState.TRANSACTIONS:
       case ViewState.ALLOCATION_QUEUE:
@@ -325,6 +328,7 @@ const App: React.FC = () => {
               <NavItem view={ViewState.MOMO_OPERATIONS} icon={<Smartphone size={18} />} label="MoMo SMS (Staff)" />
               <NavItem view={ViewState.PAYMENTS} icon={<CreditCard size={18} />} label="All Payments" />
               <NavItem view={ViewState.RECONCILIATION} icon={<Scale size={18} />} label="Reconciliation" />
+              <NavItem view={ViewState.REPORTS} icon={<PieChart size={18} />} label="Reports" />
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">System</p>
               <NavItem view={ViewState.SACCOS} icon={<Building size={18} />} label="SACCOs & Branches" />
@@ -391,6 +395,7 @@ const App: React.FC = () => {
                   {currentView === ViewState.MOMO_OPERATIONS && 'Mobile Money SMS Parsing'}
 
                   {currentView === ViewState.RECONCILIATION && 'Reconciliation Center'}
+                  {currentView === ViewState.REPORTS && 'Reports & Analytics'}
                   {currentView === ViewState.ACCOUNTS && 'Accounts & Products'}
                   {currentView === ViewState.LOANS && 'Loan Management'}
                   {currentView === ViewState.STAFF && 'Staff Administration'}
@@ -506,6 +511,7 @@ const App: React.FC = () => {
                 {currentView === ViewState.PAYMENTS && canAccess(ViewState.PAYMENTS) && <Payments />}
 
                 {currentView === ViewState.RECONCILIATION && canAccess(ViewState.RECONCILIATION) && <Reconciliation />}
+                {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && <Reports />}
                 {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && <Loans onNavigate={setCurrentView} />}
                 {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
                   <Staff
