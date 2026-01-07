@@ -25,6 +25,7 @@ import {
   KeyRound
 } from 'lucide-react';
 const Dashboard = lazy(() => import('./components/Dashboard'));
+const MinimalistDashboard = lazy(() => import('./components/MinimalistDashboard'));
 const Groups = lazy(() => import('./components/Groups'));
 const Members = lazy(() => import('./components/Members'));
 const Transactions = lazy(() => import('./components/Transactions'));
@@ -39,7 +40,6 @@ const Profile = lazy(() => import('./components/Profile'));
 const Loans = lazy(() => import('./components/Loans'));
 const SettingsPage = lazy(() => import('./components/Settings'));
 const Login = lazy(() => import('./components/Login'));
-const SupabaseDashboard = lazy(() => import('./components/SupabaseDashboard'));
 const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
 const AppBoot = lazy(() => import('./components/AppBoot'));
 import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
@@ -150,7 +150,7 @@ const App: React.FC = () => {
 
   const dashboardStats = useMockData ? MOCK_STATS : EMPTY_STATS;
   const dashboardTransactions = useMockData ? MOCK_TRANSACTIONS : [];
-  const showSupabaseDashboard = !useMockData; // Always use Supabase dashboard when not in mock mode
+  const showMinimalistDashboard = !useMockData; // Use minimalist dashboard with RPC when not in mock mode
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -474,8 +474,8 @@ const App: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth">
               <Suspense fallback={<SectionLoading />}>
                 {currentView === ViewState.DASHBOARD && (
-                  showSupabaseDashboard ? (
-                    <SupabaseDashboard />
+                  showMinimalistDashboard ? (
+                    <MinimalistDashboard onNavigate={setCurrentView} />
                   ) : (
                     <Dashboard
                       stats={dashboardStats}
