@@ -1,9 +1,7 @@
 // ============================================================================
 // Edge Function: parse-momo-sms
 // Purpose: Parse MoMo SMS text and create transactions
-// ============================================================================
-// This function is called when a new SMS is received (via Android gateway or manual import)
-// It uses AI (Gemini) to extract transaction details from SMS text
+// AI: OpenAI (primary) → Gemini (fallback)
 // ============================================================================
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -20,6 +18,105 @@ interface ParseRequest {
   sender_phone: string
   received_at?: string
   institution_id?: string
+}
+
+interface ParsedSMS {
+  amount: number
+  currency?: string
+  momo_ref?: string
+  payer_name?: string
+  occurred_at?: string
+  confidence: number
+  error?: string
+}
+
+const SMS_PARSE_PROMPT = `Extract transaction details from this Mobile Money SMS. Return ONLY a JSON object with these fields:
+- amount: numeric amount (required)
+- currency: currency code (default "RWF" if not specified)
+- momo_ref: transaction reference number if present
+- payer_name: name of payer if mentioned
+- occurred_at: ISO 8601 timestamp if date/time mentioned, otherwise use null
+- confidence: your confidence in the parse (0.0 to 1.0)
+
+SMS Text: "{SMS_TEXT}"
+
+Return ONLY valid JSON, no other text. Example:
+{"amount": 5000, "currency": "RWF", "momo_ref": "ABC123", "payer_name": "John Doe", "occurred_at": "2025-01-07T10:30:00Z", "confidence": 0.95}
+
+If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
+
+// Parse SMS using OpenAI
+async function parseWithOpenAI(smsText: string, apiKey: string): Promise<ParsedSMS> {
+  const prompt = SMS_PARSE_PROMPT.replace('{SMS_TEXT}', smsText)
+  
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a precise data extraction assistant. Extract transaction details from Mobile Money SMS messages.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+      max_tokens: 512
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('OpenAI API error:', errorText)
+    throw new Error(`OpenAI API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  const textContent = data.choices?.[0]?.message?.content || '{}'
+  
+  const jsonMatch = textContent.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    throw new Error('No JSON found in OpenAI response')
+  }
+  
+  return JSON.parse(jsonMatch[0])
+}
+
+// Parse SMS using Gemini (fallback)
+async function parseWithGemini(smsText: string, apiKey: string, model: string): Promise<ParsedSMS> {
+  const prompt = SMS_PARSE_PROMPT.replace('{SMS_TEXT}', smsText)
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 512
+        }
+      })
+    }
+  )
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('Gemini API error:', errorText)
+    throw new Error(`Gemini API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+
+  const jsonMatch = textContent.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    throw new Error('No JSON found in Gemini response')
+  }
+
+  return JSON.parse(jsonMatch[0])
 }
 
 serve(async (req) => {
@@ -72,60 +169,46 @@ serve(async (req) => {
       throw new Error('Institution ID required')
     }
 
-    // Call Gemini to parse SMS
+    // Get API keys
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') || 'gemini-2.0-flash-exp'
 
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured')
+    if (!OPENAI_API_KEY && !GEMINI_API_KEY) {
+      throw new Error('No AI API keys configured (OPENAI_API_KEY or GEMINI_API_KEY required)')
     }
 
-    const prompt = `Extract transaction details from this Mobile Money SMS. Return ONLY a JSON object with these fields:
-- amount: numeric amount (required)
-- currency: currency code (default "RWF" if not specified)
-- momo_ref: transaction reference number if present
-- payer_name: name of payer if mentioned
-- occurred_at: ISO 8601 timestamp if date/time mentioned, otherwise use null
-- confidence: your confidence in the parse (0.0 to 1.0)
+    let parsed: ParsedSMS
+    let aiProvider = 'unknown'
 
-SMS Text: "${sms_text}"
-
-Return ONLY valid JSON, no other text. Example:
-{"amount": 5000, "currency": "RWF", "momo_ref": "ABC123", "payer_name": "John Doe", "occurred_at": "2025-01-07T10:30:00Z", "confidence": 0.95}
-
-If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
-
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 512
-          }
-        })
+    // Try OpenAI first, fallback to Gemini
+    if (OPENAI_API_KEY) {
+      try {
+        console.log('Attempting parse with OpenAI...')
+        parsed = await parseWithOpenAI(sms_text, OPENAI_API_KEY)
+        aiProvider = 'openai'
+        console.log('OpenAI parse successful')
+      } catch (openaiError) {
+        console.error('OpenAI failed:', openaiError.message)
+        
+        // Fallback to Gemini
+        if (GEMINI_API_KEY) {
+          console.log('Falling back to Gemini...')
+          parsed = await parseWithGemini(sms_text, GEMINI_API_KEY, GEMINI_MODEL)
+          aiProvider = 'gemini'
+          console.log('Gemini parse successful')
+        } else {
+          throw openaiError
+        }
       }
-    )
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text()
-      console.error('Gemini API error:', errorText)
-      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+    } else if (GEMINI_API_KEY) {
+      // Only Gemini available
+      console.log('Using Gemini (no OpenAI key)...')
+      parsed = await parseWithGemini(sms_text, GEMINI_API_KEY, GEMINI_MODEL)
+      aiProvider = 'gemini'
+    } else {
+      throw new Error('No AI API keys available')
     }
-
-    const geminiData = await geminiResponse.json()
-    const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
-
-    // Parse JSON from Gemini response
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('No JSON found in Gemini response')
-    }
-
-    const parsed = JSON.parse(jsonMatch[0])
 
     if (parsed.error) {
       // Update SMS with error
@@ -138,7 +221,7 @@ If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
         .eq('id', sms_id)
 
       return new Response(
-        JSON.stringify({ success: false, error: parsed.error }),
+        JSON.stringify({ success: false, error: parsed.error, ai_provider: aiProvider }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -171,6 +254,7 @@ If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
       JSON.stringify({
         success: true,
         transaction_id,
+        ai_provider: aiProvider,
         parsed_data: {
           amount: parsed.amount,
           currency: parsed.currency || 'RWF',
@@ -193,4 +277,3 @@ If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
     )
   }
 })
-
