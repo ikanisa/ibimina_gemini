@@ -343,3 +343,4 @@ comment on function public.get_dashboard_summary is
   'Returns dashboard summary with KPIs, attention items, previews, and health status. 
    Platform admins can query any institution or all (null). Other users see only their institution.';
 
+

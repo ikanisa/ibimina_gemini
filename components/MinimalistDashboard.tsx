@@ -19,6 +19,7 @@ import {
   InstitutionSwitcher
 } from './dashboard';
 
+// API response structure matching the RPC function
 interface DashboardData {
   institution_id: string | null;
   is_global: boolean;
@@ -26,17 +27,18 @@ interface DashboardData {
   generated_at: string;
   kpis: {
     today: {
-      received: number;
-      allocated_count: number;
-      unallocated_count: number;
-    };
-    period: {
-      days: number;
-      received: number;
+      received_total: number;
       allocated_count: number;
       unallocated_count: number;
       parse_errors_count: number;
-      unallocated_aging_count: number;
+    };
+    last_days: {
+      days: number;
+      received_total: number;
+      allocated_count: number;
+      unallocated_count: number;
+      unallocated_aging_24h: number;
+      parse_errors_count: number;
     };
   };
   attention: Array<{
@@ -50,32 +52,27 @@ interface DashboardData {
     id: string;
     occurred_at: string;
     amount: number;
-    currency: string;
     payer_phone: string | null;
-    payer_name: string | null;
     momo_ref: string | null;
   }>;
   parse_error_preview: Array<{
     id: string;
     received_at: string;
     sender_phone: string;
-    sms_text: string;
     parse_error: string | null;
   }>;
   recent_activity: Array<{
     id: string;
     created_at: string;
     action: string;
-    entity_type: string;
+    actor_user_id: string;
     actor_email: string | null;
     metadata: Record<string, unknown> | null;
   }>;
   health: {
     momo_primary_code_present: boolean;
-    sms_sources_last_seen: string | null;
     sms_sources_offline_count: number;
-    sms_sources_total_count: number;
-    overall_status: 'healthy' | 'warning' | 'critical';
+    last_sms_seen_at: string | null;
   };
 }
 
@@ -101,7 +98,7 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInstitutionId, setSelectedInstitutionId] = useState<string | null>(null);
 
-  const isPlatformAdmin = role === 'Super Admin';
+  const isPlatformAdmin = role === 'Super Admin' || role === 'PLATFORM_ADMIN';
 
   const loadDashboard = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) {
@@ -136,11 +133,14 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
     loadDashboard();
   }, [loadDashboard]);
 
-  // Navigation handlers
+  // Navigation handlers - map action paths to ViewState
   const handleNavigate = (path: string) => {
     if (!onNavigate) return;
     
-    switch (path) {
+    // Handle paths with query params
+    const basePath = path.split('?')[0];
+    
+    switch (basePath) {
       case '/allocation-queue':
         onNavigate(ViewState.ALLOCATION_QUEUE);
         break;
@@ -215,6 +215,19 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
 
   if (!data) return null;
 
+  // Compute derived health for banner
+  const healthForBanner = {
+    momo_primary_code_present: data.health.momo_primary_code_present,
+    sms_sources_last_seen: data.health.last_sms_seen_at,
+    sms_sources_offline_count: data.health.sms_sources_offline_count,
+    sms_sources_total_count: data.health.sms_sources_offline_count > 0 ? data.health.sms_sources_offline_count : 1,
+    overall_status: (
+      !data.health.momo_primary_code_present || data.health.sms_sources_offline_count > 0
+        ? 'warning' 
+        : 'healthy'
+    ) as 'healthy' | 'warning' | 'critical'
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Institution Switcher */}
@@ -222,7 +235,7 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500">
-            {data.is_global ? 'All institutions' : 'Your institution'} • Last {data.kpis.period.days} days
+            {data.is_global ? 'All institutions' : 'Your institution'} • Last {data.kpis.last_days.days} days
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -243,13 +256,13 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
       </div>
 
       {/* Health Banner */}
-      <DashboardHealthBanner health={data.health} onNavigate={handleNavigate} />
+      <DashboardHealthBanner health={healthForBanner} onNavigate={handleNavigate} />
 
       {/* KPI Row - Max 6 cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <KpiCard
           title="Today's Collections"
-          value={formatCurrency(data.kpis.today.received)}
+          value={formatCurrency(data.kpis.today.received_total)}
           icon={DollarSign}
           iconBg="bg-green-50"
           iconColor="text-green-600"
@@ -271,30 +284,30 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
           alert={data.kpis.today.unallocated_count > 0}
         />
         <KpiCard
-          title={`${data.kpis.period.days}d Collections`}
-          value={formatCurrency(data.kpis.period.received)}
-          subtext={`${data.kpis.period.allocated_count} allocated`}
+          title={`${data.kpis.last_days.days}d Collections`}
+          value={formatCurrency(data.kpis.last_days.received_total)}
+          subtext={`${data.kpis.last_days.allocated_count} allocated`}
           icon={TrendingUp}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
         />
         <KpiCard
           title="Parse Errors"
-          value={data.kpis.period.parse_errors_count}
+          value={data.kpis.last_days.parse_errors_count}
           subtext="Last 7 days"
           icon={AlertCircle}
           iconBg="bg-red-50"
           iconColor="text-red-600"
-          alert={data.kpis.period.parse_errors_count > 0}
+          alert={data.kpis.last_days.parse_errors_count > 0}
         />
         <KpiCard
           title="Aging > 24h"
-          value={data.kpis.period.unallocated_aging_count}
+          value={data.kpis.last_days.unallocated_aging_24h}
           subtext="Unallocated"
           icon={Clock}
           iconBg="bg-orange-50"
           iconColor="text-orange-600"
-          alert={data.kpis.period.unallocated_aging_count > 0}
+          alert={data.kpis.last_days.unallocated_aging_24h > 0}
         />
       </div>
 
@@ -325,18 +338,28 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
         <PreviewList
           title="Unallocated Transactions"
           type="unallocated"
-          items={data.unallocated_preview}
+          items={data.unallocated_preview.map(item => ({
+            ...item,
+            currency: 'RWF',
+            payer_name: null
+          }))}
           onViewAll={handleViewAllUnallocated}
         />
         <PreviewList
           title="Parse Errors"
           type="parse_error"
-          items={data.parse_error_preview}
+          items={data.parse_error_preview.map(item => ({
+            ...item,
+            sms_text: item.parse_error || 'Parse error'
+          }))}
           onViewAll={handleViewAllParseErrors}
         />
         <ActivityList
           title="Recent Activity"
-          items={data.recent_activity}
+          items={data.recent_activity.map(item => ({
+            ...item,
+            entity_type: item.action.split('_')[0] || 'system'
+          }))}
           onViewAll={handleViewAuditLog}
         />
       </div>
@@ -345,4 +368,3 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
 };
 
 export default MinimalistDashboard;
-

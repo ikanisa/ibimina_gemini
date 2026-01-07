@@ -139,6 +139,20 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ============================================================================
+-- Create SMS sources (including offline case for dashboard testing)
+-- ============================================================================
+
+INSERT INTO public.sms_sources (id, institution_id, name, source_type, is_active, last_seen_at, webhook_secret, created_at)
+VALUES
+  -- Active SMS source (recently seen)
+  ('ssss0001-0001-0001-0001-000000000001', '11111111-1111-1111-1111-111111111111', 'Office Phone - Active', 'android_gateway', true, NOW() - INTERVAL '30 minutes', md5(random()::text), NOW() - INTERVAL '30 days'),
+  -- Offline SMS source (last seen > 6 hours ago - should trigger attention)
+  ('ssss0002-0002-0002-0002-000000000002', '11111111-1111-1111-1111-111111111111', 'Field Agent Phone - OFFLINE', 'android_gateway', true, NOW() - INTERVAL '12 hours', md5(random()::text), NOW() - INTERVAL '25 days'),
+  -- Institution 2 - active source
+  ('ssss0003-0003-0003-0003-000000000003', '22222222-2222-2222-2222-222222222222', 'Main Office Gateway', 'webhook', true, NOW() - INTERVAL '15 minutes', md5(random()::text), NOW() - INTERVAL '20 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
 -- Summary
 -- ============================================================================
 -- This seed creates:
@@ -148,5 +162,7 @@ ON CONFLICT DO NOTHING;
 -- - 9 unallocated transactions (needs attention, some aging)
 -- - 10 MoMo SMS raw records (8 with parse errors, 2 successfully parsed)
 -- - 12 audit log entries (allocations, logins, settings changes)
+-- - 3 SMS sources (1 offline for attention testing)
 -- ============================================================================
+
 

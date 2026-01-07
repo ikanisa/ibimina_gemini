@@ -11,9 +11,38 @@ The dashboard has been completely redesigned with a minimalist, operationally-sh
 
 ---
 
+## Inventory Report (Pre-Implementation Audit)
+
+### Tables Used
+
+| Table | Column(s) Used |
+|-------|---------------|
+| `transactions` | `institution_id`, `occurred_at`, `amount`, `allocation_status`, `payer_phone`, `momo_ref` |
+| `momo_sms_raw` | `institution_id`, `received_at`, `sender_phone`, `parse_status`, `parse_error` |
+| `audit_log` | `institution_id`, `created_at`, `action`, `actor_user_id`, `actor_email`, `metadata` |
+| `sms_sources` | `institution_id`, `is_active`, `last_seen_at` |
+| `institution_momo_codes` | `institution_id`, `is_active`, `is_primary` |
+| `profiles` | `user_id`, `role`, `institution_id` |
+
+### Key Column Mapping
+
+- **Allocation status**: `transactions.allocation_status` (enum: 'unallocated', 'allocated', etc.)
+- **Profile lookup**: `profiles.user_id` (NOT `profiles.id`)
+- **Role check**: `profiles.role` ('PLATFORM_ADMIN', 'INSTITUTION_ADMIN', etc.)
+
+### Pages/Routes Affected
+
+- **Replaced**: `SupabaseDashboard.tsx` (old mock widgets, queried `contributions`, `payment_ledger`)
+- **New**: `MinimalistDashboard.tsx` (single RPC call, minimalist UI)
+
+---
+
 ## What Was Implemented
 
-### 1. Database Changes (`20260107200000_dashboard_module.sql`)
+### 1. Database Changes
+
+**Migration 1:** `20260107200000_dashboard_module.sql` - Indexes  
+**Migration 2:** `20260107200001_dashboard_module_fix.sql` - RPC Function Fix
 
 #### New Indexes for Fast Queries
 
@@ -30,20 +59,28 @@ The dashboard has been completely redesigned with a minimalist, operationally-sh
 
 ```sql
 get_dashboard_summary(p_institution_id uuid default null, p_days int default 7) returns jsonb
+-- Key characteristics:
+-- SECURITY INVOKER (relies on RLS policies)
+-- SET search_path = public
 ```
 
 Returns a single JSON object containing:
-- **kpis**: Today's and period totals (received, allocated, unallocated, parse errors)
-- **attention**: Actionable items with severity and paths
+- **kpis.today**: `received_total`, `allocated_count`, `unallocated_count`, `parse_errors_count`
+- **kpis.last_days**: Period metrics including `unallocated_aging_24h`
+- **attention**: Filtered array (only items with count > 0):
+  - `UNALLOCATED` → `/reconciliation`
+  - `UNALLOCATED_AGING_24H` → `/reconciliation?aging=24h`
+  - `PARSE_ERRORS` → `/reconciliation?tab=parse-errors`
+  - `SMS_SOURCE_OFFLINE` → `/settings/sms-sources` (6 hour threshold)
+  - `MOMO_CODE_MISSING` → `/settings/institution`
 - **unallocated_preview**: Latest 10 unallocated transactions
 - **parse_error_preview**: Latest 10 parse errors
 - **recent_activity**: Latest 15 audit log entries
-- **health**: System health indicators
+- **health**: `momo_primary_code_present`, `sms_sources_offline_count`, `last_sms_seen_at`
 
-**Security:**
-- Uses `auth.uid()` to determine user scope
-- Non-platform admins only see their institution
-- Platform admins can query any institution or global view
+**Scope Rules:**
+- Non-PLATFORM_ADMIN: forced to their own institution (ignores `p_institution_id`)
+- PLATFORM_ADMIN: can request specific institution OR all (null)
 
 ### 2. UI Components (`components/dashboard/`)
 
@@ -72,9 +109,10 @@ Created demo data for:
 - 3 groups across 2 institutions
 - 4 members
 - 10 allocated transactions
-- 9 unallocated transactions (including aging)
+- 9 unallocated transactions (including aging > 24h)
 - 10 MoMo SMS records (8 parse errors)
 - 12 audit log entries
+- 3 SMS sources (1 offline > 6h for attention testing)
 
 ---
 
@@ -94,12 +132,14 @@ Created demo data for:
 ### 2. "Needs Attention" List
 
 Each item has exactly ONE action button:
-- Unallocated transactions → "Go allocate"
-- Parse errors → "Review errors"
-- SMS sources offline → "Check sources"
-- Missing MoMo code → "Add code"
+- `UNALLOCATED` → "Go allocate" → `/reconciliation`
+- `UNALLOCATED_AGING_24H` → "Review aging" → `/reconciliation?aging=24h`
+- `PARSE_ERRORS` → "Review errors" → `/reconciliation?tab=parse-errors`
+- `SMS_SOURCE_OFFLINE` → "Check sources" → `/settings/sms-sources`
+- `MOMO_CODE_MISSING` → "Add code" → `/settings/institution`
 
 Items sorted by severity (high → medium → low) then by count.
+Only items with count > 0 are displayed.
 
 ### 3. Preview Panels (10 items each)
 
@@ -118,10 +158,11 @@ All visual elements serve operational purposes:
 
 ## Files Created/Modified
 
-### New Files (10)
+### New Files (11)
 
 ```
 supabase/migrations/20260107200000_dashboard_module.sql
+supabase/migrations/20260107200001_dashboard_module_fix.sql
 supabase/seed/007_dashboard_demo_data.sql
 
 components/dashboard/KpiCard.tsx
@@ -231,4 +272,5 @@ The minimalist dashboard provides:
 - **Operability**: Every item leads to an action
 
 Staff can assess system health and pending work in under 10 seconds.
+
 

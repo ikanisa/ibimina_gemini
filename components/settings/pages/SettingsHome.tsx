@@ -135,3 +135,4 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
 
 export default SettingsHome;
 
+

@@ -280,3 +280,4 @@ supabase secrets set GEMINI_MODEL=gemini-2.0-flash-exp
 - `QA_UAT_CHECKLIST.md` - Testing checklist
 - `DEPLOYMENT_GUIDE.md` - Step-by-step deployment
 
+

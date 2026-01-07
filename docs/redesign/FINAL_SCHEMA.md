@@ -271,3 +271,4 @@ All foreign keys, `institution_id`, and frequently queried columns are indexed:
 3. **Unallocated transactions cannot have member_id/group_id** - Enforced by allocation_status check
 4. **MoMo code deduplication** - Unique hash on `momo_sms_raw`
 
+

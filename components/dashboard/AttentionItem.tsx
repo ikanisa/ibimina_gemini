@@ -52,12 +52,18 @@ export const AttentionItem: React.FC<AttentionItemProps> = ({
 
   const getActionText = () => {
     switch (type) {
+      case 'UNALLOCATED':
       case 'unallocated':
         return 'Go allocate';
+      case 'UNALLOCATED_AGING_24H':
+        return 'Review aging';
+      case 'PARSE_ERRORS':
       case 'parse_error':
         return 'Review errors';
+      case 'SMS_SOURCE_OFFLINE':
       case 'sms_offline':
         return 'Check sources';
+      case 'MOMO_CODE_MISSING':
       case 'missing_momo':
         return 'Add code';
       default:
@@ -91,4 +97,5 @@ export const AttentionItem: React.FC<AttentionItemProps> = ({
 };
 
 export default AttentionItem;
+
 

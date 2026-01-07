@@ -225,3 +225,4 @@ All documentation is in `/docs/redesign/`:
 **Redesign completed:** 2025-01-07
 **Status:** Schema & Functions Ready, Frontend Updates Pending
 
+

@@ -557,3 +557,4 @@ grant execute on function public.get_settings_health(uuid) to authenticated;
 -- MIGRATION COMPLETE
 -- ============================================================================
 
+
