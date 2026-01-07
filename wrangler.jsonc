@@ -2,10 +2,5 @@
     "$schema": "https://json.schemastore.org/wrangler.json",
     "name": "sacco",
     "compatibility_date": "2026-01-02",
-    "pages_build_output_dir": "dist",
-    "assets": {
-        "directory": "./dist",
-        "html_handling": "auto-trailing-slash",
-        "not_found_handling": "single-page-application"
-    }
+    "pages_build_output_dir": "dist"
 }
