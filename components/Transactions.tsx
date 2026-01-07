@@ -1,7 +1,6 @@
-
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Transaction, ViewState } from '../types';
-import { Download, Filter, ExternalLink, FileText } from 'lucide-react';
+import { Download, Filter, ExternalLink, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '../lib/mappers';
@@ -12,72 +11,120 @@ interface TransactionsProps {
   onNavigate?: (view: ViewState) => void;
 }
 
+const INITIAL_LOAD = 50;
+const LOAD_MORE = 25;
+
 const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsProp, onNavigate }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>(transactionsProp ?? []);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
 
+  const mapTransaction = (tx: any): Transaction => {
+    const date = new Date(tx.occurred_at || tx.created_at);
+    const dateLabel = `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
+    return {
+      id: tx.id,
+      date: dateLabel,
+      memberId: tx.member_id ?? '—',
+      memberName: tx.members?.full_name ?? tx.payer_name ?? tx.counterparty ?? 'Unknown',
+      type: mapTransactionType(tx.type || 'Deposit'),
+      amount: Number(tx.amount) || 0,
+      currency: tx.currency || 'RWF',
+      channel: mapTransactionChannel(tx.channel),
+      status: mapTransactionStatus(tx.status || 'COMPLETED'),
+      reference: tx.reference || tx.momo_ref || '—',
+      groupId: tx.group_id ?? undefined
+    };
+  };
+
+  const loadTransactions = useCallback(async (loadOffset: number, limit: number, append: boolean = false) => {
+    if (!institutionId) return;
+
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('transactions')
+        .select('*, members(full_name)')
+        .eq('institution_id', institutionId)
+        .order('occurred_at', { ascending: false })
+        .range(loadOffset, loadOffset + limit - 1);
+
+      if (fetchError) throw fetchError;
+
+      const mapped = (data || []).map(mapTransaction);
+
+      if (append) {
+        setTransactions(prev => [...prev, ...mapped]);
+      } else {
+        setTransactions(mapped);
+      }
+
+      setOffset(loadOffset + mapped.length);
+      setHasMore(mapped.length === limit);
+    } catch (err) {
+      console.error('Error loading transactions:', err);
+      setError('Unable to load transactions. Check your connection and permissions.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      loadingRef.current = false;
+    }
+  }, [institutionId]);
+
+  // Initial load
   useEffect(() => {
     if (transactionsProp !== undefined) {
       setTransactions(transactionsProp);
       return;
     }
-    if (useMockData) {
-      return;
-    }
+    if (useMockData) return;
     if (!institutionId) {
       setTransactions([]);
       return;
     }
 
-    const loadTransactions = async () => {
-      setLoading(true);
-      setError(null);
+    loadTransactions(0, INITIAL_LOAD, false);
+  }, [transactionsProp, useMockData, institutionId, loadTransactions]);
 
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*, members(full_name)')
-        .eq('institution_id', institutionId)
-        .order('created_at', { ascending: false })
-        .limit(100);
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (loadingRef.current || !hasMore || loading) return;
+    loadingRef.current = true;
+    loadTransactions(offset, LOAD_MORE, true);
+  }, [offset, hasMore, loading, loadTransactions]);
 
-      if (error) {
-        console.error('Error loading transactions:', error);
-        setError('Unable to load transactions. Check your connection and permissions.');
-        setTransactions([]);
-        setLoading(false);
-        return;
+  // Infinite scroll handler
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (loadingRef.current || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        loadMore();
       }
-
-      const mapped = (data as any[]).map((tx) => {
-        const date = new Date(tx.created_at);
-        const dateLabel = `${date.toISOString().slice(0, 10)} ${date.toTimeString().slice(0, 5)}`;
-        return {
-          id: tx.id,
-          date: dateLabel,
-          memberId: tx.member_id ?? '—',
-          memberName: tx.members?.full_name ?? tx.counterparty ?? 'Unknown',
-          type: mapTransactionType(tx.type || 'Deposit'),
-          amount: Number(tx.amount) || 0,
-          currency: tx.currency || 'RWF',
-          channel: mapTransactionChannel(tx.channel),
-          status: mapTransactionStatus(tx.status || 'COMPLETED'),
-          reference: tx.reference || '—',
-          groupId: tx.group_id ?? undefined
-        };
-      });
-
-      setTransactions(mapped);
-      setLoading(false);
     };
 
-    loadTransactions();
-  }, [transactionsProp, useMockData, institutionId]);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadMore]);
 
-  // Filter transactions
+  // Filter transactions (client-side for already loaded data)
   const filteredTransactions = useMemo(() => {
     if (!searchTerm.trim()) return transactions;
     const term = searchTerm.toLowerCase();
@@ -87,27 +134,27 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
     );
   }, [transactions, searchTerm]);
 
-  // Loading state
-  if (loading) {
+  if (loading && transactions.length === 0) {
     return <LoadingSpinner size="lg" text="Loading transactions..." className="h-64" />;
   }
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-120px)]">
-      {/* Error Display */}
-      {error && (
-        <ErrorDisplay error={error} variant="banner" />
-      )}
+      {error && <ErrorDisplay error={error} variant="banner" />}
+      
       {/* Header */}
-      <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-slate-800">Ledger</h2>
-        <div className="flex gap-2">
+      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800">Ledger</h2>
+          <p className="text-xs text-slate-500">{transactions.length} transactions loaded</p>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
           <SearchInput
             placeholder="Search Ref or Member"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onClear={() => setSearchTerm('')}
-            className="w-64"
+            className="flex-1 sm:w-64"
           />
           <Button variant="secondary" size="sm" leftIcon={<Filter size={16} />}>
             Filter
@@ -118,8 +165,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Table with infinite scroll */}
+      <div ref={containerRef} className="flex-1 overflow-y-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 sticky top-0 z-10">
             <tr>
@@ -166,27 +213,46 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                   <div className="text-xs text-slate-400 mt-0.5">{tx.reference}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className={`text-sm font-bold ${tx.type === 'Deposit' || tx.type === 'Loan Repayment' || tx.type === 'Group Contribution' ? 'text-green-600' : 'text-slate-900'
-                    }`}>
+                  <div className={`text-sm font-bold ${tx.type === 'Deposit' || tx.type === 'Loan Repayment' || tx.type === 'Group Contribution' ? 'text-green-600' : 'text-slate-900'}`}>
                     {tx.currency === 'USD' ? '$' : ''}{tx.amount.toLocaleString()} {tx.currency !== 'USD' ? tx.currency : ''}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <Badge
-                    variant={tx.status === 'Completed' ? 'success' : tx.status === 'Pending' ? 'warning' : 'danger'}
-                  >
+                  <Badge variant={tx.status === 'Completed' ? 'success' : tx.status === 'Pending' ? 'warning' : 'danger'}>
                     {tx.status}
                   </Badge>
                 </td>
               </tr>
             ))}
-            {filteredTransactions.length === 0 && (
+            
+            {/* Loading more indicator */}
+            {loadingMore && (
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center">
+                  <div className="flex items-center justify-center gap-2 text-slate-500">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span className="text-sm">Loading more...</span>
+                  </div>
+                </td>
+              </tr>
+            )}
+            
+            {/* End of list indicator */}
+            {!hasMore && transactions.length > 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center text-sm text-slate-400">
+                  All {transactions.length} transactions loaded
+                </td>
+              </tr>
+            )}
+
+            {filteredTransactions.length === 0 && !loading && (
               <tr>
                 <td colSpan={6}>
                   <EmptyState
                     icon={FileText}
-                    title={useMockData ? 'No transactions found' : 'No transactions yet'}
-                    description={useMockData
+                    title={searchTerm ? 'No transactions found' : 'No transactions yet'}
+                    description={searchTerm
                       ? 'No transactions match your search.'
                       : 'Record activity to populate the ledger.'}
                   />

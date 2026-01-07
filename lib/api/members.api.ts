@@ -27,19 +27,32 @@ export interface UpdateMemberParams {
   token_balance?: number;
 }
 
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+}
+
 export interface MemberWithGroups extends SupabaseMember {
   groups?: Array<{ group_name: string }>;
 }
 
 /**
- * Fetch all members for an institution
+ * Fetch all members for an institution with optional pagination
  */
-export async function fetchMembers(institutionId: string) {
-  const { data, error } = await supabase
+export async function fetchMembers(institutionId: string, options: PaginationOptions = {}) {
+  const { limit, offset = 0 } = options;
+  
+  let query = supabase
     .from('members')
     .select('*')
     .eq('institution_id', institutionId)
     .order('created_at', { ascending: false });
+
+  if (limit !== undefined) {
+    query = query.range(offset, offset + limit - 1);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to fetch members: ${error.message}`);
@@ -49,23 +62,38 @@ export async function fetchMembers(institutionId: string) {
 }
 
 /**
- * Fetch members with their group memberships
+ * Fetch members with their group memberships with optional pagination
  */
-export async function fetchMembersWithGroups(institutionId: string) {
-  const { data: members, error: membersError } = await supabase
+export async function fetchMembersWithGroups(institutionId: string, options: PaginationOptions = {}) {
+  const { limit, offset = 0 } = options;
+  
+  let query = supabase
     .from('members')
     .select('*')
     .eq('institution_id', institutionId)
     .order('created_at', { ascending: false });
 
+  if (limit !== undefined) {
+    query = query.range(offset, offset + limit - 1);
+  }
+
+  const { data: members, error: membersError } = await query;
+
   if (membersError) {
     throw new Error(`Failed to fetch members: ${membersError.message}`);
+  }
+
+  // Only fetch group memberships for the members we loaded
+  const memberIds = (members || []).map(m => m.id);
+  
+  if (memberIds.length === 0) {
+    return [] as MemberWithGroups[];
   }
 
   const { data: groupMemberships, error: groupsError } = await supabase
     .from('group_members')
     .select('member_id, groups(group_name)')
-    .eq('institution_id', institutionId);
+    .in('member_id', memberIds);
 
   if (groupsError) {
     console.warn('Failed to fetch group memberships:', groupsError);
@@ -224,4 +252,3 @@ export async function searchMembers(institutionId: string, searchTerm: string) {
 
   return data as SupabaseMember[];
 }
-

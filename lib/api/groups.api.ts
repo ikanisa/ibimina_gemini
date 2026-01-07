@@ -18,6 +18,7 @@ export interface CreateGroupParams {
   bank_name?: string;
   account_ref?: string;
   currency?: string;
+  status?: 'ACTIVE' | 'PAUSED' | 'CLOSED';
 }
 
 export interface UpdateGroupParams {
@@ -32,15 +33,28 @@ export interface UpdateGroupParams {
   next_meeting_date?: string;
 }
 
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+}
+
 /**
- * Fetch all groups for an institution
+ * Fetch all groups for an institution with optional pagination
  */
-export async function fetchGroups(institutionId: string) {
-  const { data, error } = await supabase
+export async function fetchGroups(institutionId: string, options: PaginationOptions = {}) {
+  const { limit, offset = 0 } = options;
+  
+  let query = supabase
     .from('groups')
     .select('*')
     .eq('institution_id', institutionId)
     .order('created_at', { ascending: false });
+
+  if (limit !== undefined) {
+    query = query.range(offset, offset + limit - 1);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to fetch groups: ${error.message}`);
@@ -50,23 +64,38 @@ export async function fetchGroups(institutionId: string) {
 }
 
 /**
- * Fetch groups with member counts
+ * Fetch groups with member counts with optional pagination
  */
-export async function fetchGroupsWithMemberCounts(institutionId: string) {
-  const { data: groups, error: groupsError } = await supabase
+export async function fetchGroupsWithMemberCounts(institutionId: string, options: PaginationOptions = {}) {
+  const { limit, offset = 0 } = options;
+  
+  let query = supabase
     .from('groups')
     .select('*')
     .eq('institution_id', institutionId)
     .order('created_at', { ascending: false });
 
+  if (limit !== undefined) {
+    query = query.range(offset, offset + limit - 1);
+  }
+
+  const { data: groups, error: groupsError } = await query;
+
   if (groupsError) {
     throw new Error(`Failed to fetch groups: ${groupsError.message}`);
+  }
+
+  // Only fetch member counts for the groups we loaded
+  const groupIds = (groups || []).map(g => g.id);
+  
+  if (groupIds.length === 0) {
+    return { groups: [] as SupabaseGroup[], memberCounts: {} };
   }
 
   const { data: memberData, error: memberError } = await supabase
     .from('group_members')
     .select('group_id')
-    .eq('institution_id', institutionId);
+    .in('group_id', groupIds);
 
   if (memberError) {
     console.warn('Failed to fetch group members:', memberError);
@@ -117,7 +146,7 @@ export async function createGroup(params: CreateGroupParams) {
       bank_name: params.bank_name,
       account_ref: params.account_ref,
       currency: params.currency || 'RWF',
-      status: 'ACTIVE'
+      status: params.status || 'ACTIVE'
     })
     .select()
     .single();
@@ -251,4 +280,3 @@ export async function searchGroups(institutionId: string, searchTerm: string) {
 
   return data as SupabaseGroup[];
 }
-

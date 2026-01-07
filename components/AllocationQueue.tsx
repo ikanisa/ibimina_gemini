@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge, Modal } from './ui';
-import { User, Calendar, DollarSign, Phone, MapPin, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { User, Calendar, DollarSign, Phone, MapPin, CheckCircle2, Search, Loader2 } from 'lucide-react';
 
 interface UnallocatedTransaction {
   id: string;
@@ -32,10 +32,17 @@ interface Member {
   };
 }
 
+const INITIAL_LOAD = 50;
+const LOAD_MORE = 25;
+
 const AllocationQueue: React.FC = () => {
   const { institutionId } = useAuth();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+  
   const [transactions, setTransactions] = useState<UnallocatedTransaction[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<UnallocatedTransaction | null>(null);
@@ -44,46 +51,89 @@ const AllocationQueue: React.FC = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [allocating, setAllocating] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
 
-  // Load unallocated transactions
+  // Load transactions function
+  const loadTransactions = useCallback(async (loadOffset: number, limit: number, append: boolean = false) => {
+    if (!institutionId) return;
+
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          momo_sms_raw (
+            sms_text,
+            parse_status
+          )
+        `)
+        .eq('institution_id', institutionId)
+        .eq('allocation_status', 'unallocated')
+        .order('occurred_at', { ascending: false })
+        .range(loadOffset, loadOffset + limit - 1);
+
+      if (fetchError) throw fetchError;
+
+      const fetchedData = data as UnallocatedTransaction[];
+      
+      if (append) {
+        setTransactions(prev => [...prev, ...fetchedData]);
+      } else {
+        setTransactions(fetchedData);
+      }
+      
+      setOffset(loadOffset + fetchedData.length);
+      setHasMore(fetchedData.length === limit);
+    } catch (err) {
+      console.error('Error loading unallocated transactions:', err);
+      setError('Unable to load unallocated transactions.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      loadingRef.current = false;
+    }
+  }, [institutionId]);
+
+  // Initial load
   useEffect(() => {
     if (!institutionId) {
       setTransactions([]);
       return;
     }
+    loadTransactions(0, INITIAL_LOAD, false);
+  }, [institutionId, loadTransactions]);
 
-    const loadTransactions = async () => {
-      setLoading(true);
-      setError(null);
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (loadingRef.current || !hasMore || loading) return;
+    loadingRef.current = true;
+    loadTransactions(offset, LOAD_MORE, true);
+  }, [offset, hasMore, loading, loadTransactions]);
 
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('transactions')
-          .select(`
-            *,
-            momo_sms_raw (
-              sms_text,
-              parse_status
-            )
-          `)
-          .eq('institution_id', institutionId)
-          .eq('allocation_status', 'unallocated')
-          .order('occurred_at', { ascending: false })
-          .limit(100);
+  // Infinite scroll handler
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-        if (fetchError) throw fetchError;
-
-        setTransactions(data as UnallocatedTransaction[]);
-      } catch (err) {
-        console.error('Error loading unallocated transactions:', err);
-        setError('Unable to load unallocated transactions.');
-      } finally {
-        setLoading(false);
+    const handleScroll = () => {
+      if (loadingRef.current || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        loadMore();
       }
     };
 
-    loadTransactions();
-  }, [institutionId]);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadMore]);
 
   // Load members when picker opens
   useEffect(() => {
@@ -117,7 +167,7 @@ const AllocationQueue: React.FC = () => {
     loadMembers();
   }, [showMemberPicker, institutionId]);
 
-  // Filter transactions
+  // Filter transactions (client-side for already loaded data)
   const filteredTransactions = useMemo(() => {
     if (!searchTerm.trim()) return transactions;
     const term = searchTerm.toLowerCase();
@@ -142,7 +192,7 @@ const AllocationQueue: React.FC = () => {
   const handleAllocate = async (transactionId: string, memberId: string) => {
     setAllocating(true);
     try {
-      const { data, error: allocateError } = await supabase.rpc('allocate_transaction', {
+      const { error: allocateError } = await supabase.rpc('allocate_transaction', {
         p_transaction_id: transactionId,
         p_member_id: memberId
       });
@@ -172,21 +222,21 @@ const AllocationQueue: React.FC = () => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (loading) {
+  if (loading && transactions.length === 0) {
     return <LoadingSpinner size="lg" text="Loading allocation queue..." className="h-64" />;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-[calc(100vh-120px)] flex flex-col">
       {error && <ErrorDisplay error={error} variant="banner" />}
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Allocation Queue</h2>
             <p className="text-sm text-slate-600 mt-1">
-              {filteredTransactions.length} unallocated transaction{filteredTransactions.length !== 1 ? 's' : ''} need attention
+              {transactions.length} unallocated transaction{transactions.length !== 1 ? 's' : ''} loaded
             </p>
           </div>
           <SearchInput
@@ -199,94 +249,112 @@ const AllocationQueue: React.FC = () => {
         </div>
       </div>
 
-      {/* Transactions List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredTransactions.map((tx) => (
-          <div
-            key={tx.id}
-            className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow"
-          >
-            {/* Transaction Header */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign size={16} className="text-green-600" />
-                  <span className="text-lg font-bold text-slate-900">
-                    {tx.amount.toLocaleString()} {tx.currency || 'RWF'}
-                  </span>
+      {/* Transactions List with infinite scroll */}
+      <div ref={containerRef} className="flex-1 overflow-y-auto">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-4">
+          {filteredTransactions.map((tx) => (
+            <div
+              key={tx.id}
+              className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow"
+            >
+              {/* Transaction Header */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <DollarSign size={16} className="text-green-600" />
+                    <span className="text-lg font-bold text-slate-900">
+                      {tx.amount.toLocaleString()} {tx.currency || 'RWF'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Calendar size={14} />
+                    <span>{formatDate(tx.occurred_at)}</span>
+                    <span className="text-slate-400">•</span>
+                    <span>{formatTime(tx.occurred_at)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Calendar size={14} />
-                  <span>{formatDate(tx.occurred_at)}</span>
-                  <span className="text-slate-400">•</span>
-                  <span>{formatTime(tx.occurred_at)}</span>
-                </div>
+                <Badge variant="warning">Unallocated</Badge>
               </div>
-              <Badge variant="warning">Unallocated</Badge>
-            </div>
 
-            {/* Transaction Details */}
-            <div className="space-y-2 mb-4">
-              {tx.payer_phone && (
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  <Phone size={14} className="text-slate-400" />
-                  <span className="font-mono">{tx.payer_phone}</span>
-                </div>
-              )}
-              {tx.payer_name && (
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  <User size={14} className="text-slate-400" />
-                  <span>{tx.payer_name}</span>
-                </div>
-              )}
-              {tx.momo_ref && (
-                <div className="text-xs text-slate-500 font-mono">
-                  Ref: {tx.momo_ref}
-                </div>
-              )}
-            </div>
+              {/* Transaction Details */}
+              <div className="space-y-2 mb-4">
+                {tx.payer_phone && (
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <Phone size={14} className="text-slate-400" />
+                    <span className="font-mono">{tx.payer_phone}</span>
+                  </div>
+                )}
+                {tx.payer_name && (
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <User size={14} className="text-slate-400" />
+                    <span>{tx.payer_name}</span>
+                  </div>
+                )}
+                {tx.momo_ref && (
+                  <div className="text-xs text-slate-500 font-mono">
+                    Ref: {tx.momo_ref}
+                  </div>
+                )}
+              </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  setSelectedTransaction(tx);
-                  setShowMemberPicker(true);
-                }}
-              >
-                Assign to Member
-              </Button>
-              {tx.momo_sms_id && (
+              {/* Actions */}
+              <div className="flex gap-2">
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
+                  className="flex-1"
                   onClick={() => {
-                    // Show SMS text in modal (could be enhanced)
-                    alert(tx.momo_sms?.sms_text || 'SMS text not available');
+                    setSelectedTransaction(tx);
+                    setShowMemberPicker(true);
                   }}
                 >
-                  View SMS
+                  Assign to Member
                 </Button>
-              )}
+                {tx.momo_sms_id && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      alert(tx.momo_sms?.sms_text || 'SMS text not available');
+                    }}
+                  >
+                    View SMS
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="py-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-slate-500">
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm">Loading more...</span>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {filteredTransactions.length === 0 && (
-        <EmptyState
-          icon={CheckCircle2}
-          title="All clear!"
-          description={
-            searchTerm
-              ? "No unallocated transactions match your search."
-              : "All transactions have been allocated. Great work!"
-          }
-        />
-      )}
+        {/* End of list indicator */}
+        {!hasMore && transactions.length > 0 && !searchTerm && (
+          <div className="py-4 text-center text-sm text-slate-400">
+            All {transactions.length} transactions loaded
+          </div>
+        )}
+
+        {filteredTransactions.length === 0 && !loading && (
+          <EmptyState
+            icon={CheckCircle2}
+            title="All clear!"
+            description={
+              searchTerm
+                ? "No unallocated transactions match your search."
+                : "All transactions have been allocated. Great work!"
+            }
+          />
+        )}
+      </div>
 
       {/* Member Picker Modal */}
       <Modal
@@ -369,4 +437,3 @@ const AllocationQueue: React.FC = () => {
 };
 
 export default AllocationQueue;
-

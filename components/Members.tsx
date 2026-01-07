@@ -1,6 +1,5 @@
-
-import React, { useState, useMemo } from 'react';
-import { Filter, MoreHorizontal, ShieldCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle, Plus, Upload } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Filter, MoreHorizontal, ShieldCheck, X, User, FileText, CreditCard, History, Briefcase, Edit, Lock, Ban, CheckCircle, Plus, Upload, Loader2 } from 'lucide-react';
 import { Member, ViewState } from '../types';
 import { MOCK_MEMBERS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,14 +19,18 @@ type Tab = 'Profile' | 'Accounts' | 'Transactions' | 'Documents' | 'Tokens';
 const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Use the new hook instead of manual state management
+  // Use the new hook with infinite scroll support
   const {
     members: supabaseMembers,
     loading,
+    loadingMore,
     error,
+    hasMore,
     createMember: createMemberApi,
-    refetch
+    refetch,
+    loadMore
   } = useMembers({
     includeGroups: true,
     autoFetch: !useMockData && !membersProp
@@ -40,12 +43,9 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
     if (!supabaseMembers.length) return [];
     
     // Transform using the transformer utility
-    // Extract groups from the membersWithGroups structure
-    // The fetchMembersWithGroups returns members with groups property as array of strings
     const groupsMap = new Map<string, string[]>();
     supabaseMembers.forEach((member: any) => {
       if (member.groups && Array.isArray(member.groups)) {
-        // groups is already an array of strings from the API
         groupsMap.set(member.id, member.groups);
       }
     });
@@ -69,6 +69,23 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
 
   // Bulk Upload Modal State
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || useMockData || membersProp) return;
+
+    const handleScroll = () => {
+      if (!hasMore || loadingMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        loadMore();
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadingMore, loadMore, useMockData, membersProp]);
 
   // Handle Add Member with validation
   const handleAddMember = async () => {
@@ -109,7 +126,7 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
     }
   };
 
-  // Filter members
+  // Filter members (client-side for already loaded data)
   const filteredMembers = useMemo(() => {
     if (!searchTerm.trim()) return members;
     const term = searchTerm.toLowerCase();
@@ -120,7 +137,7 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
   }, [members, searchTerm]);
 
   // Loading state with skeleton
-  if (loading) {
+  if (loading && members.length === 0) {
     return (
       <div className="space-y-4">
         {Array.from({ length: 5 }).map((_, idx) => (
@@ -151,14 +168,17 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
             />
           )}
           {/* Toolbar */}
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-            <div className="relative w-64">
-              <SearchInput
-                placeholder="Search members..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onClear={() => setSearchTerm('')}
-              />
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <div className="relative w-64">
+                <SearchInput
+                  placeholder="Search members..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onClear={() => setSearchTerm('')}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">{members.length} members loaded</p>
             </div>
             <div className="flex gap-2">
               <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg">
@@ -192,8 +212,8 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
             <div className="col-span-1"></div>
           </div>
 
-          {/* Table Body */}
-          <div className="overflow-y-auto flex-1">
+          {/* Table Body with infinite scroll */}
+          <div ref={containerRef} className="overflow-y-auto flex-1">
             {filteredMembers.map((member) => (
               <div
                 key={member.id}
@@ -238,15 +258,33 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
                 </div>
               </div>
             ))}
+            
+            {/* Loading more indicator */}
+            {loadingMore && (
+              <div className="px-4 py-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-slate-500">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span className="text-sm">Loading more...</span>
+                </div>
+              </div>
+            )}
+            
+            {/* End of list indicator */}
+            {!hasMore && members.length > 0 && !searchTerm && (
+              <div className="px-4 py-4 text-center text-sm text-slate-400">
+                All {members.length} members loaded
+              </div>
+            )}
+
             {filteredMembers.length === 0 && (
               <EmptyState
                 icon={User}
-                title={useMockData ? 'No members found' : 'No members yet'}
-                description={useMockData 
+                title={searchTerm ? 'No members found' : (useMockData ? 'No members found' : 'No members yet')}
+                description={searchTerm 
                   ? 'No members match your search.' 
-                  : 'Add members to get started.'}
+                  : (useMockData ? 'No members match your search.' : 'Add members to get started.')}
                 action={
-                  !useMockData && (
+                  !useMockData && !searchTerm && (
                     <Button
                       variant="primary"
                       leftIcon={<Plus size={16} />}
@@ -291,7 +329,7 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
                 { id: 'Profile', icon: User },
                 { id: 'Accounts', icon: CreditCard },
                 { id: 'Transactions', icon: History },
-                { id: 'Tokens', icon: ShieldCheck }, // Using ShieldCheck as placeholder for Tokens
+                { id: 'Tokens', icon: ShieldCheck },
                 { id: 'Documents', icon: FileText }
               ].map((tab) => (
                 <button
@@ -498,7 +536,6 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
           onClose={() => setIsBulkUploadOpen(false)}
           onSuccess={() => {
             setIsBulkUploadOpen(false);
-            // Hook will automatically refetch
             refetch();
           }}
         />

@@ -7,18 +7,18 @@
  * - Contributions (linked to groups)
  * 
  * Single unified view for all payment-related operations
+ * Uses infinite scroll (lazy loading) instead of pagination
  */
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
-    MessageSquare, CheckCircle2, AlertCircle, ArrowRight, Cpu,
-    Table as TableIcon, RefreshCw, CreditCard, TrendingUp, TrendingDown,
-    Search, Filter, Download, ChevronLeft, ChevronRight, Eye, Link2,
-    DollarSign, Smartphone, FileText, X, Plus
+    MessageSquare, CheckCircle2, AlertCircle,
+    RefreshCw, CreditCard, TrendingUp, TrendingDown,
+    Search, Eye, Link2,
+    DollarSign, FileText, X, Loader2
 } from 'lucide-react';
-import { SmsMessage, SupabaseSmsMessage } from '../types';
+import { SupabaseSmsMessage } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { LoadingSpinner, ErrorDisplay, EmptyState, Button, Badge } from './ui';
 
 interface PaymentRecord {
     id: string;
@@ -39,23 +39,26 @@ interface PaymentRecord {
 
 type PaymentTab = 'All Payments' | 'SMS Messages' | 'Contributions' | 'Ledger';
 
-const ITEMS_PER_PAGE = 25;
+const INITIAL_LOAD = 50;
+const LOAD_MORE = 25;
 
 const Payments: React.FC = () => {
-    const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
     const { institutionId } = useAuth();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const loadingRef = useRef(false);
 
     // Data state
     const [payments, setPayments] = useState<PaymentRecord[]>([]);
-    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [offset, setOffset] = useState(0);
 
     // UI state
     const [activeTab, setActiveTab] = useState<PaymentTab>('All Payments');
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
     const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -71,24 +74,26 @@ const Payments: React.FC = () => {
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchTerm);
-            setCurrentPage(1);
         }, 300);
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
     // Load unified payment data
-    const loadPayments = useCallback(async () => {
+    const loadPayments = useCallback(async (loadOffset: number = 0, limit: number = INITIAL_LOAD, append: boolean = false) => {
         if (!institutionId) {
             setPayments([]);
             setLoading(false);
             return;
         }
 
-        setLoading(true);
+        if (append) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
 
         try {
-            const offset = (currentPage - 1) * ITEMS_PER_PAGE;
             const allPayments: PaymentRecord[] = [];
 
             // Fetch based on active tab
@@ -96,17 +101,12 @@ const Payments: React.FC = () => {
                 // Fetch SMS messages
                 let smsQuery = supabase
                     .from('sms_messages')
-                    .select('*', { count: 'exact' })
+                    .select('*')
                     .eq('institution_id', institutionId)
-                    .order('timestamp', { ascending: false });
+                    .order('timestamp', { ascending: false })
+                    .range(loadOffset, loadOffset + limit - 1);
 
-                if (activeTab === 'SMS Messages') {
-                    smsQuery = smsQuery.range(offset, offset + ITEMS_PER_PAGE - 1);
-                } else {
-                    smsQuery = smsQuery.limit(50); // Limit for combined view
-                }
-
-                const { data: smsData, error: smsError, count: smsCount } = await smsQuery;
+                const { data: smsData, error: smsError } = await smsQuery;
 
                 if (smsError) {
                     console.error('SMS fetch error:', smsError);
@@ -124,10 +124,6 @@ const Payments: React.FC = () => {
                         rawData: sms
                     }));
                     allPayments.push(...smsMapped);
-
-                    if (activeTab === 'SMS Messages') {
-                        setTotalCount(smsCount || 0);
-                    }
                 }
             }
 
@@ -135,17 +131,12 @@ const Payments: React.FC = () => {
                 // Fetch payment ledger
                 let ledgerQuery = supabase
                     .from('payment_ledger')
-                    .select('*', { count: 'exact' })
+                    .select('*')
                     .eq('institution_id', institutionId)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .range(loadOffset, loadOffset + limit - 1);
 
-                if (activeTab === 'Ledger') {
-                    ledgerQuery = ledgerQuery.range(offset, offset + ITEMS_PER_PAGE - 1);
-                } else {
-                    ledgerQuery = ledgerQuery.limit(50);
-                }
-
-                const { data: ledgerData, error: ledgerError, count: ledgerCount } = await ledgerQuery;
+                const { data: ledgerData, error: ledgerError } = await ledgerQuery;
 
                 if (ledgerError) {
                     console.error('Ledger fetch error:', ledgerError);
@@ -164,10 +155,6 @@ const Payments: React.FC = () => {
                         rawData: tx
                     }));
                     allPayments.push(...ledgerMapped);
-
-                    if (activeTab === 'Ledger') {
-                        setTotalCount(ledgerCount || 0);
-                    }
                 }
             }
 
@@ -176,20 +163,15 @@ const Payments: React.FC = () => {
                 let contribQuery = supabase
                     .from('contributions')
                     .select(`
-            *,
-            members ( full_name ),
-            groups ( group_name )
-          `, { count: 'exact' })
+                        *,
+                        members ( full_name ),
+                        groups ( group_name )
+                    `)
                     .eq('institution_id', institutionId)
-                    .order('date', { ascending: false });
+                    .order('date', { ascending: false })
+                    .range(loadOffset, loadOffset + limit - 1);
 
-                if (activeTab === 'Contributions') {
-                    contribQuery = contribQuery.range(offset, offset + ITEMS_PER_PAGE - 1);
-                } else {
-                    contribQuery = contribQuery.limit(50);
-                }
-
-                const { data: contribData, error: contribError, count: contribCount } = await contribQuery;
+                const { data: contribData, error: contribError } = await contribQuery;
 
                 if (contribError) {
                     console.error('Contributions fetch error:', contribError);
@@ -211,65 +193,91 @@ const Payments: React.FC = () => {
                         rawData: c
                     }));
                     allPayments.push(...contribMapped);
-
-                    if (activeTab === 'Contributions') {
-                        setTotalCount(contribCount || 0);
-                    }
                 }
             }
 
             // Sort all by timestamp (desc)
             allPayments.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-            // Apply search filter
-            let filtered = allPayments;
-            if (debouncedSearch) {
-                const search = debouncedSearch.toLowerCase();
-                filtered = allPayments.filter(p =>
-                    p.description.toLowerCase().includes(search) ||
-                    p.source.toLowerCase().includes(search) ||
-                    p.reference?.toLowerCase().includes(search) ||
-                    p.memberName?.toLowerCase().includes(search)
-                );
-            }
-
-            // Apply status filter
-            if (statusFilter !== 'ALL') {
-                filtered = filtered.filter(p => p.status === statusFilter);
-            }
-
-            if (activeTab === 'All Payments') {
-                setTotalCount(filtered.length);
-                setPayments(filtered.slice(offset, offset + ITEMS_PER_PAGE));
+            if (append) {
+                setPayments(prev => [...prev, ...allPayments]);
             } else {
-                setPayments(filtered);
+                setPayments(allPayments);
+                
+                // Calculate stats only on initial load
+                const inflow = allPayments.filter(p => p.amount > 0).reduce((sum, p) => sum + p.amount, 0);
+                const outflow = allPayments.filter(p => p.amount < 0).reduce((sum, p) => sum + Math.abs(p.amount), 0);
+                const pending = allPayments.filter(p => p.status === 'PENDING' || p.status === 'UNRECONCILED').length;
+                const today = new Date().toISOString().split('T')[0];
+                const todayTx = allPayments.filter(p => p.timestamp.startsWith(today)).length;
+                setStats({ totalInflow: inflow, totalOutflow: outflow, pendingReconciliation: pending, todayTransactions: todayTx });
             }
 
-            // Calculate stats
-            const inflow = allPayments.filter(p => p.amount > 0).reduce((sum, p) => sum + p.amount, 0);
-            const outflow = allPayments.filter(p => p.amount < 0).reduce((sum, p) => sum + Math.abs(p.amount), 0);
-            const pending = allPayments.filter(p => p.status === 'PENDING' || p.status === 'UNRECONCILED').length;
-            const today = new Date().toISOString().split('T')[0];
-            const todayTx = allPayments.filter(p => p.timestamp.startsWith(today)).length;
-
-            setStats({ totalInflow: inflow, totalOutflow: outflow, pendingReconciliation: pending, todayTransactions: todayTx });
+            setOffset(loadOffset + allPayments.length);
+            setHasMore(allPayments.length === limit);
 
         } catch (err) {
             console.error('Error loading payments:', err);
             setError('Failed to load payment data');
         } finally {
             setLoading(false);
+            setLoadingMore(false);
+            loadingRef.current = false;
         }
-    }, [institutionId, activeTab, currentPage, debouncedSearch, statusFilter]);
+    }, [institutionId, activeTab]);
 
+    // Initial load and tab change
     useEffect(() => {
-        loadPayments();
-    }, [loadPayments]);
+        setOffset(0);
+        setHasMore(true);
+        setPayments([]);
+        loadPayments(0, INITIAL_LOAD, false);
+    }, [loadPayments, activeTab]);
 
-    // Pagination
-    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-    const startRecord = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const endRecord = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
+    // Load more function
+    const loadMore = useCallback(() => {
+        if (loadingRef.current || !hasMore || loading) return;
+        loadingRef.current = true;
+        loadPayments(offset, LOAD_MORE, true);
+    }, [offset, hasMore, loading, loadPayments]);
+
+    // Infinite scroll handler
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            if (loadingRef.current || !hasMore) return;
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            if (scrollHeight - scrollTop - clientHeight < 300) {
+                loadMore();
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [hasMore, loadMore]);
+
+    // Filter payments (client-side for already loaded data)
+    const filteredPayments = useMemo(() => {
+        let filtered = payments;
+        
+        if (debouncedSearch) {
+            const search = debouncedSearch.toLowerCase();
+            filtered = filtered.filter(p =>
+                p.description.toLowerCase().includes(search) ||
+                p.source.toLowerCase().includes(search) ||
+                p.reference?.toLowerCase().includes(search) ||
+                p.memberName?.toLowerCase().includes(search)
+            );
+        }
+
+        if (statusFilter !== 'ALL') {
+            filtered = filtered.filter(p => p.status === statusFilter);
+        }
+
+        return filtered;
+    }, [payments, debouncedSearch, statusFilter]);
 
     // Link SMS to transaction
     const handleLinkSms = async (payment: PaymentRecord) => {
@@ -306,14 +314,17 @@ const Payments: React.FC = () => {
             return;
         }
 
-        loadPayments();
+        // Refresh
+        setOffset(0);
+        setHasMore(true);
+        loadPayments(0, INITIAL_LOAD, false);
         setSelectedPayment(null);
     };
 
     return (
-        <div className="h-full flex flex-col space-y-4">
+        <div className="h-[calc(100vh-120px)] flex flex-col space-y-4">
             {/* Header Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
                 <div className="bg-white rounded-xl border border-slate-200 p-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -362,23 +373,24 @@ const Payments: React.FC = () => {
 
             {/* Error Display */}
             {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between flex-shrink-0">
                     <span>{error}</span>
                     <button onClick={() => setError(null)}><X size={16} /></button>
                 </div>
             )}
 
-            {/* Tabs */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                <div className="flex border-b border-slate-200 overflow-x-auto">
+            {/* Main Content */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
+                {/* Tabs */}
+                <div className="flex border-b border-slate-200 overflow-x-auto flex-shrink-0">
                     {(['All Payments', 'SMS Messages', 'Contributions', 'Ledger'] as PaymentTab[]).map(tab => (
                         <button
                             key={tab}
-                            onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                            onClick={() => setActiveTab(tab)}
                             className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                                }`}
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                            }`}
                         >
                             {tab}
                         </button>
@@ -386,7 +398,7 @@ const Payments: React.FC = () => {
                 </div>
 
                 {/* Toolbar */}
-                <div className="p-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
+                <div className="p-3 border-b border-slate-100 flex flex-wrap items-center gap-3 flex-shrink-0">
                     <div className="relative flex-1 min-w-[200px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
@@ -409,31 +421,36 @@ const Payments: React.FC = () => {
                         <option value="FLAGGED">Flagged</option>
                     </select>
                     <button
-                        onClick={loadPayments}
+                        onClick={() => {
+                            setOffset(0);
+                            setHasMore(true);
+                            loadPayments(0, INITIAL_LOAD, false);
+                        }}
                         disabled={loading}
                         className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50"
                     >
                         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                     </button>
+                    <span className="text-xs text-slate-500">{payments.length} loaded</span>
                 </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    {loading ? (
+                {/* Table with infinite scroll */}
+                <div ref={containerRef} className="flex-1 overflow-auto">
+                    {loading && payments.length === 0 ? (
                         <div className="flex items-center justify-center h-48">
                             <div className="flex items-center gap-3 text-slate-500">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                                 <span className="text-sm">Loading payments...</span>
                             </div>
                         </div>
-                    ) : payments.length === 0 ? (
+                    ) : filteredPayments.length === 0 ? (
                         <div className="p-12 text-center">
                             <CreditCard className="mx-auto text-slate-300 mb-3" size={48} />
                             <p className="text-slate-500 text-sm">No payments found</p>
                         </div>
                     ) : (
                         <table className="w-full text-left min-w-[700px]">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                 <tr>
                                     <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Type</th>
                                     <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Date/Time</th>
@@ -445,7 +462,7 @@ const Payments: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {payments.map(payment => (
+                                {filteredPayments.map(payment => (
                                     <tr
                                         key={payment.id}
                                         onClick={() => setSelectedPayment(payment)}
@@ -453,9 +470,9 @@ const Payments: React.FC = () => {
                                     >
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${payment.type === 'SMS' ? 'bg-purple-50 text-purple-700' :
-                                                    payment.type === 'CONTRIBUTION' ? 'bg-green-50 text-green-700' :
-                                                        'bg-blue-50 text-blue-700'
-                                                }`}>
+                                                payment.type === 'CONTRIBUTION' ? 'bg-green-50 text-green-700' :
+                                                    'bg-blue-50 text-blue-700'
+                                            }`}>
                                                 {payment.type === 'SMS' && <MessageSquare size={12} className="mr-1" />}
                                                 {payment.type === 'CONTRIBUTION' && <DollarSign size={12} className="mr-1" />}
                                                 {payment.type === 'LEDGER' && <FileText size={12} className="mr-1" />}
@@ -476,10 +493,10 @@ const Payments: React.FC = () => {
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${payment.status === 'RECONCILED' ? 'bg-green-50 text-green-700' :
-                                                    payment.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' :
-                                                        payment.status === 'FLAGGED' ? 'bg-red-50 text-red-700' :
-                                                            'bg-slate-100 text-slate-600'
-                                                }`}>
+                                                payment.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' :
+                                                    payment.status === 'FLAGGED' ? 'bg-red-50 text-red-700' :
+                                                        'bg-slate-100 text-slate-600'
+                                            }`}>
                                                 {payment.status === 'RECONCILED' && <CheckCircle2 size={10} className="mr-1" />}
                                                 {payment.status}
                                             </span>
@@ -489,36 +506,31 @@ const Payments: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
+                                
+                                {/* Loading more indicator */}
+                                {loadingMore && (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2 text-slate-500">
+                                                <Loader2 size={16} className="animate-spin" />
+                                                <span className="text-sm">Loading more...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                
+                                {/* End of list indicator */}
+                                {!hasMore && payments.length > 0 && !debouncedSearch && (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-4 text-center text-sm text-slate-400">
+                                            All {payments.length} payments loaded
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     )}
                 </div>
-
-                {/* Pagination */}
-                {totalCount > 0 && (
-                    <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
-                        <span className="text-xs text-slate-500">
-                            {startRecord}-{endRecord} of {totalCount}
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="p-1 rounded hover:bg-slate-200 disabled:opacity-50"
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-                            <span className="px-2 text-xs">Page {currentPage} of {totalPages}</span>
-                            <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage >= totalPages}
-                                className="p-1 rounded hover:bg-slate-200 disabled:opacity-50"
-                            >
-                                <ChevronRight size={16} />
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Detail Panel */}
