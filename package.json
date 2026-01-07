@@ -25,7 +25,8 @@
     "e2e:smoke": "playwright test smoke.spec.ts",
     "test:all": "npm run test && npm run e2e",
     "storybook": "storybook dev -p 6006",
-    "build:storybook": "storybook build"
+    "build:storybook": "storybook build",
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=sacco"
   },
   "dependencies": {
     "@sentry/react": "^10.32.1",
