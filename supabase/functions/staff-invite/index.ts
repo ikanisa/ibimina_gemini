@@ -5,21 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
-// TODO: For production, replace '*' with specific allowed origins:
-// const ALLOWED_ORIGINS = [
-//   'https://your-production-domain.pages.dev',
-//   'https://your-custom-domain.com',
-// ];
-// 
-// function getCorsHeaders(origin: string) {
-//   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : '';
-//   return {
-//     'Access-Control-Allow-Origin': allowedOrigin,
-//     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-//   };
-// }
-
-const mapRole = (role: string | null): string => {
+// Map UI-friendly role names to database enum values
+const mapRoleToEnum = (role: string | null): string => {
   if (!role) return 'INSTITUTION_STAFF';
   switch (role) {
     case 'Super Admin':
@@ -48,35 +35,24 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const email = String(body.email ?? '').trim();
+    const email = String(body.email ?? '').trim().toLowerCase();
     const fullName = String(body.full_name ?? '').trim();
-    const role = mapRole(body.role ?? null);
+    const role = mapRoleToEnum(body.role ?? null);
     const branch = String(body.branch ?? '').trim();
     const institutionId = body.institution_id ?? null;
     const onboardingMethod = body.onboarding_method ?? 'invite';
     const password = body.password ?? null;
-
-    // Map UI-friendly role names to database enum values
-    const mapRoleToEnum = (uiRole: string): string => {
-      switch (uiRole) {
-        case 'Super Admin':
-          return 'PLATFORM_ADMIN';
-        case 'Branch Manager':
-          return 'INSTITUTION_ADMIN';
-        case 'Loan Officer':
-          return 'INSTITUTION_STAFF';
-        case 'Teller':
-          return 'INSTITUTION_TREASURER';
-        case 'Auditor':
-          return 'INSTITUTION_AUDITOR';
-        default:
-          return 'INSTITUTION_STAFF';
-      }
-    };
-    const dbRole = mapRoleToEnum(role);
+    const invitedBy = body.invited_by ?? null; // User ID of the inviter
 
     if (!email) {
       return new Response(JSON.stringify({ error: 'Email is required.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!institutionId && role !== 'PLATFORM_ADMIN') {
+      return new Response(JSON.stringify({ error: 'Institution ID is required for non-platform staff.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -95,6 +71,30 @@ Deno.serve(async (req) => {
       auth: { persistSession: false }
     });
 
+    // Create staff_invites record first
+    let inviteId: string | null = null;
+    if (institutionId) {
+      const { data: inviteData, error: inviteError } = await supabase
+        .from('staff_invites')
+        .insert({
+          email,
+          institution_id: institutionId,
+          role,
+          invited_by: invitedBy,
+          status: 'pending'
+        })
+        .select('id')
+        .single();
+
+      if (inviteError && !inviteError.message.includes('duplicate')) {
+        console.error('Error creating invite record:', inviteError);
+        // Continue anyway - invite record is for audit, not blocking
+      } else if (inviteData) {
+        inviteId = inviteData.id;
+      }
+    }
+
+    // Create user via Supabase Auth
     const inviteResult =
       onboardingMethod === 'password'
         ? await supabase.auth.admin.createUser({
@@ -118,6 +118,17 @@ Deno.serve(async (req) => {
         });
 
     if (inviteResult.error || !inviteResult.data.user) {
+      // Update invite status to failed if we have one
+      if (inviteId) {
+        await supabase
+          .from('staff_invites')
+          .update({ 
+            status: 'expired',
+            metadata: { error: inviteResult.error?.message }
+          })
+          .eq('id', inviteId);
+      }
+      
       return new Response(JSON.stringify({ error: inviteResult.error?.message ?? 'Failed to invite staff.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -125,15 +136,19 @@ Deno.serve(async (req) => {
     }
 
     const user = inviteResult.data.user;
+
+    // Create/update profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .upsert({
         user_id: user.id,
         institution_id: institutionId,
-        role: dbRole,
+        role,
         email,
         full_name: fullName,
-        branch
+        branch,
+        is_active: true,
+        status: 'ACTIVE'
       })
       .select('*')
       .single();
@@ -145,7 +160,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ profile }), {
+    // Update invite status if password method (instant activation)
+    if (inviteId && onboardingMethod === 'password') {
+      await supabase
+        .from('staff_invites')
+        .update({ 
+          status: 'accepted',
+          accepted_by: user.id,
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', inviteId);
+    }
+
+    // Write audit log
+    if (institutionId) {
+      await supabase
+        .from('audit_log')
+        .insert({
+          actor_user_id: invitedBy,
+          institution_id: institutionId,
+          action: 'invite_staff',
+          entity_type: 'profile',
+          entity_id: user.id,
+          metadata: {
+            email,
+            role,
+            method: onboardingMethod,
+            invite_id: inviteId
+          }
+        });
+    }
+
+    return new Response(JSON.stringify({ 
+      profile,
+      invite_id: inviteId
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

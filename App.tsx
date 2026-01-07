@@ -33,6 +33,7 @@ const AllocationQueue = lazy(() => import('./components/AllocationQueue'));
 const MoMoOperations = lazy(() => import('./components/MoMoOperations'));
 const Payments = lazy(() => import('./components/Payments'));
 const Saccos = lazy(() => import('./components/Saccos'));
+const Institutions = lazy(() => import('./components/institutions/Institutions'));
 
 const Reconciliation = lazy(() => import('./components/Reconciliation'));
 const Reports = lazy(() => import('./components/Reports'));
@@ -205,9 +206,9 @@ const App: React.FC = () => {
       case ViewState.PROFILE:
         return true;
       case ViewState.SACCOS:
+      case ViewState.INSTITUTIONS:
       case ViewState.STAFF:
       case ViewState.SETTINGS:
-
         return ['Super Admin'].includes(effectiveRole);
       case ViewState.RECONCILIATION:
         return ['Super Admin', 'Branch Manager', 'Auditor'].includes(effectiveRole);
@@ -331,6 +332,7 @@ const App: React.FC = () => {
               <NavItem view={ViewState.REPORTS} icon={<PieChart size={18} />} label="Reports" />
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">System</p>
+              <NavItem view={ViewState.INSTITUTIONS} icon={<Building size={18} />} label="Institutions" />
               <NavItem view={ViewState.SACCOS} icon={<Building size={18} />} label="SACCOs & Branches" />
               <NavItem view={ViewState.STAFF} icon={<ShieldCheck size={18} />} label="Staff & Roles" />
               <NavItem view={ViewState.SETTINGS} icon={<Settings size={18} />} label="Settings" />
@@ -389,6 +391,7 @@ const App: React.FC = () => {
                   {currentView === ViewState.DASHBOARD && `${currentUser.role} Dashboard`}
                   {currentView === ViewState.GROUPS && 'Ibimina (Groups Management)'}
                   {currentView === ViewState.SACCOS && 'SACCOs & Branches'}
+                  {currentView === ViewState.INSTITUTIONS && 'Institutions Management'}
                   {currentView === ViewState.MEMBERS && 'Member Management'}
                   {currentView === ViewState.TRANSACTIONS && 'Ledger'}
                   {currentView === ViewState.ALLOCATION_QUEUE && 'Allocation Queue'}
@@ -493,6 +496,7 @@ const App: React.FC = () => {
                   <Groups onNavigate={setCurrentView} institutionId={institutionId} />
                 )}
                 {currentView === ViewState.SACCOS && canAccess(ViewState.SACCOS) && <Saccos onNavigate={setCurrentView} />}
+                {currentView === ViewState.INSTITUTIONS && canAccess(ViewState.INSTITUTIONS) && <Institutions onNavigate={setCurrentView} />}
                 {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
                   <Members members={useMockData ? MOCK_MEMBERS : undefined} onNavigate={setCurrentView} />
                 )}
