@@ -1,11 +1,11 @@
 // ============================================================================
 // Edge Function: parse-momo-sms
-// Purpose: Parse MoMo SMS text and create transactions
-// AI: OpenAI (primary) → Gemini (fallback)
+// Purpose: Parse MoMo SMS using AI (OpenAI primary, Gemini fallback)
+// NOTE: This is the AI FALLBACK parser. Deterministic parsing happens first
+//       via the parse_sms_deterministic RPC function.
 // ============================================================================
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +24,7 @@ interface ParsedSMS {
   amount: number
   currency?: string
   momo_ref?: string
+  momo_tx_id?: string
   payer_name?: string
   occurred_at?: string
   confidence: number
@@ -31,9 +32,10 @@ interface ParsedSMS {
 }
 
 const SMS_PARSE_PROMPT = `Extract transaction details from this Mobile Money SMS. Return ONLY a JSON object with these fields:
-- amount: numeric amount (required)
+- amount: numeric amount (required, no currency symbols or commas)
 - currency: currency code (default "RWF" if not specified)
 - momo_ref: transaction reference number if present
+- momo_tx_id: unique transaction ID if different from ref
 - payer_name: name of payer if mentioned
 - occurred_at: ISO 8601 timestamp if date/time mentioned, otherwise use null
 - confidence: your confidence in the parse (0.0 to 1.0)
@@ -41,9 +43,9 @@ const SMS_PARSE_PROMPT = `Extract transaction details from this Mobile Money SMS
 SMS Text: "{SMS_TEXT}"
 
 Return ONLY valid JSON, no other text. Example:
-{"amount": 5000, "currency": "RWF", "momo_ref": "ABC123", "payer_name": "John Doe", "occurred_at": "2025-01-07T10:30:00Z", "confidence": 0.95}
+{"amount": 5000, "currency": "RWF", "momo_ref": "ABC123", "momo_tx_id": "TXN456", "payer_name": "John Doe", "occurred_at": "2025-01-07T10:30:00Z", "confidence": 0.95}
 
-If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
+If you cannot extract a valid amount, return: {"error": "Unable to parse SMS", "confidence": 0}`
 
 // Parse SMS using OpenAI
 async function parseWithOpenAI(smsText: string, apiKey: string): Promise<ParsedSMS> {
@@ -58,7 +60,10 @@ async function parseWithOpenAI(smsText: string, apiKey: string): Promise<ParsedS
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a precise data extraction assistant. Extract transaction details from Mobile Money SMS messages.' },
+        { 
+          role: 'system', 
+          content: 'You are a precise data extraction assistant. Extract transaction details from Mobile Money SMS messages. Always return valid JSON.' 
+        },
         { role: 'user', content: prompt }
       ],
       temperature: 0.1,
@@ -119,24 +124,29 @@ async function parseWithGemini(smsText: string, apiKey: string, model: string): 
   return JSON.parse(jsonMatch[0])
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+  const startTime = Date.now()
 
-    // Get auth token from request
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase configuration')
+    }
+
+    const supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+
+    // Get auth token from request (can be service role for internal calls)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Missing authorization header')
@@ -148,23 +158,28 @@ serve(async (req) => {
       throw new Error('Missing required fields: sms_id, sms_text, sender_phone')
     }
 
-    // Get user from token to determine institution if not provided
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    // For service role calls, use provided institution_id
+    // For user calls, verify permission and get institution from profile
+    let effective_institution_id = institution_id
 
-    if (userError || !user) {
-      throw new Error('Unauthorized')
+    if (!authHeader.includes(serviceRoleKey)) {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      )
+
+      if (userError || !user) {
+        throw new Error('Unauthorized')
+      }
+
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('institution_id, role')
+        .eq('user_id', user.id)
+        .single()
+
+      effective_institution_id = institution_id || profile?.institution_id
     }
 
-    // Get user profile to determine institution
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('institution_id, role')
-      .eq('user_id', user.id)
-      .single()
-
-    const effective_institution_id = institution_id || profile?.institution_id
     if (!effective_institution_id) {
       throw new Error('Institution ID required')
     }
@@ -180,35 +195,60 @@ serve(async (req) => {
 
     let parsed: ParsedSMS
     let aiProvider = 'unknown'
+    let attemptNo = 2 // Assuming deterministic was attempt 1
+
+    // Get current attempt count
+    const { data: attempts } = await supabaseClient
+      .from('sms_parse_attempts')
+      .select('attempt_no')
+      .eq('sms_id', sms_id)
+      .order('attempt_no', { ascending: false })
+      .limit(1)
+
+    if (attempts && attempts.length > 0) {
+      attemptNo = attempts[0].attempt_no + 1
+    }
 
     // Try OpenAI first, fallback to Gemini
     if (OPENAI_API_KEY) {
       try {
-        console.log('Attempting parse with OpenAI...')
+        console.log(`[${sms_id}] Attempting parse with OpenAI...`)
         parsed = await parseWithOpenAI(sms_text, OPENAI_API_KEY)
         aiProvider = 'openai'
-        console.log('OpenAI parse successful')
+        console.log(`[${sms_id}] OpenAI parse successful`)
       } catch (openaiError) {
-        console.error('OpenAI failed:', openaiError.message)
+        console.error(`[${sms_id}] OpenAI failed:`, (openaiError as Error).message)
+        
+        // Log failed OpenAI attempt
+        await supabaseClient.from('sms_parse_attempts').insert({
+          sms_id,
+          attempt_no: attemptNo,
+          parser_type: 'openai',
+          status: 'error',
+          error_message: (openaiError as Error).message,
+          duration_ms: Date.now() - startTime
+        })
+        attemptNo++
         
         // Fallback to Gemini
         if (GEMINI_API_KEY) {
-          console.log('Falling back to Gemini...')
+          console.log(`[${sms_id}] Falling back to Gemini...`)
           parsed = await parseWithGemini(sms_text, GEMINI_API_KEY, GEMINI_MODEL)
           aiProvider = 'gemini'
-          console.log('Gemini parse successful')
+          console.log(`[${sms_id}] Gemini parse successful`)
         } else {
           throw openaiError
         }
       }
     } else if (GEMINI_API_KEY) {
-      // Only Gemini available
-      console.log('Using Gemini (no OpenAI key)...')
+      console.log(`[${sms_id}] Using Gemini (no OpenAI key)...`)
       parsed = await parseWithGemini(sms_text, GEMINI_API_KEY, GEMINI_MODEL)
       aiProvider = 'gemini'
     } else {
       throw new Error('No AI API keys available')
     }
+
+    const durationMs = Date.now() - startTime
 
     if (parsed.error) {
       // Update SMS with error
@@ -220,6 +260,17 @@ serve(async (req) => {
         })
         .eq('id', sms_id)
 
+      // Log failed attempt
+      await supabaseClient.from('sms_parse_attempts').insert({
+        sms_id,
+        attempt_no: attemptNo,
+        parser_type: aiProvider,
+        status: 'error',
+        error_message: parsed.error,
+        confidence: parsed.confidence || 0,
+        duration_ms: durationMs
+      })
+
       return new Response(
         JSON.stringify({ success: false, error: parsed.error, ai_provider: aiProvider }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -228,39 +279,141 @@ serve(async (req) => {
 
     // Validate required fields
     if (!parsed.amount || parsed.amount <= 0) {
-      throw new Error('Invalid amount extracted from SMS')
+      const errorMsg = 'Invalid amount extracted from SMS'
+      
+      await supabaseClient
+        .from('momo_sms_raw')
+        .update({
+          parse_status: 'error',
+          parse_error: errorMsg
+        })
+        .eq('id', sms_id)
+
+      await supabaseClient.from('sms_parse_attempts').insert({
+        sms_id,
+        attempt_no: attemptNo,
+        parser_type: aiProvider,
+        status: 'error',
+        error_message: errorMsg,
+        parsed_fields: parsed,
+        duration_ms: durationMs
+      })
+
+      throw new Error(errorMsg)
     }
 
-    // Call database function to create transaction
-    // Note: parameter order matters - p_payer_phone must come before p_currency
-    const { data: transaction_id, error: dbError } = await supabaseClient.rpc('parse_momo_sms', {
-      p_sms_id: sms_id,
-      p_institution_id: effective_institution_id,
+    // Get institution settings for dedupe window
+    const { data: settings } = await supabaseClient
+      .from('institution_settings')
+      .select('dedupe_window_minutes')
+      .eq('institution_id', effective_institution_id)
+      .single()
+
+    const dedupeWindow = settings?.dedupe_window_minutes || 60
+
+    // Compute transaction fingerprint for dedupe
+    const { data: fingerprint } = await supabaseClient.rpc('compute_txn_fingerprint', {
       p_amount: parsed.amount,
       p_payer_phone: sender_phone,
-      p_currency: parsed.currency || 'RWF',
-      p_payer_name: parsed.payer_name || null,
-      p_momo_ref: parsed.momo_ref || null,
       p_occurred_at: parsed.occurred_at || received_at || new Date().toISOString(),
-      p_parse_confidence: parsed.confidence || 0.9
+      p_momo_ref: parsed.momo_ref || '',
+      p_dedupe_window_minutes: dedupeWindow
     })
 
-    if (dbError) {
-      console.error('Database error:', dbError)
-      throw dbError
+    // Create transaction
+    const { data: transaction, error: txnError } = await supabaseClient
+      .from('transactions')
+      .insert({
+        institution_id: effective_institution_id,
+        source_sms_id: sms_id,
+        type: 'Deposit',
+        amount: parsed.amount,
+        currency: parsed.currency || 'RWF',
+        channel: 'MoMo',
+        status: 'COMPLETED',
+        occurred_at: parsed.occurred_at || received_at || new Date().toISOString(),
+        payer_phone: sender_phone,
+        payer_name: parsed.payer_name || null,
+        momo_ref: parsed.momo_ref || null,
+        momo_tx_id: parsed.momo_tx_id || null,
+        txn_fingerprint: parsed.momo_tx_id ? null : fingerprint,
+        parse_confidence: parsed.confidence || 0.8,
+        parse_version: `${aiProvider}-v1.0`,
+        allocation_status: 'unallocated'
+      })
+      .select('id')
+      .single()
+
+    if (txnError) {
+      // Check if it's a duplicate
+      if (txnError.code === '23505') { // unique_violation
+        // Update SMS status
+        await supabaseClient
+          .from('momo_sms_raw')
+          .update({
+            parse_status: 'success',
+            parse_error: 'Duplicate transaction (ignored)'
+          })
+          .eq('id', sms_id)
+
+        await supabaseClient.from('sms_parse_attempts').insert({
+          sms_id,
+          attempt_no: attemptNo,
+          parser_type: aiProvider,
+          status: 'success',
+          error_message: 'Duplicate transaction',
+          confidence: parsed.confidence,
+          parsed_fields: parsed,
+          duration_ms: durationMs
+        })
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            duplicate: true,
+            ai_provider: aiProvider,
+            message: 'Duplicate transaction detected'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      console.error('Database error:', txnError)
+      throw txnError
     }
+
+    // Update SMS status to success
+    await supabaseClient
+      .from('momo_sms_raw')
+      .update({
+        parse_status: 'success',
+        parse_error: null
+      })
+      .eq('id', sms_id)
+
+    // Log successful attempt
+    await supabaseClient.from('sms_parse_attempts').insert({
+      sms_id,
+      attempt_no: attemptNo,
+      parser_type: aiProvider,
+      status: 'success',
+      confidence: parsed.confidence,
+      parsed_fields: parsed,
+      duration_ms: durationMs
+    })
 
     return new Response(
       JSON.stringify({
         success: true,
-        transaction_id,
+        transaction_id: transaction?.id,
         ai_provider: aiProvider,
         parsed_data: {
           amount: parsed.amount,
           currency: parsed.currency || 'RWF',
           momo_ref: parsed.momo_ref,
+          momo_tx_id: parsed.momo_tx_id,
           payer_name: parsed.payer_name,
-          confidence: parsed.confidence || 0.9
+          confidence: parsed.confidence || 0.8
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -269,7 +422,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Parse error:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: (error as Error).message }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
