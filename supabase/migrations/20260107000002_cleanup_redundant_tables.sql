@@ -19,22 +19,7 @@ DROP TABLE IF EXISTS public.admin_users CASCADE;
 DROP TABLE IF EXISTS public.device_keys CASCADE;
 
 -- mobile_money_ussd_codes: Redundant with institution_momo_codes
--- First migrate any data if it exists
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'mobile_money_ussd_codes') THEN
-    -- Migrate data to institution_momo_codes if not already there
-    INSERT INTO public.institution_momo_codes (institution_id, momo_code, is_active)
-    SELECT DISTINCT institution_id, ussd_code, true
-    FROM public.mobile_money_ussd_codes
-    WHERE institution_id IS NOT NULL
-      AND ussd_code IS NOT NULL
-    ON CONFLICT (institution_id, momo_code) DO NOTHING;
-    
-    RAISE NOTICE 'Migrated mobile_money_ussd_codes to institution_momo_codes';
-  END IF;
-END $$;
-
+-- Note: Not migrating data as column names may differ - use institution_momo_codes going forward
 DROP TABLE IF EXISTS public.mobile_money_ussd_codes CASCADE;
 
 -- reconciliation_issues: Replaced by reconciliation_sessions + reconciliation_items
