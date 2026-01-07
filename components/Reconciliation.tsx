@@ -1,306 +1,389 @@
-
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, AlertTriangle, FileText, ArrowRight, Scale, Smartphone, DollarSign, Filter, Check } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Search, Calendar, Filter, Building2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import type { SupabaseReconciliationIssue } from '../types';
-import { LoadingSpinner, ErrorDisplay, EmptyState, Button, Badge } from './ui';
+import { ReconciliationTabs, QueueList, DetailPanel } from './reconciliation';
+import type { ReconciliationTab } from './reconciliation';
+import { LoadingSpinner, ErrorDisplay, Button } from './ui';
 
-type RecTab = 'MoMo vs Ledger' | 'Branch Cash';
+interface Transaction {
+  id: string;
+  occurred_at: string;
+  amount: number;
+  payer_phone?: string;
+  payer_name?: string;
+  momo_ref?: string;
+  momo_tx_id?: string;
+  allocation_status: string;
+  member_id?: string;
+  group_id?: string;
+  parse_confidence?: number;
+  source_sms_id?: string;
+  sms_text?: string;
+}
+
+interface ParseError {
+  id: string;
+  received_at: string;
+  sender_phone: string;
+  sms_text: string;
+  parse_error?: string;
+  parse_status: string;
+  resolution_status?: string;
+  resolution_note?: string;
+  institution_id?: string;
+}
+
+interface DuplicateGroup {
+  match_key: string;
+  match_type: string;
+  transaction_ids: string[];
+  dupe_count: number;
+  institution_id: string;
+  transactions?: Transaction[];
+}
 
 const Reconciliation: React.FC = () => {
-  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-  const { institutionId } = useAuth();
-  const [activeTab, setActiveTab] = useState<RecTab>('MoMo vs Ledger');
-  const [issues, setIssues] = useState<SupabaseReconciliationIssue[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { institutionId, profile } = useAuth();
+  const [activeTab, setActiveTab] = useState<ReconciliationTab>('unallocated');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastClosedLabel, setLastClosedLabel] = useState<string>('—');
-  const [expectedCash, setExpectedCash] = useState(0);
-  const [cashMovements, setCashMovements] = useState<{ time: string; description: string; amount: number; isDeposit: boolean }[]>([]);
+
+  // Data
+  const [unallocated, setUnallocated] = useState<Transaction[]>([]);
+  const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
+  const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
+
+  // Filters
+  const [dateRange, setDateRange] = useState(7); // days
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Selected item
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+
+  // Platform admin institution switcher
+  const [institutions, setInstitutions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState<string | null>(null);
+  const isPlatformAdmin = profile?.role === 'PLATFORM_ADMIN';
+
+  const effectiveInstitutionId = isPlatformAdmin ? selectedInstitutionId : institutionId;
+
+  // Load institutions for platform admin
+  useEffect(() => {
+    if (!isPlatformAdmin) return;
+
+    const loadInstitutions = async () => {
+      const { data } = await supabase
+        .from('institutions')
+        .select('id, name')
+        .order('name');
+      if (data) {
+        setInstitutions(data);
+        if (data.length > 0 && !selectedInstitutionId) {
+          setSelectedInstitutionId(data[0].id);
+        }
+      }
+    };
+    loadInstitutions();
+  }, [isPlatformAdmin, selectedInstitutionId]);
+
+  // Load data based on active tab
+  const loadData = useCallback(async () => {
+    if (!effectiveInstitutionId && !isPlatformAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - dateRange);
+
+    try {
+      // Load unallocated transactions
+      let unallocatedQuery = supabase
+        .from('transactions')
+        .select('id, occurred_at, amount, payer_phone, payer_name, momo_ref, momo_tx_id, allocation_status, member_id, group_id, parse_confidence, source_sms_id')
+        .eq('allocation_status', 'unallocated')
+        .gte('occurred_at', fromDate.toISOString())
+        .order('occurred_at', { ascending: false });
+
+      if (effectiveInstitutionId) {
+        unallocatedQuery = unallocatedQuery.eq('institution_id', effectiveInstitutionId);
+      }
+
+      if (searchQuery) {
+        unallocatedQuery = unallocatedQuery.or(
+          `payer_phone.ilike.%${searchQuery}%,momo_ref.ilike.%${searchQuery}%,payer_name.ilike.%${searchQuery}%`
+        );
+      }
+
+      const { data: unallocatedData, error: unallocatedError } = await unallocatedQuery;
+      if (unallocatedError) throw unallocatedError;
+      setUnallocated(unallocatedData || []);
+
+      // Load parse errors
+      let parseErrorQuery = supabase
+        .from('momo_sms_raw')
+        .select('id, received_at, sender_phone, sms_text, parse_error, parse_status, resolution_status, resolution_note, institution_id')
+        .eq('parse_status', 'error')
+        .eq('resolution_status', 'open')
+        .gte('received_at', fromDate.toISOString())
+        .order('received_at', { ascending: false });
+
+      if (effectiveInstitutionId) {
+        parseErrorQuery = parseErrorQuery.eq('institution_id', effectiveInstitutionId);
+      }
+
+      if (searchQuery) {
+        parseErrorQuery = parseErrorQuery.or(
+          `sender_phone.ilike.%${searchQuery}%,sms_text.ilike.%${searchQuery}%`
+        );
+      }
+
+      const { data: parseErrorData, error: parseErrorErr } = await parseErrorQuery;
+      if (parseErrorErr) throw parseErrorErr;
+      setParseErrors(parseErrorData || []);
+
+      // Load duplicate candidates from view
+      let dupeQuery = supabase
+        .from('vw_duplicate_candidates')
+        .select('*');
+
+      if (effectiveInstitutionId) {
+        dupeQuery = dupeQuery.eq('institution_id', effectiveInstitutionId);
+      }
+
+      const { data: dupeData, error: dupeError } = await dupeQuery;
+      if (dupeError) {
+        console.warn('Duplicate view error:', dupeError);
+        setDuplicates([]);
+      } else {
+        setDuplicates(dupeData || []);
+      }
+
+    } catch (err: any) {
+      console.error('Error loading reconciliation data:', err);
+      setError(err.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }, [effectiveInstitutionId, isPlatformAdmin, dateRange, searchQuery]);
 
   useEffect(() => {
-    if (useMockData) {
-      setIssues([]);
-      return;
-    }
-    if (!institutionId) {
-      setIssues([]);
-      return;
-    }
+    loadData();
+  }, [loadData]);
 
-    const loadIssues = async () => {
-      setLoading(true);
-      setError(null);
+  // Load transactions for duplicate group when selected
+  useEffect(() => {
+    if (activeTab !== 'duplicates' || !selectedId) return;
 
-      const { data, error } = await supabase
-        .from('reconciliation_issues')
+    const group = duplicates.find((d) => d.match_key === selectedId);
+    if (!group || group.transactions) return;
+
+    const loadGroupTransactions = async () => {
+      const { data } = await supabase
+        .from('transactions')
         .select('*')
-        .eq('institution_id', institutionId)
-        .eq('status', 'OPEN')
-        .order('detected_at', { ascending: false });
+        .in('id', group.transaction_ids);
 
-      if (error) {
-        console.error('Error loading reconciliation issues:', error);
-        setError('Unable to load reconciliation issues. Check your connection and permissions.');
-        setIssues([]);
-        setLoading(false);
-        return;
+      if (data) {
+        setDuplicates((prev) =>
+          prev.map((d) =>
+            d.match_key === selectedId ? { ...d, transactions: data } : d
+          )
+        );
       }
-
-      const { data: resolvedData } = await supabase
-        .from('reconciliation_issues')
-        .select('resolved_at')
-        .eq('institution_id', institutionId)
-        .eq('status', 'RESOLVED')
-        .order('resolved_at', { ascending: false })
-        .limit(1);
-
-      const resolvedAt = resolvedData?.[0]?.resolved_at;
-      if (resolvedAt) {
-        setLastClosedLabel(new Date(resolvedAt).toLocaleDateString());
-      }
-
-      setIssues((data as SupabaseReconciliationIssue[]) || []);
-
-      // Load today's cash transactions for Branch Cash tab
-      const today = new Date().toISOString().split('T')[0];
-      const { data: txData } = await supabase
-        .from('payment_ledger')
-        .select('*')
-        .eq('institution_id', institutionId)
-        .gte('created_at', today)
-        .order('created_at', { ascending: true });
-
-      if (txData && txData.length > 0) {
-        const movements = txData.map((tx: any) => {
-          const date = new Date(tx.created_at);
-          const isDeposit = tx.txn_type === 'Deposit' || tx.txn_type === 'Group Contribution';
-          return {
-            time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-            description: tx.txn_type + (tx.member_id ? ' (Member)' : ''),
-            amount: Number(tx.amount),
-            isDeposit
-          };
-        });
-        setCashMovements(movements);
-        const total = movements.reduce((sum, m) => sum + (m.isDeposit ? m.amount : -m.amount), 0);
-        setExpectedCash(total);
-      } else {
-        setCashMovements([]);
-        setExpectedCash(0);
-      }
-
-      setLoading(false);
     };
+    loadGroupTransactions();
+  }, [activeTab, selectedId, duplicates]);
 
-    loadIssues();
-  }, [useMockData, institutionId]);
-
-  const resolveItem = async (id: string, status: 'RESOLVED' | 'IGNORED') => {
-    if (useMockData) {
-      setIssues((prev) => prev.filter((issue) => issue.id !== id));
-      return;
+  // Get selected item
+  const getSelectedItem = () => {
+    if (!selectedId) return null;
+    if (activeTab === 'unallocated') {
+      return unallocated.find((t) => t.id === selectedId) || null;
     }
-
-    const { error } = await supabase
-      .from('reconciliation_issues')
-      .update({ status, resolved_at: new Date().toISOString() })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error resolving reconciliation issue:', error);
-      return;
+    if (activeTab === 'parse-errors') {
+      return parseErrors.find((e) => e.id === selectedId) || null;
     }
-
-    setIssues((prev) => prev.filter((issue) => issue.id !== id));
+    if (activeTab === 'duplicates') {
+      return duplicates.find((d) => d.match_key === selectedId) || null;
+    }
+    return null;
   };
 
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    setShowDetailPanel(true);
+  };
+
+  const handleActionComplete = () => {
+    setSelectedId(null);
+    setShowDetailPanel(false);
+    loadData();
+  };
+
+  const counts = {
+    unallocated: unallocated.length,
+    parseErrors: parseErrors.length,
+    duplicates: duplicates.length,
+  };
+
+  const currentItems =
+    activeTab === 'unallocated'
+      ? unallocated
+      : activeTab === 'parse-errors'
+      ? parseErrors
+      : duplicates;
+
   return (
-    <div className="space-y-6 h-full flex flex-col">
-      {error && (
-        <ErrorDisplay error={error} variant="banner" />
-      )}
-      {loading && (
-        <LoadingSpinner size="lg" text="Loading reconciliation data..." className="h-32" />
-      )}
-      {/* KPI Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
+    <div className="h-full flex flex-col bg-slate-50">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Digital Balance</p>
-            <p className="text-2xl font-bold text-green-600">99.8%</p>
-            <p className="text-xs text-slate-400 mt-1">Ledger vs MoMo Balance</p>
+            <h1 className="text-xl font-bold text-slate-900">Reconciliation</h1>
+            <p className="text-sm text-slate-500">
+              Resolve unallocated transactions, parse errors, and duplicates
+            </p>
           </div>
-          <div className="p-3 bg-green-50 text-green-600 rounded-full">
-            <CheckCircle2 size={24} />
-          </div>
+
+          {/* Institution switcher for platform admin */}
+          {isPlatformAdmin && institutions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Building2 size={18} className="text-slate-400" />
+              <select
+                value={selectedInstitutionId || ''}
+                onChange={(e) => setSelectedInstitutionId(e.target.value || null)}
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Institutions</option>
+                {institutions.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
-        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between border-l-4 border-l-amber-500">
-          <div>
-            <p className="text-slate-500 text-xs font-semibold uppercase">Pending Issues</p>
-            <p className="text-2xl font-bold text-amber-600">{issues.length}</p>
-            <p className="text-xs text-slate-400 mt-1">Require manual review</p>
+
+        {/* Filters */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search phone, ref, name..."
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-full">
-            <AlertTriangle size={24} />
+
+          {/* Date range */}
+          <div className="flex items-center gap-2">
+            <Calendar size={18} className="text-slate-400" />
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(Number(e.target.value))}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={1}>Today</option>
+              <option value={7}>Last 7 days</option>
+              <option value={30}>Last 30 days</option>
+              <option value={90}>Last 90 days</option>
+            </select>
           </div>
-        </div>
-        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
-          <div>
-            <p className="text-slate-500 text-xs font-semibold uppercase">Last Closed</p>
-            <p className="text-2xl font-bold text-slate-900">{lastClosedLabel}</p>
-            <p className="text-xs text-slate-400 mt-1">Branch closure snapshot</p>
-          </div>
-          <div className="p-3 bg-slate-50 text-slate-600 rounded-full">
-            <Scale size={24} />
-          </div>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Filter size={14} />}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            Filters
+          </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-        {/* Tabs */}
-        <div className="flex border-b border-slate-200 bg-slate-50">
-          {[
-            { id: 'MoMo vs Ledger', icon: Smartphone },
-            { id: 'Branch Cash', icon: DollarSign },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as RecTab)}
-              className={`px-6 py-4 text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === tab.id
-                ? 'bg-white border-t-2 border-t-blue-600 text-blue-600'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                }`}
-            >
-              <tab.icon size={16} />
-              {tab.id}
-            </button>
-          ))}
+      {/* Error display */}
+      {error && (
+        <div className="p-4">
+          <ErrorDisplay error={error} variant="banner" />
         </div>
+      )}
 
-        {/* Toolbar */}
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center shrink-0">
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" leftIcon={<Filter size={14} />}>
-              Filter: All Issues
-            </Button>
-            <Button variant="secondary" size="sm">
-              Date: Today
-            </Button>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left panel: Tabs + Queue */}
+        <div className="w-full lg:w-96 border-r border-slate-200 bg-white flex flex-col overflow-hidden">
+          <ReconciliationTabs
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              setSelectedId(null);
+              setShowDetailPanel(false);
+            }}
+            counts={counts}
+          />
+
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="p-8 flex justify-center">
+                <LoadingSpinner size="md" />
+              </div>
+            ) : (
+              <QueueList
+                type={activeTab}
+                items={currentItems}
+                selectedId={selectedId}
+                onSelect={handleSelect}
+              />
+            )}
           </div>
-          <Button variant="primary" size="sm">
-            Export Report
-          </Button>
         </div>
 
-        {/* Tab Views */}
-        <div className="flex-1 overflow-y-auto">
-          {activeTab === 'MoMo vs Ledger' && (
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100 sticky top-0">
-                <tr>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Detected</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Source (SMS/MoMo)</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Ledger Status</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {issues.map(issue => (
-                  <tr key={issue.id} className="hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(issue.detected_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-slate-900">{issue.amount.toLocaleString()} RWF</div>
-                      <div className="text-xs text-slate-500">Ref: {issue.source_reference || '—'}</div>
-                      <div className="text-xs text-blue-600 mt-0.5">Source: {issue.source}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant="danger" className="flex items-center gap-1 w-fit">
-                        <AlertTriangle size={12} /> {issue.ledger_status}
-                      </Badge>
-                      <p className="text-xs text-slate-400 mt-1">Review required for reconciliation.</p>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => resolveItem(issue.id, 'RESOLVED')}
-                        className="text-blue-600 text-sm font-medium hover:underline mr-3"
-                      >
-                        Create Entry
-                      </button>
-                      <button
-                        onClick={() => resolveItem(issue.id, 'IGNORED')}
-                        className="text-slate-400 text-sm font-medium hover:text-slate-600"
-                      >
-                        Ignore
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {issues.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-10 text-center text-slate-400">
-                      <CheckCircle2 size={48} className="mx-auto mb-4 text-green-200" />
-                      <p>All MoMo transactions match the system ledger.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
+        {/* Right panel: Detail */}
+        <div
+          className={`
+            fixed inset-0 z-50 bg-white lg:relative lg:inset-auto lg:flex-1 lg:z-0
+            transform transition-transform duration-300 ease-in-out
+            ${showDetailPanel ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+          `}
+        >
+          {/* Mobile close button */}
+          <button
+            onClick={() => setShowDetailPanel(false)}
+            className="lg:hidden absolute top-4 right-4 p-2 bg-slate-100 rounded-full z-10"
+          >
+            <X size={20} className="text-slate-600" />
+          </button>
 
-          {activeTab === 'Branch Cash' && (
-            <div className="p-6 max-w-4xl mx-auto">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6">
-                <h3 className="text-sm font-bold text-slate-800 mb-4">Daily Vault Closure</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">System Expected Cash</label>
-                    <div className="text-2xl font-bold text-slate-900 bg-white border border-slate-200 rounded-lg p-3">
-                      {expectedCash.toLocaleString()} RWF
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">Based on recorded Cash In/Out</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Actual Count (Input)</label>
-                    <input type="number" className="w-full text-2xl font-bold text-slate-900 bg-white border border-blue-300 focus:ring-2 focus:ring-blue-500 rounded-lg p-3 outline-none" placeholder="0" />
-                    <p className="text-xs text-slate-400 mt-1">Enter physical vault count</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                <div className="p-4 bg-slate-50 border-b border-slate-100">
-                  <h4 className="font-bold text-slate-700 text-sm">Cash Movement Logs (Today)</h4>
-                </div>
-                <table className="w-full text-left">
-                  <tbody className="divide-y divide-slate-100">
-                    {cashMovements.length > 0 ? cashMovements.map((movement, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-4 text-sm text-slate-600">{movement.time}</td>
-                        <td className="p-4 text-sm text-slate-900 font-medium">{movement.description}</td>
-                        <td className={`p-4 text-right text-sm font-bold ${movement.isDeposit ? 'text-green-600' : 'text-red-600'}`}>
-                          {movement.isDeposit ? '+' : '-'}{movement.amount.toLocaleString()} RWF
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={3} className="p-6 text-center text-slate-400 text-sm">
-                          No cash transactions recorded today.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-
+          <DetailPanel
+            type={activeTab}
+            item={getSelectedItem()}
+            institutionId={effectiveInstitutionId || institutionId || ''}
+            onClose={() => {
+              setSelectedId(null);
+              setShowDetailPanel(false);
+            }}
+            onActionComplete={handleActionComplete}
+          />
         </div>
+
+        {/* Overlay for mobile */}
+        {showDetailPanel && (
+          <div
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={() => setShowDetailPanel(false)}
+          />
+        )}
       </div>
     </div>
   );
