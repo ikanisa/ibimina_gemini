@@ -309,20 +309,8 @@ as $$
   select institution_id from public.profiles where user_id = auth.uid();
 $$;
 
-create or replace function public.current_user_role()
-returns text
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select case role
-    when 'PLATFORM_ADMIN' then 'admin'
-    when 'INSTITUTION_ADMIN' then 'admin'
-    else 'staff'
-  end::text
-  from public.profiles where user_id = auth.uid();
-$$;
+-- Note: current_user_role() function already exists from initial schema
+-- keeping the original return type (user_role enum) to avoid breaking changes
 
 create or replace function public.is_platform_admin()
 returns boolean
