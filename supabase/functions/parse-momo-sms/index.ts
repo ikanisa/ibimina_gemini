@@ -149,12 +149,13 @@ If you cannot extract valid data, return: {"error": "Unable to parse SMS"}`
     }
 
     // Call database function to create transaction
+    // Note: parameter order matters - p_payer_phone must come before p_currency
     const { data: transaction_id, error: dbError } = await supabaseClient.rpc('parse_momo_sms', {
       p_sms_id: sms_id,
       p_institution_id: effective_institution_id,
       p_amount: parsed.amount,
-      p_currency: parsed.currency || 'RWF',
       p_payer_phone: sender_phone,
+      p_currency: parsed.currency || 'RWF',
       p_payer_name: parsed.payer_name || null,
       p_momo_ref: parsed.momo_ref || null,
       p_occurred_at: parsed.occurred_at || received_at || new Date().toISOString(),
