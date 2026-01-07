@@ -97,6 +97,21 @@ create table if not exists public.momo_sms_raw (
   unique(hash)
 );
 
+-- Ensure transactions table exists (should be from initial schema, but create if missing)
+create table if not exists public.transactions (
+  id uuid primary key default gen_random_uuid(),
+  institution_id uuid not null references public.institutions(id) on delete cascade,
+  member_id uuid references public.members(id) on delete set null,
+  group_id uuid references public.groups(id) on delete set null,
+  type text not null,
+  amount numeric(16, 2) not null,
+  currency text not null default 'RWF',
+  channel text not null,
+  status transaction_status not null default 'COMPLETED',
+  reference text,
+  created_at timestamptz not null default now()
+);
+
 -- Transaction allocations audit trail
 create table if not exists public.transaction_allocations (
   id uuid primary key default gen_random_uuid(),
