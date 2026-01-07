@@ -35,7 +35,7 @@ Add these environment variables in Cloudflare Pages settings:
 | Variable | Value | Description |
 |----------|-------|-------------|
 | `GEMINI_API_KEY` | `your-gemini-key` | Only needed if using AI features (OCR) |
-| `NODE_VERSION` | `18` or `20` | Node.js version (default: 18) |
+| `NODE_VERSION` | `20.19.0` | Node.js version (required by dependencies) |
 
 ## Production Branch
 
@@ -71,7 +71,7 @@ If you want to use a custom domain:
 ## Troubleshooting
 
 ### Build Fails
-- Check Node.js version (should be 18+)
+- Check Node.js version (must be 20.19.0+)
 - Verify all dependencies are in `package.json`
 - Check build logs for specific errors
 

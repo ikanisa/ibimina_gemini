@@ -39,7 +39,7 @@ Add these in Cloudflare Pages → Settings → Environment Variables:
 VITE_SUPABASE_URL = https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY = your-supabase-anon-key
 VITE_USE_MOCK_DATA = false
-NODE_VERSION = 18
+NODE_VERSION = 20.19.0
 ```
 
 #### Optional (if using AI features)
@@ -50,7 +50,7 @@ GEMINI_API_KEY = your-gemini-api-key
 
 ### Build Configuration Details
 
-- **Node.js Version:** 18 (or 20)
+- **Node.js Version:** 20.19.0+
 - **Package Manager:** npm (default)
 - **Build Timeout:** Default (15 minutes should be sufficient)
 

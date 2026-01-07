@@ -167,9 +167,11 @@ npm install
 
 ### 2) Configure environment variables
 
-Create `.env.local` for the frontend app:
+Create `.env.local` for the frontend app (start from `env.example`):
 
 ```bash
+cp env.example .env.local
+
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
