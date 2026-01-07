@@ -44,10 +44,16 @@ const SettingsPage = lazy(() => import('./components/Settings'));
 const Login = lazy(() => import('./components/Login'));
 const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
 const AppBoot = lazy(() => import('./components/AppBoot'));
+const SystemHealthIndicator = lazy(() => import('./components/SystemHealthIndicator'));
 import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
 import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { buildInitialsAvatar } from './lib/avatars';
+
+// Production guard: Fail loudly if mock data is enabled in production
+if (import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+  console.error('🚨 CRITICAL: VITE_USE_MOCK_DATA=true in production build! This bypasses authentication.');
+}
 
 const EMPTY_STATS: KpiStats = {
   totalMembers: 0,
@@ -372,8 +378,16 @@ const App: React.FC = () => {
 
             {/* Demo mode banner - only visible when VITE_USE_MOCK_DATA=true */}
             {useMockData && (
-              <div className="bg-amber-100 text-amber-800 px-4 py-2 text-xs font-medium flex items-center justify-between">
-                <span>Demo mode enabled: showing mock data and roles.</span>
+              <div className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${
+                import.meta.env.PROD 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                <span>
+                  {import.meta.env.PROD 
+                    ? '⚠️ DANGER: Mock data mode in production! Authentication is bypassed.' 
+                    : 'Demo mode enabled: showing mock data and roles.'}
+                </span>
               </div>
             )}
 
@@ -407,12 +421,20 @@ const App: React.FC = () => {
                 </h2>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 md:gap-4">
                 {isOffline && (
                   <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2">
                     <WifiOff size={14} /> Offline Mode
                   </div>
                 )}
+                
+                {/* System Health Indicator */}
+                {!useMockData && (
+                  <Suspense fallback={null}>
+                    <SystemHealthIndicator onNavigate={setCurrentView} />
+                  </Suspense>
+                )}
+                
                 <div className="relative hidden lg:block">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <input
