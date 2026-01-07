@@ -154,7 +154,7 @@ Configured per institution in `institution_settings`:
 ## Getting started (local development)
 
 ### Requirements
-- Node.js 18+ (see `.nvmrc`)
+- Node.js **20.19.0+** (see `.nvmrc`)
 - npm or pnpm
 - Supabase CLI
 - A Supabase project (local or remote)

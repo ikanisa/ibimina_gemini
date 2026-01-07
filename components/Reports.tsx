@@ -14,7 +14,7 @@ import {
   CsvExport,
   objectsToCsv,
   generateReportFilename
-} from './reports';
+} from './reports/index';
 
 type ReportScope = 'institution' | 'group' | 'member';
 type StatusFilter = 'all' | 'allocated' | 'unallocated' | 'error' | 'duplicate';

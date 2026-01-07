@@ -1,5 +1,5 @@
 export { ReportKpiCard } from './ReportKpiCard';
 export { BreakdownTable } from './BreakdownTable';
 export { ReportLedgerTable } from './ReportLedgerTable';
-export { CsvExport, downloadCsv } from './CsvExport';
+export { CsvExport, downloadCsv, objectsToCsv, generateReportFilename } from './CsvExport';
 

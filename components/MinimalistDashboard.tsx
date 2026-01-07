@@ -17,7 +17,7 @@ import {
   ActivityList,
   DashboardHealthBanner,
   InstitutionSwitcher
-} from './dashboard';
+} from './dashboard/index';
 
 // API response structure matching the RPC function
 interface DashboardData {

@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Search, Calendar, Filter, Building2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ReconciliationTabs, QueueList, DetailPanel } from './reconciliation';
-import type { ReconciliationTab } from './reconciliation';
+import { ReconciliationTabs, QueueList, DetailPanel } from './reconciliation/index';
+import type { ReconciliationTab } from './reconciliation/index';
 import { LoadingSpinner, ErrorDisplay, Button } from './ui';
 
 interface Transaction {
