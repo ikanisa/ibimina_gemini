@@ -224,29 +224,43 @@ const App: React.FC = () => {
     const effectiveRole = useMockData ? currentUser.role : role;
     if (!effectiveRole) return false;
 
+    // Super Admin / Platform Admin has unrestricted access to everything
+    if (effectiveRole === 'Super Admin') {
+      return true;
+    }
+
     switch (view) {
+      // Everyone can access these
       case ViewState.DASHBOARD:
-      case ViewState.GROUPS: // Everyone sees groups
+      case ViewState.GROUPS:
       case ViewState.PROFILE:
-        return true;
-      case ViewState.SACCOS:
-      case ViewState.INSTITUTIONS:
-      case ViewState.STAFF:
-      case ViewState.SETTINGS:
-        return ['Super Admin'].includes(effectiveRole);
-      case ViewState.RECONCILIATION:
-        return ['Super Admin', 'Branch Manager', 'Auditor'].includes(effectiveRole);
-      case ViewState.REPORTS:
-        return ['Super Admin', 'Branch Manager', 'Auditor', 'Loan Officer'].includes(effectiveRole);
       case ViewState.MEMBERS:
       case ViewState.TRANSACTIONS:
       case ViewState.ALLOCATION_QUEUE:
         return true;
+
+      // Admin-only views (Super Admin already returned true above)
+      case ViewState.SACCOS:
+      case ViewState.INSTITUTIONS:
+      case ViewState.STAFF:
+      case ViewState.SETTINGS:
+        return false; // Only Super Admin
+
+      // Manager + Auditor views
+      case ViewState.RECONCILIATION:
+        return ['Branch Manager', 'Auditor'].includes(effectiveRole);
+      case ViewState.REPORTS:
+        return ['Branch Manager', 'Auditor', 'Loan Officer'].includes(effectiveRole);
+
+      // Finance views
       case ViewState.ACCOUNTS:
       case ViewState.LOANS:
-        return ['Super Admin', 'Branch Manager', 'Loan Officer'].includes(effectiveRole);
-      case ViewState.MOMO_OPERATIONS: // Staff see SMS parsing
-        return ['Super Admin', 'Branch Manager', 'Teller', 'Loan Officer'].includes(effectiveRole);
+        return ['Branch Manager', 'Loan Officer'].includes(effectiveRole);
+
+      // Operations views
+      case ViewState.MOMO_OPERATIONS:
+      case ViewState.PAYMENTS:
+        return ['Branch Manager', 'Teller', 'Loan Officer'].includes(effectiveRole);
 
       default:
         return false;
