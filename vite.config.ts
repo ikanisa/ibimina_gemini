@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  // Load .env files for local development
+  const env = loadEnv(mode, process.cwd(), '');
+
   return {
     server: {
       port: 3000,
@@ -62,9 +64,12 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
+    // Explicitly define env vars for Cloudflare Pages compatibility
+    // Cloudflare injects these as process.env, not as .env files
     define: {
-      // Environment variables are handled via import.meta.env for VITE_ prefixed vars
-      // GEMINI_API_KEY is only used server-side in Supabase Edge Functions
+      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || ''),
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || ''),
+      'import.meta.env.VITE_USE_MOCK_DATA': JSON.stringify(process.env.VITE_USE_MOCK_DATA || env.VITE_USE_MOCK_DATA || 'false'),
     },
     resolve: {
       alias: {
