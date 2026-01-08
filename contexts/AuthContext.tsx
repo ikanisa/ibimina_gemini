@@ -115,27 +115,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     let isMounted = true;
 
-    // Timeout helper to prevent infinite loading
-    const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
-      return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          reject(new Error(`${label} timed out after ${ms}ms`));
-        }, ms);
-
-        promise
-          .then((value) => {
-            clearTimeout(timer);
-            resolve(value);
-          })
-          .catch((err) => {
-            clearTimeout(timer);
-            reject(err);
-          });
-      });
-    };
-
     const initSession = async () => {
       if (!isSupabaseConfigured) {
+        console.log('[Auth] Supabase not configured, skipping');
         if (isMounted) setLoading(false);
         return;
       }
@@ -144,12 +126,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(true);
         setInitError(null);
 
-        // Race Supabase auth against a timeout (8s)
-        const { data, error } = await withTimeout(
-          supabase.auth.getSession(),
-          8000,
-          "Session initialization"
-        );
+        console.log('[Auth] Getting session...');
+        const { data, error } = await supabase.auth.getSession();
+        console.log('[Auth] Session result:', { hasSession: !!data.session, error });
 
         if (error) throw error;
 
@@ -157,10 +136,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await applyUser(data.session?.user ?? null);
         }
       } catch (err: any) {
-        console.error('Auth initialization error:', err);
+        console.error('[Auth] Initialization error:', err);
         if (isMounted) {
           setInitError(err.message || 'Failed to initialize authentication');
-          // Ensure we don't leave user in inconsistent state
           setUser(null);
         }
       } finally {
