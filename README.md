@@ -45,30 +45,23 @@ Ibimina is multi-tenant by institution. All sensitive rows are scoped by `instit
 
 ## Main modules (UI)
 
-### Settings (control plane)
-- Institution profile & **MoMo code(s)**
-- Parsing thresholds & dedupe rules
-- SMS sources/devices (health/last seen)
-- Staff management (admin only)
-- Audit log (admin/auditor)
-
 ### Dashboard (operational)
 - KPIs (today + last N days)
+- Quick actions (New Group, Add Member, Record Deposit, View Reports)
+- Weekly deposits/withdrawals chart
 - "Needs attention" items:
   - Unallocated transactions
   - Parse errors
-  - Duplicates
-  - SMS source offline
-  - MoMo code missing
 
-### Transactions (ledger)
-- List with filters (date, status, group, member)
-- Transaction detail drawer
-- Allocate action (unallocated only)
-
-### Reconciliation (workbench)
-- Tabs: Unallocated | Parse errors | Duplicates
-- Fast resolution actions with audit trail
+### Transactions (unified ledger)
+- **Consolidated view** showing:
+  - All transactions from SMS parsing
+  - Status filters: All | Unallocated | Allocated | Flagged
+  - Date range picker
+  - Search by phone, reference, name
+- Transaction detail drawer with allocation action
+- Infinite scroll for performance
+- Export capability
 
 ### Directory
 - Groups (wizard + CSV import)
@@ -78,6 +71,13 @@ Ibimina is multi-tenant by institution. All sensitive rows are scoped by `instit
 - Institution / Group / Member scopes
 - Breakdown + ledger
 - CSV export
+
+### Settings (control plane)
+- Institution profile & **MoMo code(s)**
+- Parsing thresholds & dedupe rules
+- SMS sources/devices (health/last seen)
+- Staff management (admin only)
+- Audit log (admin/auditor)
 
 ---
 
