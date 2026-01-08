@@ -29,17 +29,13 @@ const MinimalistDashboard = lazy(() => import('./components/MinimalistDashboard'
 const Groups = lazy(() => import('./components/Groups'));
 const Members = lazy(() => import('./components/Members'));
 const Transactions = lazy(() => import('./components/Transactions'));
-const AllocationQueue = lazy(() => import('./components/AllocationQueue'));
-const MoMoOperations = lazy(() => import('./components/MoMoOperations'));
-const Payments = lazy(() => import('./components/Payments'));
+// Deleted components: AllocationQueue, MoMoOperations, Payments, Reconciliation, Loans
 const Saccos = lazy(() => import('./components/Saccos'));
 const Institutions = lazy(() => import('./components/institutions/Institutions'));
 
-const Reconciliation = lazy(() => import('./components/Reconciliation'));
 const Reports = lazy(() => import('./components/Reports'));
 const Staff = lazy(() => import('./components/Staff'));
 const Profile = lazy(() => import('./components/Profile'));
-const Loans = lazy(() => import('./components/Loans'));
 const SettingsPage = lazy(() => import('./components/Settings'));
 const Login = lazy(() => import('./components/Login'));
 const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
@@ -304,7 +300,6 @@ const App: React.FC = () => {
       case ViewState.PROFILE:
       case ViewState.MEMBERS:
       case ViewState.TRANSACTIONS:
-      case ViewState.ALLOCATION_QUEUE:
         return true;
 
       // Admin-only views (Super Admin already returned true above)
@@ -315,20 +310,8 @@ const App: React.FC = () => {
         return false; // Only Super Admin
 
       // Manager + Auditor views
-      case ViewState.RECONCILIATION:
-        return ['Branch Manager', 'Auditor'].includes(effectiveRole);
       case ViewState.REPORTS:
         return ['Branch Manager', 'Auditor', 'Loan Officer'].includes(effectiveRole);
-
-      // Finance views
-      case ViewState.ACCOUNTS:
-      case ViewState.LOANS:
-        return ['Branch Manager', 'Loan Officer'].includes(effectiveRole);
-
-      // Operations views
-      case ViewState.MOMO_OPERATIONS:
-      case ViewState.PAYMENTS:
-        return ['Branch Manager', 'Teller', 'Loan Officer'].includes(effectiveRole);
 
       default:
         return false;
@@ -426,15 +409,7 @@ const App: React.FC = () => {
               <NavItem view={ViewState.MEMBERS} icon={<Users size={18} />} label="Members" />
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Finance</p>
-              <NavItem view={ViewState.LOANS} icon={<FileText size={18} />} label="Loans" />
-              <NavItem view={ViewState.TRANSACTIONS} icon={<FileText size={18} />} label="Transactions" />
-              <NavItem view={ViewState.ALLOCATION_QUEUE} icon={<Inbox size={18} />} label="Allocation Queue" />
-
-
-              <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Operations</p>
-              <NavItem view={ViewState.MOMO_OPERATIONS} icon={<Smartphone size={18} />} label="MoMo SMS (Staff)" />
-              <NavItem view={ViewState.PAYMENTS} icon={<CreditCard size={18} />} label="All Payments" />
-              <NavItem view={ViewState.RECONCILIATION} icon={<Scale size={18} />} label="Reconciliation" />
+              <NavItem view={ViewState.TRANSACTIONS} icon={<CreditCard size={18} />} label="Transactions" />
               <NavItem view={ViewState.REPORTS} icon={<PieChart size={18} />} label="Reports" />
 
               <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">System</p>
@@ -479,8 +454,8 @@ const App: React.FC = () => {
             {/* Demo mode banner - only visible when VITE_USE_MOCK_DATA=true */}
             {useMockData && (
               <div className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${import.meta.env.PROD
-                  ? 'bg-red-600 text-white'
-                  : 'bg-amber-100 text-amber-800'
+                ? 'bg-red-600 text-white'
+                : 'bg-amber-100 text-amber-800'
                 }`}>
                 <span>
                   {import.meta.env.PROD
@@ -506,14 +481,8 @@ const App: React.FC = () => {
                   {currentView === ViewState.SACCOS && 'SACCOs & Branches'}
                   {currentView === ViewState.INSTITUTIONS && 'Institutions Management'}
                   {currentView === ViewState.MEMBERS && 'Member Management'}
-                  {currentView === ViewState.TRANSACTIONS && 'Ledger'}
-                  {currentView === ViewState.ALLOCATION_QUEUE && 'Allocation Queue'}
-                  {currentView === ViewState.MOMO_OPERATIONS && 'Mobile Money SMS Parsing'}
-
-                  {currentView === ViewState.RECONCILIATION && 'Reconciliation Center'}
+                  {currentView === ViewState.TRANSACTIONS && 'Transactions'}
                   {currentView === ViewState.REPORTS && 'Reports & Analytics'}
-                  {currentView === ViewState.ACCOUNTS && 'Accounts & Products'}
-                  {currentView === ViewState.LOANS && 'Loan Management'}
                   {currentView === ViewState.STAFF && 'Staff Administration'}
                   {currentView === ViewState.SETTINGS && 'System Settings'}
                   {currentView === ViewState.PROFILE && 'My Profile'}
@@ -625,19 +594,7 @@ const App: React.FC = () => {
                   <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
                 )}
 
-                {currentView === ViewState.ALLOCATION_QUEUE && canAccess(ViewState.ALLOCATION_QUEUE) && (
-                  <AllocationQueue />
-                )}
-
-                {/* Mobile Money SMS Parsing */}
-                {currentView === ViewState.MOMO_OPERATIONS && canAccess(ViewState.MOMO_OPERATIONS) && <MoMoOperations />}
-
-                {/* Consolidated Payments */}
-                {currentView === ViewState.PAYMENTS && canAccess(ViewState.PAYMENTS) && <Payments />}
-
-                {currentView === ViewState.RECONCILIATION && canAccess(ViewState.RECONCILIATION) && <Reconciliation />}
                 {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && <Reports />}
-                {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && <Loans onNavigate={setCurrentView} />}
                 {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
                   <Staff
                     currentUser={currentUser}
@@ -649,16 +606,6 @@ const App: React.FC = () => {
                 )}
                 {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && <SettingsPage />}
                 {currentView === ViewState.PROFILE && <Profile user={currentUser} />}
-
-                {currentView === ViewState.ACCOUNTS && canAccess(currentView) && (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                    <div className="bg-slate-100 p-6 rounded-full mb-4">
-                      <PieChart size={48} />
-                    </div>
-                    <h3 className="text-lg font-semibold text-slate-700">Coming Soon</h3>
-                    <p className="max-w-sm text-center mt-2">This module is part of the full SACCO+ suite but is not yet implemented in this preview.</p>
-                  </div>
-                )}
 
                 {!canAccess(currentView) && currentView !== ViewState.PROFILE && currentView !== ViewState.DASHBOARD && (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">

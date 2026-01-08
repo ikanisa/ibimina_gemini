@@ -157,20 +157,7 @@ export interface SupabaseTransaction {
   created_at: string;
 }
 
-export interface SupabaseLoan {
-  id: string;
-  institution_id: string;
-  member_id?: string | null;
-  group_id?: string | null;
-  amount: number;
-  outstanding_balance: number;
-  status: 'PENDING_APPROVAL' | 'ACTIVE' | 'OVERDUE' | 'CLOSED' | 'REJECTED';
-  start_date: string;
-  next_payment_date?: string | null;
-  interest_rate: number;
-  term_months: number;
-  created_at: string;
-}
+// Loan interfaces removed - system does not administer loans
 
 export interface SupabaseBranch {
   id: string;
@@ -237,13 +224,7 @@ export enum ViewState {
   SACCOS = 'SACCOS',
   INSTITUTIONS = 'INSTITUTIONS',
   MEMBERS = 'MEMBERS',
-  ACCOUNTS = 'ACCOUNTS',
-  LOANS = 'LOANS',
   TRANSACTIONS = 'TRANSACTIONS',
-  ALLOCATION_QUEUE = 'ALLOCATION_QUEUE',
-  MOMO_OPERATIONS = 'MOMO_OPERATIONS',
-  PAYMENTS = 'PAYMENTS',
-  RECONCILIATION = 'RECONCILIATION',
   REPORTS = 'REPORTS',
   STAFF = 'STAFF',
   SETTINGS = 'SETTINGS',
@@ -254,7 +235,7 @@ export type Status = 'Active' | 'Pending' | 'Suspended' | 'Closed';
 export type TransactionStatus = 'Completed' | 'Pending' | 'Failed' | 'Reversed';
 export type KycStatus = 'Verified' | 'Pending' | 'Rejected';
 export type StaffRole = 'Super Admin' | 'Branch Manager' | 'Loan Officer' | 'Teller' | 'Auditor';
-export type LoanStatus = 'Pending Approval' | 'Active' | 'Overdue' | 'Closed' | 'Rejected';
+// LoanStatus removed - system does not administer loans
 
 export interface Group {
   id: string;
@@ -386,16 +367,38 @@ export interface StaffMember {
   avatarUrl: string;
 }
 
-export interface Loan {
+// Loan interface removed - system does not administer loans
+
+// Consolidated Transaction type for the unified Transactions page
+export interface ConsolidatedTransaction {
   id: string;
-  borrowerId: string;
-  borrowerName: string;
+  institution_id: string;
+  occurred_at: string;
+  created_at: string;
   amount: number;
-  outstandingBalance: number;
-  status: LoanStatus;
-  startDate: string;
-  nextPaymentDate?: string;
-  groupId?: string;
-  interestRate: number;
-  termMonths: number;
+  currency: string;
+  payer_phone: string | null;
+  payer_name: string | null;
+  momo_ref: string | null;
+  transaction_type: string;
+  channel: string;
+  transaction_status: string;
+  allocation_status: 'unallocated' | 'allocated' | 'error' | 'duplicate' | 'reversed';
+  member_id: string | null;
+  group_id: string | null;
+  parse_confidence: number | null;
+  // SMS info
+  sms_id: string | null;
+  sms_text: string | null;
+  sender_phone: string | null;
+  sms_received_at: string | null;
+  parse_status: 'pending' | 'success' | 'error' | null;
+  parse_error: string | null;
+  sms_source: string | null;
+  // Allocation info
+  member_name: string | null;
+  member_phone: string | null;
+  group_name: string | null;
+  institution_name: string | null;
 }
+
