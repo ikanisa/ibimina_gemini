@@ -12,6 +12,7 @@ interface AuthContextType {
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,6 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [role, setRole] = useState<StaffRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const resetAuthState = () => {
     setUser(null);
@@ -111,32 +113,77 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return undefined;
-    }
-
     let isMounted = true;
 
-    const checkSession = async () => {
-      setLoading(true);
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error checking session:', error);
+    // Timeout helper to prevent infinite loading
+    const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms`));
+        }, ms);
+
+        promise
+          .then((value) => {
+            clearTimeout(timer);
+            resolve(value);
+          })
+          .catch((err) => {
+            clearTimeout(timer);
+            reject(err);
+          });
+      });
+    };
+
+    const initSession = async () => {
+      if (!isSupabaseConfigured) {
+        if (isMounted) setLoading(false);
+        return;
       }
-      await applyUser(data.session?.user ?? null);
-      if (isMounted) {
-        setLoading(false);
+
+      try {
+        setLoading(true);
+        setInitError(null);
+
+        // Race Supabase auth against a timeout (8s)
+        const { data, error } = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          "Session initialization"
+        );
+
+        if (error) throw error;
+
+        if (isMounted) {
+          await applyUser(data.session?.user ?? null);
+        }
+      } catch (err: any) {
+        console.error('Auth initialization error:', err);
+        if (isMounted) {
+          setInitError(err.message || 'Failed to initialize authentication');
+          // Ensure we don't leave user in inconsistent state
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    checkSession();
+    initSession();
 
+    // Set up listener for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setLoading(true);
-      await applyUser(session?.user ?? null);
-      if (isMounted) {
-        setLoading(false);
+      // For auth state changes, we generally want to show loading
+      // but strictly for the transition period
+      if (isMounted) setLoading(true);
+
+      try {
+        await applyUser(session?.user ?? null);
+      } catch (err) {
+        console.error('Auth state change error:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     });
 
@@ -166,7 +213,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, institutionId, role, loading, isConfigured: isSupabaseConfigured, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, institutionId, role, loading, isConfigured: isSupabaseConfigured, signIn, signOut, error: initError }}>
       {children}
     </AuthContext.Provider>
   );

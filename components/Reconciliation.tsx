@@ -197,6 +197,7 @@ const Reconciliation: React.FC = () => {
           )
         );
       }
+
     };
     loadGroupTransactions();
   }, [activeTab, selectedId, duplicates]);
@@ -237,8 +238,8 @@ const Reconciliation: React.FC = () => {
     activeTab === 'unallocated'
       ? unallocated
       : activeTab === 'parse-errors'
-      ? parseErrors
-      : duplicates;
+        ? parseErrors
+        : duplicates;
 
   return (
     <div className="h-full flex flex-col bg-slate-50">

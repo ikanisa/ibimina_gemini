@@ -1,21 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
+import { requireEnv, getOptionalEnv } from './env';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const useMockData = getOptionalEnv('VITE_USE_MOCK_DATA') === 'true';
 
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+let supabaseUrl = '';
+let supabaseAnonKey = '';
 
-if (!isSupabaseConfigured) {
-  console.error(
-    'Missing required environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY. ' +
-    'Create a .env.local file with these values (see .env.example).'
-  );
+try {
+  if (!useMockData) {
+    supabaseUrl = requireEnv('VITE_SUPABASE_URL');
+    supabaseAnonKey = requireEnv('VITE_SUPABASE_ANON_KEY');
+  }
+} catch (error) {
+  console.error('Supabase Configuration Error:', error);
+  // We allow the app to continue so the ErrorBoundary can show a nice message
+  // instead of crashing the entire script execution immediately.
 }
 
-export const supabase = createClient(SUPABASE_URL ?? '', SUPABASE_ANON_KEY ?? '', {
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true
   }
 });
+

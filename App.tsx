@@ -149,8 +149,58 @@ const MissingConfig: React.FC = () => (
   </div>
 );
 
+const InitError: React.FC<{ error: string }> = ({ error }) => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="bg-white border border-red-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+      <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4">
+        <WifiOff size={24} />
+      </div>
+      <h1 className="text-2xl font-bold text-slate-900">Connection Error</h1>
+      <p className="text-slate-600">
+        We couldn't connect to the server. This might be a network issue or a configuration problem.
+      </p>
+      <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm font-mono text-left overflow-auto max-h-32">
+        {error}
+      </div>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+      >
+        Retry Connection
+      </button>
+    </div>
+  </div>
+);
+
+const AccountNotProvisioned: React.FC<{ email?: string; userId: string }> = ({ email, userId }) => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+      <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-4">
+        <UserCircle size={24} />
+      </div>
+      <h1 className="text-2xl font-bold text-slate-900">Account Setup Required</h1>
+      <p className="text-slate-600">
+        You are signed in, but your account hasn't been linked to an institution yet.
+      </p>
+      <div className="bg-slate-50 p-4 rounded-lg text-sm text-left space-y-2 border border-slate-200">
+        <p><span className="font-semibold text-slate-500">Email:</span> {email}</p>
+        <p><span className="font-semibold text-slate-500">User ID:</span> <span className="font-mono text-xs">{userId}</span></p>
+      </div>
+      <p className="text-sm text-slate-500">
+        Please contact your administrator to create your staff profile and link it to an institution.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+      >
+        Check Again
+      </button>
+    </div>
+  </div>
+);
+
 const App: React.FC = () => {
-  const { user, profile, role, institutionId, loading, signOut, isConfigured } = useAuth();
+  const { user, profile, role, institutionId, loading, signOut, isConfigured, error } = useAuth();
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const demoUser = useMockData ? (MOCK_STAFF[0] ?? null) : null;
   const baseUser = useMockData ? demoUser : (user ? mapUserToStaffMember(user, role, profile) : null);
@@ -206,11 +256,27 @@ const App: React.FC = () => {
     if (loading) {
       return <LoadingScreen />;
     }
+    if (error) {
+      return <InitError error={error} />;
+    }
     if (!user || !baseUser) {
       return (
         <Suspense fallback={<LoadingScreen />}>
           <Login />
         </Suspense>
+      );
+    }
+    // If user is logged in but has no institutionId, they are likely not provisioned correctly in public.profiles
+    if (!institutionId && !useMockData) {
+      return (
+        <div className="flex flex-col h-screen">
+          <div className="absolute top-4 right-4 z-50">
+            <button onClick={() => signOut()} className="flex items-center gap-2 text-slate-500 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium">
+              <LogOut size={16} /> Sign Out
+            </button>
+          </div>
+          <AccountNotProvisioned email={user.email} userId={user.id} />
+        </div>
       );
     }
   }
