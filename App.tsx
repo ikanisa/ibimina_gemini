@@ -266,8 +266,10 @@ const App: React.FC = () => {
         </Suspense>
       );
     }
-    // If user is logged in but has no institutionId, they are likely not provisioned correctly in public.profiles
-    if (!institutionId && !useMockData) {
+    // If user is logged in but has no institutionId and is NOT a platform admin, they need provisioning
+    // PLATFORM_ADMIN users have null institutionId by design (they access ALL institutions)
+    const isPlatformAdmin = role === 'Super Admin';
+    if (!institutionId && !useMockData && !isPlatformAdmin) {
       return (
         <div className="flex flex-col h-screen">
           <div className="absolute top-4 right-4 z-50">
@@ -476,14 +478,13 @@ const App: React.FC = () => {
 
             {/* Demo mode banner - only visible when VITE_USE_MOCK_DATA=true */}
             {useMockData && (
-              <div className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${
-                import.meta.env.PROD 
-                  ? 'bg-red-600 text-white' 
+              <div className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${import.meta.env.PROD
+                  ? 'bg-red-600 text-white'
                   : 'bg-amber-100 text-amber-800'
-              }`}>
+                }`}>
                 <span>
-                  {import.meta.env.PROD 
-                    ? '⚠️ DANGER: Mock data mode in production! Authentication is bypassed.' 
+                  {import.meta.env.PROD
+                    ? '⚠️ DANGER: Mock data mode in production! Authentication is bypassed.'
                     : 'Demo mode enabled: showing mock data and roles.'}
                 </span>
               </div>
@@ -525,14 +526,14 @@ const App: React.FC = () => {
                     <WifiOff size={14} /> Offline Mode
                   </div>
                 )}
-                
+
                 {/* System Health Indicator */}
                 {!useMockData && (
                   <Suspense fallback={null}>
                     <SystemHealthIndicator onNavigate={setCurrentView} />
                   </Suspense>
                 )}
-                
+
                 <div className="relative hidden lg:block">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <input
