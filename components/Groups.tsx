@@ -21,7 +21,6 @@ import {
   GroupMember,
   Meeting,
   SmsMessage,
-  SupabaseContribution,
   SupabaseGroupMember,
   SupabaseMeeting,
   SupabaseMember,
@@ -37,11 +36,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { transformGroups } from '../lib/transformers/groupTransformer';
 import { PageLayout, Section } from './layout';
 import { Button, SearchInput, ErrorDisplay, LoadingSpinner } from './ui';
-import {
-  GroupsList,
-  GroupDetail,
-  CreateGroupModal,
-} from './groups';
+import { GroupsList } from './groups/GroupsList';
+import { GroupDetail } from './groups/GroupDetail';
+import { CreateGroupModal } from './groups/CreateGroupModal';
 
 interface GroupsProps {
   onNavigate?: (view: ViewState) => void;
@@ -140,9 +137,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
       const [
         membersResponse,
         meetingsResponse,
-        contributionsResponse,
         transactionsResponse,
-        smsResponse,
       ] = await Promise.all([
         supabase
           .from('group_members')
@@ -154,30 +149,34 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           .eq('group_id', selectedGroup.id)
           .order('date', { ascending: false }),
         supabase
-          .from('contributions')
-          .select('*')
-          .eq('group_id', selectedGroup.id)
-          .order('date', { ascending: false }),
-        supabase
           .from('transactions')
           .select('*, members(full_name)')
           .eq('group_id', selectedGroup.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('sms_messages')
-          .select('*')
-          .eq('institution_id', institutionId)
-          .order('timestamp', { ascending: false }),
+          .eq('type', 'CONTRIBUTION')
+          .order('occurred_at', { ascending: false }),
       ]);
 
-      const responses = [membersResponse, meetingsResponse, contributionsResponse, transactionsResponse, smsResponse];
+      const responses = [membersResponse, meetingsResponse, transactionsResponse];
       const firstError = responses.find((res) => res.error)?.error;
       if (firstError) {
         console.error('Error loading group details:', firstError);
         setDetailError('Unable to load group details. Check your connection and permissions.');
       }
 
-      const contributions = (contributionsResponse.data as SupabaseContribution[] | null) ?? [];
+      // Map transactions to contributions format for compatibility
+      const transactions = (transactionsResponse.data || []) as any[];
+      const contributions = transactions.map(tx => ({
+        id: tx.id,
+        member_id: tx.member_id,
+        group_id: tx.group_id,
+        amount: tx.amount,
+        date: tx.occurred_at,
+        method: tx.channel,
+        channel: tx.channel,
+        reference: tx.reference || tx.momo_ref,
+        status: tx.allocation_status === 'allocated' ? 'RECONCILED' : 'RECORDED',
+        created_at: tx.created_at,
+      }));
       const expectedAmount = selectedGroup.contributionAmount || 0;
 
       const mappedContributions: Contribution[] = contributions.map((contribution) => {

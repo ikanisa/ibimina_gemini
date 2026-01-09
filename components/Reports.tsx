@@ -10,10 +10,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageLayout, Section } from './layout';
 import { Button, Badge, ErrorDisplay, LoadingSpinner } from './ui';
-import {
-  ReportFilters,
-  ReportKPIs,
-} from './reports';
+import { ReportFilters } from './reports/ReportFilters';
+import { ReportKPIs } from './reports/ReportKPIs';
 import {
   BreakdownTable,
   ReportLedgerTable,

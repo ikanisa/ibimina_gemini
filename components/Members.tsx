@@ -13,7 +13,9 @@ import { useMembers } from '../hooks';
 import { transformMembers } from '../lib/transformers/memberTransformer';
 import { PageLayout, Section } from './layout';
 import { Button, SearchInput, ErrorDisplay } from './ui';
-import { MembersList, MemberDetail, AddMemberModal } from './members';
+import { MembersList } from './members/MembersList';
+import { MemberDetail } from './members/MemberDetail';
+import { AddMemberModal } from './members/AddMemberModal';
 import BulkMemberUpload from './BulkMemberUpload';
 
 interface MembersProps {

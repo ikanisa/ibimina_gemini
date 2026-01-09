@@ -301,16 +301,6 @@ export interface Member {
   groups: string[]; // IDs of groups they belong to
 }
 
-export interface Sacco {
-  id: string;
-  name: string;
-  code: string;
-  status: Status;
-  branchesCount: number;
-  membersCount: number;
-  totalAssets: number;
-  supervisor: string;
-}
 
 export interface Transaction {
   id: string;

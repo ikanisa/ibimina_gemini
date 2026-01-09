@@ -21,15 +21,10 @@ begin
   if not exists (select 1 from pg_type where typname = 'group_status') then
     create type group_status as enum ('ACTIVE', 'PAUSED', 'CLOSED');
   end if;
-  if not exists (select 1 from pg_type where typname = 'contribution_status') then
-    create type contribution_status as enum ('RECORDED', 'RECONCILED', 'FLAGGED');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'payment_status') then
-    create type payment_status as enum ('UNRECONCILED', 'RECONCILED', 'FLAGGED');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'withdrawal_status') then
-    create type withdrawal_status as enum ('REQUESTED', 'APPROVED', 'REJECTED', 'PAID', 'CANCELLED');
-  end if;
+  -- OLD ENUMS REMOVED (if unused):
+  -- contribution_status - replaced by transaction allocation_status
+  -- payment_status - replaced by transaction allocation_status
+  -- withdrawal_status - kept if withdrawals table exists, otherwise can be removed
   if not exists (select 1 from pg_type where typname = 'loan_status') then
     create type loan_status as enum ('PENDING_APPROVAL', 'ACTIVE', 'OVERDUE', 'CLOSED', 'REJECTED');
   end if;
@@ -131,31 +126,9 @@ create table if not exists public.meetings (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.contributions (
-  id uuid primary key default gen_random_uuid(),
-  institution_id uuid not null references public.institutions(id) on delete cascade,
-  group_id uuid references public.groups(id) on delete set null,
-  member_id uuid references public.members(id) on delete set null,
-  date date not null,
-  amount numeric(14, 2) not null,
-  method text not null,
-  reference text,
-  status contribution_status not null default 'RECORDED',
-  created_by uuid references auth.users(id),
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.incoming_payments (
-  id uuid primary key default gen_random_uuid(),
-  institution_id uuid not null references public.institutions(id) on delete cascade,
-  received_date date not null,
-  amount numeric(14, 2) not null,
-  payer_ref text,
-  reference text,
-  raw_text text,
-  status payment_status not null default 'UNRECONCILED',
-  created_at timestamptz not null default now()
-);
+-- OLD TABLES REMOVED (merged into transactions):
+-- contributions - merged into transactions with type='CONTRIBUTION'
+-- incoming_payments - merged into transactions with type='PAYMENT'
 
 create table if not exists public.withdrawals (
   id uuid primary key default gen_random_uuid(),
@@ -221,48 +194,10 @@ create table if not exists public.loans (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.sms_messages (
-  id uuid primary key default gen_random_uuid(),
-  institution_id uuid not null references public.institutions(id) on delete cascade,
-  sender text not null,
-  timestamp timestamptz not null,
-  body text not null,
-  is_parsed boolean not null default false,
-  parsed_amount numeric(16, 2),
-  parsed_currency text,
-  parsed_transaction_id text,
-  parsed_counterparty text,
-  linked_transaction_id uuid references public.transactions(id) on delete set null,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.nfc_logs (
-  id uuid primary key default gen_random_uuid(),
-  institution_id uuid not null references public.institutions(id) on delete cascade,
-  timestamp timestamptz not null,
-  device_id text not null,
-  tag_id text not null,
-  action text not null,
-  status text not null,
-  member_id uuid references public.members(id) on delete set null,
-  amount numeric(16, 2),
-  linked_sms boolean not null default false,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.reconciliation_issues (
-  id uuid primary key default gen_random_uuid(),
-  institution_id uuid not null references public.institutions(id) on delete cascade,
-  source text not null,
-  amount numeric(16, 2) not null,
-  source_reference text,
-  ledger_status text not null,
-  status reconciliation_status not null default 'OPEN',
-  detected_at timestamptz not null default now(),
-  resolved_at timestamptz,
-  notes text,
-  linked_transaction_id uuid references public.transactions(id) on delete set null
-);
+-- OLD TABLES REMOVED:
+-- sms_messages - replaced by momo_sms_raw
+-- nfc_logs - obsolete (NFC features removed)
+-- reconciliation_issues - replaced by reconciliation_sessions + reconciliation_items
 
 create table if not exists public.settings (
   institution_id uuid primary key references public.institutions(id) on delete cascade,

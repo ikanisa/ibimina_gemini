@@ -1,5 +1,5 @@
 
-import { KpiStats, Member, Sacco, SmsMessage, StaffMember, Transaction, Group, GroupMember, Meeting, Contribution, Loan } from './types';
+import { KpiStats, Member, SmsMessage, StaffMember, Transaction, Group, GroupMember, Meeting, Contribution, Loan } from './types';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
@@ -97,38 +97,6 @@ export const MOCK_CONTRIBUTIONS: Contribution[] = USE_MOCK_DATA ? [
   { id: 'C-4', memberId: 'M-1001', groupId: 'G-101', meetingId: 'MT-502', periodLabel: 'Wk 41', expectedAmount: 5000, paidAmount: 5000, status: 'Paid', channel: 'Token' },
 ] : [];
 
-export const MOCK_SACCOS: Sacco[] = USE_MOCK_DATA ? [
-  {
-    id: 'S-001',
-    name: 'Kigali Teachers SACCO',
-    code: 'KGL-TCH',
-    status: 'Active',
-    branchesCount: 4,
-    membersCount: 850,
-    totalAssets: 320000000,
-    supervisor: 'Alice M.'
-  },
-  {
-    id: 'S-002',
-    name: 'Musanze Farmers Coop',
-    code: 'MSZ-FMR',
-    status: 'Active',
-    branchesCount: 2,
-    membersCount: 390,
-    totalAssets: 130000000,
-    supervisor: 'Jean D.'
-  },
-  {
-    id: 'S-003',
-    name: 'Rubavu Traders Union',
-    code: 'RBV-TRD',
-    status: 'Pending',
-    branchesCount: 1,
-    membersCount: 0,
-    totalAssets: 0,
-    supervisor: 'Pending'
-  }
-] : [];
 
 export const MOCK_MEMBERS: Member[] = USE_MOCK_DATA ? [
   {
