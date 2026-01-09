@@ -5,13 +5,14 @@
  * - Overview: Basic info + edit
  * - MoMo Codes: List + set primary
  * - Staff: List staff + invite
+ * - Branches: List and manage branches
  * - Directory: Groups and Members counts
  */
 import React, { useState, useEffect } from 'react';
 import {
   X, Building, Edit2, Save, Users, CreditCard,
   MapPin, Phone, Mail, User, AlertCircle, Check, Plus,
-  Loader2, Shield, Clock, Briefcase
+  Loader2, Shield, Clock, Briefcase, GitBranch
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { InstitutionType } from '../../types';
@@ -60,7 +61,7 @@ interface InstitutionDrawerProps {
   isPlatformAdmin: boolean;
 }
 
-type TabId = 'overview' | 'momo' | 'staff' | 'directory';
+type TabId = 'overview' | 'momo' | 'staff' | 'branches' | 'directory';
 
 export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
   institution,
@@ -89,8 +90,10 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
   // Tab data
   const [momoCodes, setMomoCodes] = useState<MoMoCode[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [loadingMomo, setLoadingMomo] = useState(false);
   const [loadingStaff, setLoadingStaff] = useState(false);
+  const [loadingBranches, setLoadingBranches] = useState(false);
   const [counts, setCounts] = useState({ groups: 0, members: 0 });
   const [loadingCounts, setLoadingCounts] = useState(false);
 
@@ -125,6 +128,13 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
   useEffect(() => {
     if (activeTab === 'staff' && isOpen) {
       loadStaff();
+    }
+  }, [activeTab, isOpen, institution.id]);
+
+  // Load branches when tab active
+  useEffect(() => {
+    if (activeTab === 'branches' && isOpen) {
+      loadBranches();
     }
   }, [activeTab, isOpen, institution.id]);
 
@@ -168,6 +178,24 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
       console.error('Error loading staff:', err);
     } finally {
       setLoadingStaff(false);
+    }
+  };
+
+  const loadBranches = async () => {
+    setLoadingBranches(true);
+    try {
+      const { data, error } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('institution_id', institution.id)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setBranches(data || []);
+    } catch (err) {
+      console.error('Error loading branches:', err);
+    } finally {
+      setLoadingBranches(false);
     }
   };
 
@@ -329,6 +357,7 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
     { id: 'overview' as TabId, label: 'Overview', icon: Building },
     { id: 'momo' as TabId, label: 'MoMo Codes', icon: CreditCard },
     { id: 'staff' as TabId, label: 'Staff', icon: Users },
+    { id: 'branches' as TabId, label: 'Branches', icon: GitBranch },
     { id: 'directory' as TabId, label: 'Directory', icon: Briefcase }
   ];
 
@@ -651,6 +680,55 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
                           )
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Branches Tab */}
+          {activeTab === 'branches' && (
+            <div className="space-y-4">
+              {loadingBranches ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="animate-spin text-blue-600" size={24} />
+                </div>
+              ) : branches.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <GitBranch className="mx-auto h-10 w-10 text-slate-300 mb-2" />
+                  <p className="text-sm">No branches found</p>
+                  {isPlatformAdmin && (
+                    <button className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                      Add Branch
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {branches.map((branch, idx) => (
+                    <div
+                      key={branch.id}
+                      className="flex items-center justify-between p-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center text-slate-500 font-bold text-xs">
+                          {String(idx + 1).padStart(2, '0')}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-slate-900">{branch.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {branch.manager_name || 'No manager'} {branch.manager_phone && `• ${branch.manager_phone}`}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        branch.status === 'ACTIVE' ? 'bg-green-50 text-green-700' :
+                        branch.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' :
+                        'bg-red-50 text-red-700'
+                      }`}>
+                        {branch.status}
+                      </span>
                     </div>
                   ))}
                 </div>

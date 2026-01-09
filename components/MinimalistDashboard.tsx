@@ -258,8 +258,8 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
       {/* Health Banner */}
       <DashboardHealthBanner health={healthForBanner} onNavigate={handleNavigate} />
 
-      {/* KPI Row - Max 6 cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* KPI Row - Simplified to 4-5 cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
           title="Today's Collections"
           value={formatCurrency(data.kpis.today.received_total)}
@@ -290,24 +290,6 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
           icon={TrendingUp}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
-        />
-        <KpiCard
-          title="Parse Errors"
-          value={data.kpis.last_days.parse_errors_count}
-          subtext="Last 7 days"
-          icon={AlertCircle}
-          iconBg="bg-red-50"
-          iconColor="text-red-600"
-          alert={data.kpis.last_days.parse_errors_count > 0}
-        />
-        <KpiCard
-          title="Aging > 24h"
-          value={data.kpis.last_days.unallocated_aging_24h}
-          subtext="Unallocated"
-          icon={Clock}
-          iconBg="bg-orange-50"
-          iconColor="text-orange-600"
-          alert={data.kpis.last_days.unallocated_aging_24h > 0}
         />
       </div>
 

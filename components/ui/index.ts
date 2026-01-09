@@ -12,5 +12,12 @@ export * from './Badge';
 export * from './SearchInput';
 export * from './Skeleton';
 export * from './SkipLink';
+export * from './Card';
+export * from './StatusIndicator';
+export * from './Table';
+export * from './SimpleForm';
+export * from './SimpleInput';
+export * from './SimpleSelect';
+export * from './Breadcrumbs';
 export * from '../WizardProgress';
 

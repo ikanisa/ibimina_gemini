@@ -4,9 +4,10 @@
  * Features:
  * - List all institutions with search and filter
  * - Create/Edit institution via drawer
- * - Detail view with tabs (Overview, MoMo Codes, Staff, Directory)
+ * - Detail view with tabs (Overview, MoMo Codes, Staff, Branches, Directory)
  * - Role-based access: PLATFORM_ADMIN full access, INSTITUTION_ADMIN limited
  * - Lazy loading for list
+ * - Branch management integrated
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
@@ -35,6 +36,7 @@ interface Institution {
   staff_count?: number;
   groups_count?: number;
   members_count?: number;
+  branches_count?: number;
   primary_momo_code?: string | null;
 }
 
@@ -156,6 +158,12 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
           .eq('is_primary', true)
           .eq('is_active', true);
 
+        // Fetch branch counts
+        const { data: branchesData } = await supabase
+          .from('branches')
+          .select('institution_id')
+          .in('institution_id', institutionIds);
+
         // Count by institution
         const staffCountMap: Record<string, number> = {};
         (staffCounts || []).forEach((s: { institution_id: string }) => {
@@ -167,10 +175,17 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
           momoCodeMap[m.institution_id] = m.momo_code;
         });
 
+        // Build branch count map
+        const branchCountMap: Record<string, number> = {};
+        (branchesData || []).forEach((b: { institution_id: string }) => {
+          branchCountMap[b.institution_id] = (branchCountMap[b.institution_id] || 0) + 1;
+        });
+
         // Enrich institutions with counts
         fetchedInstitutions.forEach(inst => {
           inst.staff_count = staffCountMap[inst.id] || 0;
           inst.primary_momo_code = momoCodeMap[inst.id] || null;
+          inst.branches_count = branchCountMap[inst.id] || 0;
         });
       }
 
@@ -397,12 +412,10 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
                   <Users size={14} className="text-slate-400" />
                   <span>{institution.staff_count ?? 0} staff</span>
                 </div>
-                {institution.region && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <MapPin size={14} className="text-slate-400" />
-                    <span className="truncate">{institution.region}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-slate-600">
+                  <Building size={14} className="text-slate-400" />
+                  <span>{institution.branches_count ?? 0} branches</span>
+                </div>
               </div>
 
               {/* MoMo Code Warning */}
