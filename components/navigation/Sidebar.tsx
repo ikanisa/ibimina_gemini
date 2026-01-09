@@ -15,6 +15,7 @@ import {
   PieChart,
   LogOut,
   ChevronDown,
+  Smartphone,
 } from 'lucide-react';
 import { ViewState } from '../../types';
 import { NavigationItem } from './NavigationItem';
@@ -197,6 +198,15 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
           onNavigate={onNavigate}
           onMobileMenuClose={onMobileMenuClose}
           canAccess={canAccess(ViewState.STAFF)}
+        />
+        <NavigationItem
+          view={ViewState.SMS_GATEWAY_DEVICES}
+          icon={<Smartphone size={18} />}
+          label="SMS Gateway Devices"
+          currentView={currentView}
+          onNavigate={onNavigate}
+          onMobileMenuClose={onMobileMenuClose}
+          canAccess={canAccess(ViewState.SMS_GATEWAY_DEVICES)}
         />
         <NavigationItem
           view={ViewState.SETTINGS}

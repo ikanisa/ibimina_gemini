@@ -228,6 +228,7 @@ export enum ViewState {
   STAFF = 'STAFF',
   SETTINGS = 'SETTINGS',
   PROFILE = 'PROFILE',
+  SMS_GATEWAY_DEVICES = 'SMS_GATEWAY_DEVICES',
 }
 
 export type Status = 'Active' | 'Pending' | 'Suspended' | 'Closed';

@@ -23,6 +23,7 @@ const Reports = lazy(() => import('./components/Reports'));
 const Staff = lazy(() => import('./components/Staff'));
 const Profile = lazy(() => import('./components/Profile'));
 const SettingsPage = lazy(() => import('./components/Settings'));
+const SmsGatewayDevices = lazy(() => import('./components/sms-gateway/SmsGatewayDevices'));
 const Login = lazy(() => import('./components/Login'));
 const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
 const AppBoot = lazy(() => import('./components/AppBoot'));
@@ -296,6 +297,7 @@ const App: React.FC = () => {
       case ViewState.INSTITUTIONS:
       case ViewState.STAFF:
       case ViewState.SETTINGS:
+      case ViewState.SMS_GATEWAY_DEVICES:
         return false; // Only Super Admin
 
       // Manager + Auditor views
@@ -415,6 +417,9 @@ const App: React.FC = () => {
                 )}
                 {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && (
                   <SettingsPage />
+                )}
+                {currentView === ViewState.SMS_GATEWAY_DEVICES && canAccess(ViewState.SMS_GATEWAY_DEVICES) && (
+                  <SmsGatewayDevices />
                 )}
                 {currentView === ViewState.PROFILE && <Profile user={currentUser} />}
 
