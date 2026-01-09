@@ -85,24 +85,10 @@ export async function fetchGroupsWithMemberCounts(institutionId: string, options
     throw new Error(`Failed to fetch groups: ${groupsError.message}`);
   }
 
-  // Only fetch member counts for the groups we loaded
-  const groupIds = (groups || []).map(g => g.id);
-  
-  if (groupIds.length === 0) {
-    return { groups: [] as SupabaseGroup[], memberCounts: {} };
-  }
-
-  const { data: memberData, error: memberError } = await supabase
-    .from('group_members')
-    .select('group_id')
-    .in('group_id', groupIds);
-
-  if (memberError) {
-    console.warn('Failed to fetch group members:', memberError);
-  }
-
-  const memberCounts = (memberData || []).reduce((acc, row) => {
-    acc[row.group_id] = (acc[row.group_id] || 0) + 1;
+  // Calculate member counts from groups.members JSONB array
+  const memberCounts = (groups || []).reduce((acc, group) => {
+    const members = (group as any).members;
+    acc[group.id] = Array.isArray(members) ? members.length : 0;
     return acc;
   }, {} as Record<string, number>);
 
@@ -191,53 +177,91 @@ export async function deleteGroup(groupId: string) {
 }
 
 /**
- * Fetch group members
+ * Fetch group members (from groups.members JSONB)
  */
 export async function fetchGroupMembers(groupId: string) {
-  const { data, error } = await supabase
-    .from('group_members')
-    .select('id, member_id, role, status, joined_date, members(full_name)')
-    .eq('group_id', groupId);
+  const { data: group, error } = await supabase
+    .from('groups')
+    .select('members')
+    .eq('id', groupId)
+    .single();
 
   if (error) {
     throw new Error(`Failed to fetch group members: ${error.message}`);
   }
 
-  return data as Array<SupabaseGroupMember & { members?: { full_name?: string | null } }>;
-}
+  // Extract members from JSONB array and fetch member details
+  const membersArray = (group?.members as any[]) || [];
+  const memberIds = membersArray.map((m: any) => m.member_id).filter(Boolean);
 
-/**
- * Fetch group meetings
- */
-export async function fetchGroupMeetings(groupId: string) {
-  const { data, error } = await supabase
-    .from('meetings')
-    .select('*')
-    .eq('group_id', groupId)
-    .order('date', { ascending: false });
-
-  if (error) {
-    throw new Error(`Failed to fetch group meetings: ${error.message}`);
+  if (memberIds.length === 0) {
+    return membersArray.map((m: any) => ({
+      id: m.member_id || '',
+      member_id: m.member_id,
+      role: m.role,
+      status: m.status,
+      joined_date: m.joined_date,
+      created_at: m.created_at,
+      members: null,
+    }));
   }
 
-  return data as SupabaseMeeting[];
+  // Fetch member names
+  const { data: membersData } = await supabase
+    .from('members')
+    .select('id, full_name')
+    .in('id', memberIds);
+
+  const membersMap = new Map((membersData || []).map(m => [m.id, m.full_name]));
+
+  return membersArray.map((m: any) => ({
+    id: m.member_id || '',
+    member_id: m.member_id,
+    role: m.role,
+    status: m.status,
+    joined_date: m.joined_date,
+    created_at: m.created_at,
+    members: m.member_id ? { full_name: membersMap.get(m.member_id) || null } : null,
+  })) as Array<SupabaseGroupMember & { members?: { full_name?: string | null } }>;
 }
 
 /**
- * Fetch group contributions
+ * Fetch group meetings (deprecated - meetings table deleted)
+ * Returns empty array as meetings are no longer tracked
+ */
+export async function fetchGroupMeetings(groupId: string) {
+  // Meetings table has been deleted - return empty array
+  return [] as SupabaseMeeting[];
+}
+
+/**
+ * Fetch group contributions (from transactions table)
  */
 export async function fetchGroupContributions(groupId: string) {
   const { data, error } = await supabase
-    .from('contributions')
+    .from('transactions')
     .select('*')
     .eq('group_id', groupId)
-    .order('date', { ascending: false });
+    .eq('type', 'CONTRIBUTION')
+    .order('occurred_at', { ascending: false });
 
   if (error) {
     throw new Error(`Failed to fetch group contributions: ${error.message}`);
   }
 
-  return data as SupabaseContribution[];
+  // Map transactions to contribution format for compatibility
+  return (data || []).map(tx => ({
+    id: tx.id,
+    institution_id: tx.institution_id,
+    group_id: tx.group_id,
+    member_id: tx.member_id,
+    date: tx.occurred_at || tx.created_at,
+    amount: tx.amount,
+    method: tx.channel,
+    reference: tx.reference || tx.momo_ref,
+    status: tx.allocation_status === 'allocated' ? 'RECONCILED' : 'RECORDED',
+    created_at: tx.created_at,
+  })) as SupabaseContribution[];
 }
 
 /**

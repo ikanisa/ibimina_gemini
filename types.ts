@@ -38,7 +38,14 @@ export interface Institution {
   code?: string | null;
   supervisor?: string | null;
   total_assets?: number | null;
+  // Settings fields (consolidated from institution_settings table)
+  parsing_mode?: 'deterministic' | 'ai_fallback' | null;
+  confidence_threshold?: number | null;
+  dedupe_window_minutes?: number | null;
+  low_confidence_alert_enabled?: boolean | null;
+  unallocated_alert_threshold?: number | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface SupabaseGroup {
@@ -57,6 +64,7 @@ export interface SupabaseGroup {
   fund_balance?: number | null;
   active_loans_count?: number | null;
   next_meeting_date?: string | null;
+  members?: any[]; // JSONB array from consolidated group_members table
   created_at: string;
   updated_at: string;
 }
@@ -93,6 +101,8 @@ export interface SupabaseContribution {
   created_at: string;
 }
 
+// DEPRECATED: group_members table consolidated into groups.members JSONB
+// This interface is kept for backward compatibility with existing code
 export interface SupabaseGroupMember {
   id: string;
   institution_id: string;
@@ -104,6 +114,8 @@ export interface SupabaseGroupMember {
   created_at: string;
 }
 
+// DEPRECATED: meetings table deleted
+// This interface is kept for backward compatibility
 export interface SupabaseMeeting {
   id: string;
   institution_id: string;
@@ -159,6 +171,8 @@ export interface SupabaseTransaction {
 
 // Loan interfaces removed - system does not administer loans
 
+// DEPRECATED: branches table deleted
+// This interface is kept for backward compatibility
 export interface SupabaseBranch {
   id: string;
   institution_id: string;

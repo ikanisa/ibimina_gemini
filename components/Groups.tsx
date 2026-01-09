@@ -135,19 +135,14 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
       setDetailError(null);
 
       const [
-        membersResponse,
-        meetingsResponse,
+        groupResponse,
         transactionsResponse,
       ] = await Promise.all([
         supabase
-          .from('group_members')
-          .select('id, member_id, role, status, joined_date, members(full_name)')
-          .eq('group_id', selectedGroup.id),
-        supabase
-          .from('meetings')
-          .select('*')
-          .eq('group_id', selectedGroup.id)
-          .order('date', { ascending: false }),
+          .from('groups')
+          .select('members')
+          .eq('id', selectedGroup.id)
+          .single(),
         supabase
           .from('transactions')
           .select('*, members(full_name)')
@@ -156,12 +151,34 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           .order('occurred_at', { ascending: false }),
       ]);
 
-      const responses = [membersResponse, meetingsResponse, transactionsResponse];
+      const responses = [groupResponse, transactionsResponse];
       const firstError = responses.find((res) => res.error)?.error;
       if (firstError) {
         console.error('Error loading group details:', firstError);
         setDetailError('Unable to load group details. Check your connection and permissions.');
       }
+
+      // Extract members from JSONB and fetch member details
+      const membersArray = (groupResponse.data?.members as any[]) || [];
+      const memberIds = membersArray.map((m: any) => m.member_id).filter(Boolean);
+      
+      let membersWithNames = membersArray;
+      if (memberIds.length > 0) {
+        const { data: membersData } = await supabase
+          .from('members')
+          .select('id, full_name')
+          .in('id', memberIds);
+        
+        const membersMap = new Map((membersData || []).map(m => [m.id, m.full_name]));
+        membersWithNames = membersArray.map((m: any) => ({
+          ...m,
+          id: m.member_id || '',
+          members: m.member_id ? { full_name: membersMap.get(m.member_id) || null } : null,
+        }));
+      }
+
+      const membersResponse = { data: membersWithNames, error: null };
+      const meetingsResponse = { data: [], error: null }; // Meetings table deleted
 
       // Map transactions to contributions format for compatibility
       const transactions = (transactionsResponse.data || []) as any[];
@@ -199,7 +216,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           id: contribution.id,
           memberId: contribution.member_id,
           groupId: contribution.group_id,
-          meetingId: contribution.meeting_id ?? '',
+          meetingId: '', // Meetings table deleted
           periodLabel: buildPeriodLabel(contribution.date, selectedGroup.contributionFrequency),
           expectedAmount,
           paidAmount,

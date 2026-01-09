@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useRoleAccess } from './settings/hooks/useRoleAccess';
 import { SettingsLayout } from './settings/SettingsLayout';
+import { SettingsTab } from './settings/types';
 import {
   SettingsHome,
   InstitutionSettings,
@@ -12,27 +13,21 @@ import {
   SystemSettings
 } from './settings/pages';
 
-type SettingsTab = 'home' | 'institution' | 'parsing' | 'sms-sources' | 'staff' | 'audit-log' | 'system';
-
 interface SettingsProps {
   onNavigateBack?: () => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ onNavigateBack }) => {
-  const { role } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>('home');
-  
-  const isAdmin = role === 'Super Admin' || role === 'Branch Manager';
-  const isPlatformAdmin = role === 'Super Admin';
+  const access = useRoleAccess();
 
-  // Handle tab navigation with role checks
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = (tab: SettingsTab) => {
     // Role-based access control
-    if (tab === 'staff' && !isAdmin) return;
-    if (tab === 'audit-log' && !isAdmin) return;
-    if (tab === 'system' && !isPlatformAdmin) return;
+    if (tab === 'staff' && !access.canManageStaff) return;
+    if (tab === 'audit-log' && !access.canViewAuditLog) return;
+    if (tab === 'system' && !access.canManageSystem) return;
     
-    setActiveTab(tab as SettingsTab);
+    setActiveTab(tab);
   };
 
   const handleBack = () => {
@@ -43,8 +38,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigateBack }) => {
     }
   };
 
-  // Render the appropriate settings page
-  const renderContent = () => {
+  const renderContent = useMemo(() => {
     switch (activeTab) {
       case 'home':
         return <SettingsHome onNavigate={handleTabChange} />;
@@ -55,15 +49,15 @@ const Settings: React.FC<SettingsProps> = ({ onNavigateBack }) => {
       case 'sms-sources':
         return <SmsSourcesSettings />;
       case 'staff':
-        return isAdmin ? <StaffSettings /> : <SettingsHome onNavigate={handleTabChange} />;
+        return access.canManageStaff ? <StaffSettings /> : <SettingsHome onNavigate={handleTabChange} />;
       case 'audit-log':
-        return isAdmin ? <AuditLogSettings /> : <SettingsHome onNavigate={handleTabChange} />;
+        return access.canViewAuditLog ? <AuditLogSettings /> : <SettingsHome onNavigate={handleTabChange} />;
       case 'system':
-        return isPlatformAdmin ? <SystemSettings /> : <SettingsHome onNavigate={handleTabChange} />;
+        return access.canManageSystem ? <SystemSettings /> : <SettingsHome onNavigate={handleTabChange} />;
       default:
         return <SettingsHome onNavigate={handleTabChange} />;
     }
-  };
+  }, [activeTab, access, handleTabChange]);
 
   // Show home page without layout
   if (activeTab === 'home') {
@@ -91,7 +85,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigateBack }) => {
         onTabChange={handleTabChange}
         onBack={handleBack}
       >
-        {renderContent()}
+        {renderContent}
       </SettingsLayout>
     </div>
   );

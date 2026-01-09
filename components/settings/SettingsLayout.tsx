@@ -1,28 +1,13 @@
 import React, { ReactNode } from 'react';
-import { ChevronLeft, Building, Cpu, Smartphone, Users, FileText, Server } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-
-interface SettingsNavItem {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  adminOnly?: boolean;
-  platformOnly?: boolean;
-}
-
-const NAV_ITEMS: SettingsNavItem[] = [
-  { id: 'institution', label: 'Institution & MoMo', icon: Building },
-  { id: 'parsing', label: 'Parsing', icon: Cpu },
-  { id: 'sms-sources', label: 'SMS Sources', icon: Smartphone },
-  { id: 'staff', label: 'Staff', icon: Users, adminOnly: true },
-  { id: 'audit-log', label: 'Audit Log', icon: FileText, adminOnly: true },
-  { id: 'system', label: 'System', icon: Server, platformOnly: true },
-];
+import { ChevronLeft } from 'lucide-react';
+import { useRoleAccess } from './hooks/useRoleAccess';
+import { SETTINGS_NAV_ITEMS } from './constants';
+import { SettingsTab } from './types';
 
 interface SettingsLayoutProps {
   children: ReactNode;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: SettingsTab;
+  onTabChange: (tab: SettingsTab) => void;
   onBack: () => void;
   title?: string;
 }
@@ -34,14 +19,11 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   onBack,
   title = 'Settings'
 }) => {
-  const { role } = useAuth();
-  
-  const isAdmin = role === 'Super Admin' || role === 'Branch Manager';
-  const isPlatformAdmin = role === 'Super Admin';
+  const access = useRoleAccess();
 
-  const visibleItems = NAV_ITEMS.filter(item => {
-    if (item.platformOnly && !isPlatformAdmin) return false;
-    if (item.adminOnly && !isAdmin) return false;
+  const visibleItems = SETTINGS_NAV_ITEMS.filter(item => {
+    if (item.platformOnly && !access.isPlatformAdmin) return false;
+    if (item.adminOnly && !access.isInstitutionAdmin) return false;
     return true;
   });
 

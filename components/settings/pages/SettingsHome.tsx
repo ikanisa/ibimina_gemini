@@ -1,63 +1,28 @@
 import React from 'react';
-import { Building, Cpu, Smartphone, Users, FileText, Server } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useRoleAccess } from '../hooks/useRoleAccess';
 import { SettingsCard } from '../SettingsCard';
 import { HealthBanner } from '../HealthBanner';
+import { SETTINGS_NAV_ITEMS } from '../constants';
+import { SettingsTab } from '../types';
 
 interface SettingsHomeProps {
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: SettingsTab) => void;
 }
 
 export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
-  const { role } = useAuth();
-  
-  const isAdmin = role === 'Super Admin' || role === 'Branch Manager';
-  const isPlatformAdmin = role === 'Super Admin';
+  const access = useRoleAccess();
 
-  const mainTiles = [
-    {
-      id: 'institution',
-      title: 'Institution & MoMo',
-      description: 'Manage your institution profile and MoMo payment codes',
-      icon: Building
-    },
-    {
-      id: 'parsing',
-      title: 'Parsing',
-      description: 'Configure SMS parsing mode, confidence thresholds, and deduplication',
-      icon: Cpu
-    },
-    {
-      id: 'sms-sources',
-      title: 'SMS Sources',
-      description: 'Manage Android gateways and webhooks that send MoMo SMS',
-      icon: Smartphone
-    }
-  ];
+  const mainTiles = SETTINGS_NAV_ITEMS.filter(item => 
+    !item.adminOnly && !item.platformOnly
+  );
 
-  const adminTiles = [
-    {
-      id: 'staff',
-      title: 'Staff',
-      description: 'Invite and manage staff members for your institution',
-      icon: Users
-    },
-    {
-      id: 'audit-log',
-      title: 'Audit Log',
-      description: 'View system activity and track changes',
-      icon: FileText
-    }
-  ];
+  const adminTiles = SETTINGS_NAV_ITEMS.filter(item => 
+    item.adminOnly && !item.platformOnly
+  );
 
-  const platformTiles = [
-    {
-      id: 'system',
-      title: 'System',
-      description: 'Platform-wide settings and statistics',
-      icon: Server
-    }
-  ];
+  const platformTiles = SETTINGS_NAV_ITEMS.filter(item => 
+    item.platformOnly
+  );
 
   return (
     <div className="space-y-8">
@@ -66,7 +31,7 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
         <p className="text-sm text-slate-500 mt-1">Configure your institution and system preferences</p>
       </div>
 
-      {/* Health Banner - will be populated by actual checks later */}
+      {/* Health Banner */}
       <HealthBanner issues={[]} />
 
       {/* Main Settings */}
@@ -78,7 +43,7 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
           {mainTiles.map(tile => (
             <SettingsCard
               key={tile.id}
-              title={tile.title}
+              title={tile.label}
               description={tile.description}
               icon={tile.icon}
               variant="compact"
@@ -89,7 +54,7 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
       </div>
 
       {/* Admin Settings */}
-      {isAdmin && (
+      {access.canManageStaff && adminTiles.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
             Administration
@@ -98,7 +63,7 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
             {adminTiles.map(tile => (
               <SettingsCard
                 key={tile.id}
-                title={tile.title}
+                title={tile.label}
                 description={tile.description}
                 icon={tile.icon}
                 variant="compact"
@@ -110,7 +75,7 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
       )}
 
       {/* Platform Admin Settings */}
-      {isPlatformAdmin && (
+      {access.canManageSystem && platformTiles.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
             Platform
@@ -119,7 +84,7 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
             {platformTiles.map(tile => (
               <SettingsCard
                 key={tile.id}
-                title={tile.title}
+                title={tile.label}
                 description={tile.description}
                 icon={tile.icon}
                 variant="compact"
@@ -134,5 +99,3 @@ export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
 };
 
 export default SettingsHome;
-
-
