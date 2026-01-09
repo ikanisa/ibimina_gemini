@@ -8,6 +8,7 @@ import {
   InstitutionSettings,
   ParsingSettings,
   SmsSourcesSettings,
+  NotificationsSettings,
   StaffSettings,
   AuditLogSettings,
   SystemSettings
@@ -48,6 +49,8 @@ const Settings: React.FC<SettingsProps> = ({ onNavigateBack }) => {
         return <ParsingSettings />;
       case 'sms-sources':
         return <SmsSourcesSettings />;
+      case 'notifications':
+        return <NotificationsSettings />;
       case 'staff':
         return access.canManageStaff ? <StaffSettings /> : <SettingsHome onNavigate={handleTabChange} />;
       case 'audit-log':

@@ -7,6 +7,7 @@ import React, { useEffect, useState, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, CheckCircle2, XCircle, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { clearAllAppCachesAndReload } from '../lib/pwa';
+import { withTimeout } from '../lib/utils/timeout';
 
 interface BootStatus {
     envValid: boolean;
@@ -33,8 +34,24 @@ const AppBoot: React.FC<AppBootProps> = ({ children }) => {
     });
 
     useEffect(() => {
+        let isMounted = true;
+        let checkTimeout: ReturnType<typeof setTimeout> | null = null;
+
         const checkBoot = async () => {
             const errors: string[] = [];
+
+            // Safety timeout: if check takes more than 15 seconds, abort
+            checkTimeout = setTimeout(() => {
+                if (isMounted) {
+                    errors.push('Health check timeout. Connection may be slow or unreachable.');
+                    setStatus({
+                        envValid: false,
+                        supabaseConnected: false,
+                        errors,
+                        checking: false
+                    });
+                }
+            }, 15000);
 
             // 1. Validate environment variables
             const missingVars = REQUIRED_ENV_VARS.filter(
@@ -45,15 +62,27 @@ const AppBoot: React.FC<AppBootProps> = ({ children }) => {
                 errors.push(`Missing environment variables: ${missingVars.join(', ')}`);
             }
 
-            // 2. Check Supabase connection
+            // 2. Check Supabase connection with timeout
             let supabaseConnected = false;
             if (missingVars.length === 0) {
                 try {
-                    // Simple health check - fetch 1 row from institutions
-                    const { error } = await supabase
+                    // Simple health check - fetch 1 row from institutions with timeout
+                    const healthCheckQuery = supabase
                         .from('institutions')
                         .select('id')
                         .limit(1);
+
+                    const result = await withTimeout(
+                        Promise.resolve(healthCheckQuery),
+                        10000, // 10 second timeout
+                        'Connection timeout'
+                    );
+                    const { error } = result;
+
+                    if (checkTimeout) {
+                        clearTimeout(checkTimeout);
+                        checkTimeout = null;
+                    }
 
                     if (error) {
                         if (error.code === 'PGRST301' || error.message.includes('RLS')) {
@@ -67,19 +96,42 @@ const AppBoot: React.FC<AppBootProps> = ({ children }) => {
                         supabaseConnected = true;
                     }
                 } catch (err) {
-                    errors.push(`Connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                    if (checkTimeout) {
+                        clearTimeout(checkTimeout);
+                        checkTimeout = null;
+                    }
+                    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+                    if (errorMsg.includes('timeout')) {
+                        errors.push('Connection timeout. Please check your network connection and try again.');
+                    } else {
+                        errors.push(`Connection failed: ${errorMsg}`);
+                    }
+                }
+            } else {
+                if (checkTimeout) {
+                    clearTimeout(checkTimeout);
+                    checkTimeout = null;
                 }
             }
 
-            setStatus({
-                envValid: missingVars.length === 0,
-                supabaseConnected,
-                errors,
-                checking: false
-            });
+            if (isMounted) {
+                setStatus({
+                    envValid: missingVars.length === 0,
+                    supabaseConnected,
+                    errors,
+                    checking: false
+                });
+            }
         };
 
         checkBoot();
+
+        return () => {
+            isMounted = false;
+            if (checkTimeout) {
+                clearTimeout(checkTimeout);
+            }
+        };
     }, []);
 
     const handleRetry = () => {

@@ -26,7 +26,42 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storageKey: 'sb-auth-token',
+      flowType: 'pkce', // Use PKCE flow for better security
+      debug: import.meta.env.DEV, // Only debug in development
+    },
+    global: {
+      headers: {
+        'x-client-info': 'sacco-admin-portal@1.0.0',
+      },
+    },
+    db: {
+      schema: 'public',
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10, // Limit realtime events
+      },
+    },
   }
 );
+
+// Add global error handler for network issues
+if (typeof window !== 'undefined') {
+  // Intercept fetch errors at the client level
+  const originalFetch = window.fetch;
+  window.fetch = async (...args) => {
+    try {
+      const response = await originalFetch(...args);
+      return response;
+    } catch (error) {
+      // Log network errors for debugging
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('[Network Error]', error);
+      }
+      throw error;
+    }
+  };
+}

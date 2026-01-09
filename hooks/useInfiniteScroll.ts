@@ -32,22 +32,34 @@ export function useInfiniteScroll<T>({
   const [offset, setOffset] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  const fetchFnRef = useRef(fetchFn);
+  const initialLimitRef = useRef(initialLimit);
+
+  // Keep refs updated
+  useEffect(() => {
+    fetchFnRef.current = fetchFn;
+    initialLimitRef.current = initialLimit;
+  }, [fetchFn, initialLimit]);
 
   // Initial load
   const loadInitial = useCallback(async () => {
+    if (loadingRef.current) return; // Prevent duplicate loads
+    
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchFn(0, initialLimit);
+      const data = await fetchFnRef.current(0, initialLimitRef.current);
       setItems(data);
       setOffset(data.length);
-      setHasMore(data.length === initialLimit);
+      setHasMore(data.length === initialLimitRef.current);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  }, [fetchFn, initialLimit]);
+  }, []); // No dependencies - using refs instead
 
   // Load more
   const loadMore = useCallback(async () => {
@@ -57,7 +69,8 @@ export function useInfiniteScroll<T>({
     setLoadingMore(true);
     
     try {
-      const data = await fetchFn(offset, loadMoreLimit);
+      const currentOffset = offset;
+      const data = await fetchFnRef.current(currentOffset, loadMoreLimit);
       setItems(prev => [...prev, ...data]);
       setOffset(prev => prev + data.length);
       setHasMore(data.length === loadMoreLimit);
@@ -67,7 +80,7 @@ export function useInfiniteScroll<T>({
       setLoadingMore(false);
       loadingRef.current = false;
     }
-  }, [fetchFn, offset, loadMoreLimit, hasMore]);
+  }, [offset, loadMoreLimit, hasMore]); // fetchFn removed - using ref
 
   // Refresh (reset and reload)
   const refresh = useCallback(() => {
@@ -77,10 +90,11 @@ export function useInfiniteScroll<T>({
     loadInitial();
   }, [loadInitial]);
 
-  // Initial load on mount
+  // Initial load on mount - only run once
   useEffect(() => {
     loadInitial();
-  }, [loadInitial]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   // Scroll handler
   useEffect(() => {

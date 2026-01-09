@@ -3,7 +3,7 @@
  * Centralized configuration for settings module
  */
 
-import { Building, Cpu, Smartphone, Users, FileText, Server } from 'lucide-react';
+import { Building, Cpu, Smartphone, Users, FileText, Server, Bell } from 'lucide-react';
 import { SettingsNavItem } from './types';
 
 export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
@@ -24,6 +24,12 @@ export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
     label: 'SMS Sources', 
     icon: Smartphone,
     description: 'Manage SMS source devices'
+  },
+  { 
+    id: 'notifications', 
+    label: 'Notifications', 
+    icon: Bell,
+    description: 'Send reports and notifications to members and leaders'
   },
   { 
     id: 'staff', 

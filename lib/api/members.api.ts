@@ -92,22 +92,22 @@ export async function fetchMembersWithGroups(institutionId: string, options: Pag
 
   const { data: groupMemberships, error: groupsError } = await supabase
     .from('group_members')
-    .select('member_id, groups(group_name)')
+    .select('member_id, role, groups(group_name)')
     .in('member_id', memberIds);
 
   if (groupsError) {
     console.warn('Failed to fetch group memberships:', groupsError);
   }
 
-  // Map group memberships to members
-  const groupsByMember = new Map<string, string[]>();
+  // Map group memberships to members with roles
+  const groupsByMember = new Map<string, Array<{ name: string; role: string }>>();
   (groupMemberships || []).forEach((gm: any) => {
     const groupName = Array.isArray(gm.groups) 
       ? gm.groups[0]?.group_name 
       : gm.groups?.group_name;
     if (groupName) {
       const current = groupsByMember.get(gm.member_id) || [];
-      current.push(groupName);
+      current.push({ name: groupName, role: gm.role || 'MEMBER' });
       groupsByMember.set(gm.member_id, current);
     }
   });

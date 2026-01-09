@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { StaffRole, SupabaseProfile, UserRole } from '../types';
+import { withTimeout } from '../lib/utils/timeout';
 
 interface AuthContextType {
   user: User | null;
@@ -72,18 +73,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const fetchProfile = async (nextUser: User): Promise<SupabaseProfile | null> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('user_id, institution_id, role, email, full_name, branch, avatar_url, status, last_login_at')
-      .eq('user_id', nextUser.id)
-      .maybeSingle();
+    try {
+      const profileQuery = supabase
+        .from('profiles')
+        .select('user_id, institution_id, role, email, full_name, branch, avatar_url, status, last_login_at')
+        .eq('user_id', nextUser.id)
+        .maybeSingle();
 
-    if (error) {
-      console.error('Error loading profile:', error);
+      const result = await withTimeout(
+        Promise.resolve(profileQuery),
+        15000, // 15 second timeout
+        'Profile fetch timeout'
+      );
+      const { data, error } = result;
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        return null;
+      }
+
+      return (data as SupabaseProfile | null) ?? null;
+    } catch (err) {
+      console.error('Profile fetch failed:', err);
       return null;
     }
-
-    return (data as SupabaseProfile | null) ?? null;
   };
 
   const applyUser = async (nextUser: User | null) => {
@@ -93,13 +106,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
+    // Fetch profile with timeout
     const nextProfile = await fetchProfile(nextUser);
     setProfile(nextProfile);
     setInstitutionId(nextProfile?.institution_id ?? extractInstitutionId(nextUser));
     setRole(nextProfile ? normalizeStaffRole(nextProfile.role) : extractRole(nextUser));
 
+    // Update last login asynchronously (don't block on this)
     if (nextProfile) {
       const lastLoginValue = new Date().toISOString();
+      // Fire and forget - don't wait for this
       supabase
         .from('profiles')
         .update({ last_login_at: lastLoginValue })
@@ -108,12 +124,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (error) {
             console.error('Error updating last login:', error);
           }
+        })
+        .catch((err) => {
+          console.error('Error updating last login:', err);
         });
     }
   };
 
   useEffect(() => {
     let isMounted = true;
+    let initTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const initSession = async () => {
       if (!isSupabaseConfigured) {
@@ -126,9 +146,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(true);
         setInitError(null);
 
+        // Safety timeout: if initialization takes more than 20 seconds, show error
+        initTimeout = setTimeout(() => {
+          if (isMounted) {
+            console.error('[Auth] Initialization timeout');
+            setInitError('Authentication initialization timeout. Please check your connection.');
+            setLoading(false);
+            setUser(null);
+          }
+        }, 20000);
+
         console.log('[Auth] Getting session...');
-        const { data, error } = await supabase.auth.getSession();
+        const sessionQuery = supabase.auth.getSession();
+        const result = await withTimeout(
+          Promise.resolve(sessionQuery),
+          15000, // 15 second timeout for session fetch
+          'Session fetch timeout'
+        );
+        const { data, error } = result;
         console.log('[Auth] Session result:', { hasSession: !!data.session, error });
+
+        if (initTimeout) {
+          clearTimeout(initTimeout);
+          initTimeout = null;
+        }
 
         if (error) throw error;
 
@@ -136,12 +177,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await applyUser(data.session?.user ?? null);
         }
       } catch (err: any) {
+        if (initTimeout) {
+          clearTimeout(initTimeout);
+          initTimeout = null;
+        }
         console.error('[Auth] Initialization error:', err);
         if (isMounted) {
-          setInitError(err.message || 'Failed to initialize authentication');
+          const errorMessage = err.name === 'TimeoutError' 
+            ? 'Connection timeout. Please check your network connection.'
+            : (err.message || 'Failed to initialize authentication');
+          setInitError(errorMessage);
           setUser(null);
         }
       } finally {
+        if (initTimeout) {
+          clearTimeout(initTimeout);
+        }
         if (isMounted) {
           setLoading(false);
         }
@@ -153,13 +204,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Set up listener for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       // For auth state changes, we generally want to show loading
-      // but strictly for the transition period
+      // but strictly for the transition period with a timeout
       if (isMounted) setLoading(true);
 
       try {
-        await applyUser(session?.user ?? null);
+        await withTimeout(
+          applyUser(session?.user ?? null),
+          10000, // 10 second timeout for auth state changes
+          'Auth state change timeout'
+        );
       } catch (err) {
         console.error('Auth state change error:', err);
+        if (isMounted && err instanceof Error) {
+          setInitError(err.message);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -167,6 +225,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return () => {
       isMounted = false;
+      if (initTimeout) {
+        clearTimeout(initTimeout);
+      }
       subscription.unsubscribe();
     };
   }, []);

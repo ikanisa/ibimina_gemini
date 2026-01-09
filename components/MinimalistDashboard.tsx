@@ -10,6 +10,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ViewState } from '../types';
+import { withTimeout } from '../lib/utils/timeout';
 import {
   KpiCard,
   AttentionItem,
@@ -109,10 +110,17 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
     setError(null);
 
     try {
-      const { data: result, error: rpcError } = await supabase.rpc('get_dashboard_summary', {
+      const rpcQuery = supabase.rpc('get_dashboard_summary', {
         p_institution_id: isPlatformAdmin ? selectedInstitutionId : null,
         p_days: 7
       });
+
+      const response = await withTimeout(
+        Promise.resolve(rpcQuery),
+        20000, // 20 second timeout for dashboard
+        'Dashboard load timeout'
+      );
+      const { data: result, error: rpcError } = response;
 
       if (rpcError) {
         console.error('Dashboard RPC error:', rpcError);
@@ -122,16 +130,23 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
       }
     } catch (err) {
       console.error('Dashboard error:', err);
-      setError('An unexpected error occurred.');
+      const errorMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      if (errorMsg.includes('timeout')) {
+        setError('Loading dashboard timed out. Please check your connection and try again.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [isPlatformAdmin, selectedInstitutionId]);
 
+  // Only load dashboard when institution changes or on mount
   useEffect(() => {
     loadDashboard();
-  }, [loadDashboard]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedInstitutionId]); // Re-load when institution changes
 
   // Navigation handlers - map action paths to ViewState
   const handleNavigate = (path: string) => {

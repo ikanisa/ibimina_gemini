@@ -120,14 +120,24 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
           <div className="col-span-3 text-sm text-slate-600">
             {member.groups.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {member.groups.slice(0, 2).map((group, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded border border-blue-100 truncate max-w-[100px]"
-                  >
-                    {group}
-                  </span>
-                ))}
+                {member.groups.slice(0, 2).map((group, idx) => {
+                  const role = member.groupRoles?.[group];
+                  const isLeader = role === 'LEADER' || role === 'Leader' || role === 'CHAIRPERSON' || role === 'Chairperson';
+                  return (
+                    <span
+                      key={idx}
+                      className={`inline-block px-1.5 py-0.5 text-[10px] rounded border truncate max-w-[100px] ${
+                        isLeader
+                          ? 'bg-purple-50 text-purple-700 border-purple-100'
+                          : 'bg-blue-50 text-blue-700 border-blue-100'
+                      }`}
+                      title={role ? `Role: ${role}` : undefined}
+                    >
+                      {group}
+                      {isLeader && ' 👑'}
+                    </span>
+                  );
+                })}
                 {member.groups.length > 2 && (
                   <span className="text-[10px] text-slate-400">
                     +{member.groups.length - 2}

@@ -108,7 +108,7 @@ export interface SupabaseGroupMember {
   institution_id: string;
   group_id: string;
   member_id: string;
-  role: 'CHAIRPERSON' | 'SECRETARY' | 'TREASURER' | 'MEMBER';
+  role: 'CHAIRPERSON' | 'SECRETARY' | 'TREASURER' | 'LEADER' | 'MEMBER';
   status: 'GOOD_STANDING' | 'IN_ARREARS' | 'DEFAULTED';
   joined_date?: string | null;
   created_at: string;
@@ -271,7 +271,7 @@ export interface Group {
 export interface GroupMember {
   memberId: string;
   name: string;
-  role: 'Chairperson' | 'Secretary' | 'Treasurer' | 'Member';
+  role: 'Chairperson' | 'Secretary' | 'Treasurer' | 'Leader' | 'Member';
   status: 'Good Standing' | 'In Arrears' | 'Defaulted';
   joinedDate: string;
   contributionsPaid: number;
@@ -313,7 +313,8 @@ export interface Member {
   tokenBalance: number;
   joinDate: string;
   avatarUrl: string;
-  groups: string[]; // IDs of groups they belong to
+  groups: string[]; // IDs or names of groups they belong to
+  groupRoles?: Record<string, string>; // Map of group ID/name to role (LEADER, MEMBER, etc.)
 }
 
 

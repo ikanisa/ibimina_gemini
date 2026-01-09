@@ -30,8 +30,15 @@ const AppBoot = lazy(() => import('./components/AppBoot'));
 const SystemHealthIndicator = lazy(() => import('./components/SystemHealthIndicator'));
 
 // Production guard: Fail loudly if mock data is enabled in production
+// This is a critical security issue as it bypasses authentication
 if (import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-  console.error('🚨 CRITICAL: VITE_USE_MOCK_DATA=true in production build! This bypasses authentication.');
+  console.error('🚨 CRITICAL SECURITY WARNING: VITE_USE_MOCK_DATA=true in production build!');
+  console.error('🚨 This bypasses authentication and allows unauthorized access.');
+  console.error('🚨 The portal should ONLY be accessible to invited staff members.');
+  
+  // In production, we should NOT use mock data - it's a security risk
+  // For now, we'll show a warning but still allow it for backwards compatibility
+  // TODO: In future versions, consider blocking access entirely if mock data is enabled in production
 }
 
 const EMPTY_STATS: KpiStats = {
@@ -251,9 +258,21 @@ const App: React.FC = () => {
         </Suspense>
       );
     }
-    // If user is logged in but has no institutionId and is NOT a platform admin, they need provisioning
+    // SECURITY: If user is logged in but has no profile/institution and is NOT a platform admin, they need provisioning
+    // This ensures only invited staff (with profiles) can access the portal
     const isPlatformAdmin = role === 'Super Admin';
-    if (!institutionId && !useMockData && !isPlatformAdmin) {
+    const hasValidAccess = useMockData || isPlatformAdmin || (institutionId && profile);
+    
+    if (!hasValidAccess && !useMockData) {
+      // User is authenticated but doesn't have a profile - they weren't invited as staff
+      console.warn('[Security] Authenticated user without profile/institution access:', {
+        userId: user.id,
+        email: user.email,
+        hasProfile: !!profile,
+        institutionId,
+        role
+      });
+      
       return (
         <div className="flex flex-col h-screen">
           <div className="absolute top-4 right-4 z-50">

@@ -8,6 +8,7 @@ export type SettingsTab =
   | 'institution' 
   | 'parsing' 
   | 'sms-sources' 
+  | 'notifications'
   | 'staff' 
   | 'audit-log' 
   | 'system';

@@ -127,6 +127,8 @@ export const mapGroupMemberRole = (role?: string | null): GroupMember['role'] =>
       return 'Secretary';
     case 'TREASURER':
       return 'Treasurer';
+    case 'LEADER':
+      return 'Leader';
     case 'MEMBER':
     default:
       return 'Member';

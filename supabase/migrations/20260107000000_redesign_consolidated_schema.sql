@@ -563,6 +563,13 @@ begin
   )
   returning id into v_allocation_id;
 
+  -- Send contribution confirmation notification
+  -- This will be triggered automatically by the database trigger,
+  -- but we can also call it explicitly here for immediate sending
+  if v_transaction.type = 'CONTRIBUTION' then
+    perform public.send_contribution_confirmation(p_transaction_id);
+  end if;
+
   -- Audit log
   insert into public.audit_log (
     actor_user_id, institution_id, action, entity_type, entity_id, metadata

@@ -28,7 +28,9 @@
     "test:all": "npm run test && npm run e2e",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build",
-    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=sacco"
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=sacco",
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "generate-icons:bash": "bash scripts/generate-icons.sh"
   },
   "dependencies": {
     "@sentry/react": "^10.32.1",
@@ -56,6 +58,7 @@
     "autoprefixer": "^10.4.21",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
+    "sharp": "^0.34.5",
     "storybook": "^8.6.15",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.8.2",
