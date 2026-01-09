@@ -1,268 +1,233 @@
-# Deployment Checklist
+# Production Deployment Checklist
 
-Complete step-by-step guide to deploy the Group Leaders & WhatsApp Notifications system.
+## Pre-Deployment
 
-## Prerequisites
+### Code & Testing
+- [x] All pages reviewed and verified
+- [ ] All manual tests passed
+- [ ] Performance tests passed
+- [ ] Security audit completed
+- [ ] Code review completed
+- [ ] Documentation updated
 
-- [ ] Supabase project set up
-- [ ] Supabase CLI installed (`npm install -g supabase`)
-- [ ] WhatsApp Business API account configured
-- [ ] WhatsApp credentials ready
-- [ ] Access to Supabase Dashboard
+### Database
+- [ ] All migrations applied
+- [ ] RLS policies verified
+- [ ] RPC functions deployed
+- [ ] Notification templates seeded
+- [ ] Cron jobs configured
+- [ ] Database backup strategy in place
+- [ ] Test database connection
 
-## Step 1: Apply Database Migrations
+### Edge Functions
+- [ ] `generate-group-report` deployed
+- [ ] `send-scheduled-notifications` deployed
+- [ ] `send-contribution-confirmation` deployed
+- [ ] `process-pending-notifications` deployed
+- [ ] `send-whatsapp` deployed
+- [ ] `staff-invite` deployed
+- [ ] All Edge Functions tested
+- [ ] Edge Function secrets configured
 
-### Option A: Using Supabase CLI
+### Environment Variables
+- [ ] `SUPABASE_URL` configured
+- [ ] `SUPABASE_ANON_KEY` configured
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` configured (Edge Functions)
+- [ ] `WA_PHONE_ID` configured
+- [ ] `META_WABA_BUSINESS_ID` configured
+- [ ] `WHATSAPP_ACCESS_TOKEN` configured
+- [ ] `WA_VERIFY_TOKEN` configured
+- [ ] `WA_APP_SECRET` configured
+- [ ] `OPENAI_API_KEY` configured (if using AI)
+
+### Frontend
+- [ ] Build completed successfully
+- [ ] Environment variables set in build
+- [ ] Static assets optimized
+- [ ] Error tracking configured
+- [ ] Analytics configured (if applicable)
+
+---
+
+## Deployment Steps
+
+### 1. Database Migration
 ```bash
-cd /path/to/your/project
+# Apply all migrations
 supabase db push
+
+# Verify migrations
+supabase migration list
+
+# Test database connection
+supabase db ping
 ```
 
-### Option B: Manual SQL Execution
-1. Open Supabase Dashboard > SQL Editor
-2. Run `supabase/migrations/20260111000000_group_leaders_whatsapp.sql`
-3. Run `supabase/migrations/20260111000001_contribution_confirmation.sql`
-
-### Verification
-```sql
--- Check if tables exist
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-  AND table_name IN ('notification_templates', 'notification_logs', 'group_reports');
-
--- Check if functions exist
-SELECT routine_name 
-FROM information_schema.routines 
-WHERE routine_schema = 'public' 
-  AND routine_name IN ('get_group_leaders', 'send_contribution_confirmation');
-```
-
-## Step 2: Configure Groups
-
-Run the configuration script:
+### 2. Edge Functions Deployment
 ```bash
-# In Supabase SQL Editor
--- Copy and paste contents of scripts/configure-groups.sql
-```
-
-Or run manually:
-```sql
--- Mark daily contribution groups
-UPDATE public.groups
-SET daily_contribution = true
-WHERE group_name ILIKE '%buri munsi%';
-
--- Ensure all groups have leaders (run the DO block from configure-groups.sql)
--- Seed notification templates
-SELECT public.seed_notification_templates('your-institution-id');
-```
-
-## Step 3: Set WhatsApp Credentials
-
-### Option A: Using Setup Script
-```bash
-export SUPABASE_URL="your-supabase-url"
-export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-deno run --allow-net --allow-env scripts/set-whatsapp-secrets.ts
-```
-
-### Option B: Manual Setup in Supabase Dashboard
-1. Go to Project Settings > Edge Functions
-2. Add environment variables:
-   - `WA_PHONE_ID=396791596844039`
-   - `META_WABA_BUSINESS_ID=297687286772462`
-   - `WA_TOKEN=EAAGHrMn6uugBO9xlSTNU1FsbnZB7AnBLCvTlgZCYQDZC8OZA7q3nrtxpxn3VgHiT8o9KbKQIyoPNrESHKZCq2c9B9lvNr2OsT8YDBewaDD1OzytQd74XlmSOgxZAVL6TEQpDT43zZCZBwQg9AZA5QPeksUVzmAqTaoNyIIaaqSvJniVmn6dW1rw88dbZAyR6VZBMTTpjQZDZD`
-   - `WA_VERIFY_TOKEN=bd0e7b6f4a2c9d83f1e57a0c6b3d48e9`
-   - `WA_APP_SECRET=e0b171d137e058e9055ae61bb94e0984`
-
-### Option C: Update Settings Table
-```sql
-UPDATE public.settings
-SET 
-  whatsapp_enabled = true,
-  whatsapp_phone_id = '396791596844039',
-  whatsapp_business_id = '297687286772462',
-  whatsapp_verify_token = 'bd0e7b6f4a2c9d83f1e57a0c6b3d48e9'
-WHERE institution_id = 'your-institution-id';
-```
-
-## Step 4: Deploy Edge Functions
-
-### Using Deployment Script
-```bash
-chmod +x scripts/deploy-notifications.sh
-./scripts/deploy-notifications.sh
-```
-
-### Manual Deployment
-```bash
+# Deploy all Edge Functions
 supabase functions deploy generate-group-report
 supabase functions deploy send-scheduled-notifications
 supabase functions deploy send-contribution-confirmation
 supabase functions deploy process-pending-notifications
 supabase functions deploy send-whatsapp
+supabase functions deploy staff-invite
+
+# Verify deployment
+supabase functions list
 ```
 
-### Verification
-Check in Supabase Dashboard > Edge Functions that all functions are deployed.
-
-## Step 5: Set Up Cron Jobs
-
-### Option A: Using pg_cron (Recommended)
-1. Enable pg_cron extension in Supabase
-2. Run `scripts/setup-cron-jobs.sql` in SQL Editor
-3. Set required settings:
-   ```sql
-   ALTER DATABASE postgres SET app.supabase_url = 'https://your-project.supabase.co';
-   ALTER DATABASE postgres SET app.service_role_key = 'your-service-role-key';
-   ALTER DATABASE postgres SET app.cron_secret = 'your-secret-key';
-   ```
-
-### Option B: External Cron Service
-Use GitHub Actions, Vercel Cron, or similar:
-```yaml
-# Example GitHub Actions workflow
-name: Send Notifications
-on:
-  schedule:
-    - cron: '0 9 * * 1' # Every Monday at 9 AM
-jobs:
-  send:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Notifications
-        run: |
-          curl -X POST https://your-project.supabase.co/functions/v1/send-scheduled-notifications \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"type": "CONTRIBUTION_REMINDER"}'
-```
-
-## Step 6: Testing
-
-### Run Test Script
+### 3. Configure Secrets
 ```bash
-chmod +x scripts/test-notifications.sh
-./scripts/test-notifications.sh
+# Set WhatsApp secrets
+supabase secrets set WA_PHONE_ID=396791596844039
+supabase secrets set META_WABA_BUSINESS_ID=297687286772462
+supabase secrets set WHATSAPP_ACCESS_TOKEN=EAAGHrMn6uugBO9xlSTNU1FsbnZB7AnBLCvTlgZCYQDZC8OZA7q3nrtxpxn3VgHiT8o9KbKQIyoPNrESHKZCq2c9B9lvNr2OsT8YDBewaDD1OzytQd74XlmSOgxZAVL6TEQpDT43zZCZBwQg9AZA5QPeksUVzmAqTaoNyIIaaqSvJniVmn6dW1rw88dbZAyR6VZBMTTpjQZDZD
+supabase secrets set WA_VERIFY_TOKEN=bd0e7b6f4a2c9d83f1e57a0c6b3d48e9
+supabase secrets set WA_APP_SECRET=e0b171d137e058e9055ae61bb94e0984
+
+# Set OpenAI API key (if using)
+supabase secrets set OPENAI_API_KEY=your-openai-api-key-here
 ```
 
-### Manual Testing
-
-#### Test 1: Contribution Confirmation
-1. Make a MoMo payment to institution MoMo code
-2. Check `notification_logs` table:
-   ```sql
-   SELECT * FROM notification_logs 
-   WHERE template_type = 'CONTRIBUTION_CONFIRMATION' 
-   ORDER BY created_at DESC LIMIT 5;
-   ```
-3. Verify member received WhatsApp and SMS
-
-#### Test 2: Manual Report Generation
-1. Log into portal as staff
-2. Go to Settings > Notifications
-3. Select a group
-4. Choose "Group Report"
-5. Select report type and dates
-6. Click "Send Notification"
-7. Check `group_reports` table:
-   ```sql
-   SELECT * FROM group_reports ORDER BY generated_at DESC LIMIT 1;
-   ```
-
-#### Test 3: WhatsApp Sending
-```bash
-# Test WhatsApp function directly
-curl -X POST https://your-project.supabase.co/functions/v1/send-whatsapp \
-  -H "Authorization: Bearer YOUR_ANON_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "+250788123456",
-    "message": "Test message from Ibimina"
-  }'
-```
-
-## Step 7: Verification Queries
-
-Run these to verify everything is set up correctly:
-
+### 4. Seed Data
 ```sql
--- Check groups with leaders
-SELECT 
-  g.group_name,
-  COUNT(gm.id) FILTER (WHERE gm.role IN ('LEADER', 'CHAIRPERSON')) as leader_count,
-  COUNT(gm.id) as total_members
-FROM groups g
-LEFT JOIN group_members gm ON gm.group_id = g.id AND gm.status = 'GOOD_STANDING'
-WHERE g.status = 'ACTIVE'
-GROUP BY g.id, g.group_name
-HAVING COUNT(gm.id) FILTER (WHERE gm.role IN ('LEADER', 'CHAIRPERSON')) = 0;
-
--- Check notification templates
-SELECT 
-  institution_id,
-  template_type,
-  channel,
-  COUNT(*) as count
-FROM notification_templates
-WHERE is_active = true
-GROUP BY institution_id, template_type, channel;
-
--- Check recent notifications
-SELECT 
-  recipient_type,
-  channel,
-  status,
-  COUNT(*) as count
-FROM notification_logs
-WHERE created_at > NOW() - INTERVAL '24 hours'
-GROUP BY recipient_type, channel, status;
-
--- Check WhatsApp settings
-SELECT 
-  institution_id,
-  whatsapp_enabled,
-  whatsapp_phone_id IS NOT NULL as has_phone_id
-FROM settings;
+-- Run configure-groups.sql
+-- This marks daily contribution groups, ensures leaders, and seeds templates
+\i scripts/configure-groups.sql
 ```
 
-## Troubleshooting
+### 5. Frontend Deployment
+```bash
+# Build for production
+npm run build
 
-### Migrations Failed
-- Check for syntax errors in migration files
-- Verify you have necessary permissions
-- Check Supabase logs for detailed errors
+# Deploy to hosting platform (Vercel, Netlify, etc.)
+# Or copy dist/ to web server
+```
 
-### Edge Functions Not Deploying
-- Verify Supabase CLI is authenticated: `supabase login`
-- Check function code for errors
-- Verify environment variables are set
+---
 
-### WhatsApp Not Sending
-- Verify credentials in Edge Function environment
-- Check notification_logs for error messages
-- Test WhatsApp API directly with curl
-- Verify phone numbers are in international format
+## Post-Deployment Verification
 
-### Cron Jobs Not Running
-- Check if pg_cron extension is enabled
-- Verify settings are configured correctly
-- Check cron.job table for scheduled jobs
-- Review Supabase logs for errors
+### Immediate Checks
+- [ ] All pages load without errors
+- [ ] Authentication works
+- [ ] Database queries execute
+- [ ] RPC functions work
+- [ ] Edge Functions respond
+- [ ] No console errors
+- [ ] No network errors
 
-## Post-Deployment
+### Functional Checks
+- [ ] Dashboard loads and displays data
+- [ ] Groups page loads and CRUD works
+- [ ] Members page loads and CRUD works
+- [ ] Transactions page loads and allocation works
+- [ ] Reports page loads and generates reports
+- [ ] Institutions page loads (Platform Admin)
+- [ ] Staff page loads and invite works
+- [ ] SMS Gateway Devices page loads
+- [ ] Settings pages load and save
 
-- [ ] Monitor notification_logs for delivery rates
-- [ ] Set up alerts for failed notifications
-- [ ] Review group_reports generation
-- [ ] Train staff on manual notification triggers
-- [ ] Document any custom configurations
+### Integration Checks
+- [ ] Transaction allocation triggers confirmation
+- [ ] Report generation works
+- [ ] WhatsApp notifications send
+- [ ] SMS notifications send
+- [ ] Staff invite emails send
+- [ ] Audit log captures actions
 
-## Support
+### Performance Checks
+- [ ] Page load times < 2 seconds
+- [ ] Infinite scroll works smoothly
+- [ ] Reports generate in reasonable time
+- [ ] No memory leaks
+- [ ] Database queries are optimized
 
-For issues or questions:
-1. Check `docs/GROUP_LEADERS_WHATSAPP_SETUP.md`
-2. Review Supabase logs
-3. Check notification_logs for error details
-4. Verify all prerequisites are met
+### Security Checks
+- [ ] RLS policies prevent unauthorized access
+- [ ] Role-based access works correctly
+- [ ] Cross-institution access is blocked
+- [ ] Input validation works
+- [ ] Output sanitization works
+
+---
+
+## Monitoring Setup
+
+### Error Tracking
+- [ ] Error logging configured
+- [ ] Error alerts set up
+- [ ] Error dashboard accessible
+
+### Performance Monitoring
+- [ ] Database query monitoring
+- [ ] Edge Function execution monitoring
+- [ ] Frontend performance monitoring
+- [ ] API response time monitoring
+
+### Business Metrics
+- [ ] Transaction volume tracking
+- [ ] Notification delivery tracking
+- [ ] User activity tracking
+- [ ] System health monitoring
+
+---
+
+## Rollback Plan
+
+### If Issues Occur
+1. **Immediate Rollback**
+   - Revert database migrations if needed
+   - Revert Edge Functions to previous version
+   - Revert frontend to previous version
+
+2. **Investigation**
+   - Check error logs
+   - Check database logs
+   - Check Edge Function logs
+   - Check monitoring dashboards
+
+3. **Fix & Redeploy**
+   - Fix identified issues
+   - Test fixes in staging
+   - Redeploy with fixes
+
+---
+
+## Communication Plan
+
+### Pre-Deployment
+- [ ] Notify stakeholders of deployment window
+- [ ] Schedule maintenance window (if needed)
+- [ ] Prepare rollback communication
+
+### During Deployment
+- [ ] Update status page (if applicable)
+- [ ] Monitor deployment progress
+- [ ] Address any issues immediately
+
+### Post-Deployment
+- [ ] Notify stakeholders of successful deployment
+- [ ] Share deployment summary
+- [ ] Gather initial feedback
+- [ ] Monitor for issues
+
+---
+
+## Success Criteria
+
+- ✅ All pages load without errors
+- ✅ All critical flows work end-to-end
+- ✅ Performance meets requirements
+- ✅ Security is maintained
+- ✅ No data loss
+- ✅ No service interruption (or minimal)
+- ✅ Stakeholder approval
+
+---
+
+**Deployment Date:** _______________  
+**Deployed By:** _______________  
+**Status:** _______________

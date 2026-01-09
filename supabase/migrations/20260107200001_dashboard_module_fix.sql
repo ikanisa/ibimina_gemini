@@ -48,9 +48,10 @@ begin
   ) into v_momo_present;
 
   -- Health check: SMS sources offline (6 hours threshold per spec)
+  -- Use sms_gateway_devices (sms_sources was consolidated into this table)
   select count(*)::int
   into v_offline_sources
-  from sms_sources
+  from sms_gateway_devices
   where is_active = true
     and (v_scope_institution is null or institution_id = v_scope_institution)
     and (last_seen_at is null or last_seen_at < now() - interval '6 hours');

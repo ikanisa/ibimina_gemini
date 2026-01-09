@@ -157,10 +157,13 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
     
     switch (basePath) {
       case '/allocation-queue':
-        onNavigate(ViewState.ALLOCATION_QUEUE);
+      case '/reconciliation':
+        // Navigate to Transactions page (unallocated transactions are shown there)
+        onNavigate(ViewState.TRANSACTIONS);
         break;
       case '/momo-operations':
-        onNavigate(ViewState.MOMO_OPERATIONS);
+        // Navigate to Transactions page (parse errors can be viewed there)
+        onNavigate(ViewState.TRANSACTIONS);
         break;
       case '/settings/sms-sources':
       case '/settings/institution':
@@ -169,9 +172,6 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
       case '/transactions':
         onNavigate(ViewState.TRANSACTIONS);
         break;
-      case '/reconciliation':
-        onNavigate(ViewState.RECONCILIATION);
-        break;
       default:
         // Stay on dashboard
         break;
@@ -179,14 +179,17 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
   };
 
   const handleViewAllUnallocated = () => {
-    onNavigate?.(ViewState.ALLOCATION_QUEUE);
+    // Navigate to Transactions page with unallocated filter
+    onNavigate?.(ViewState.TRANSACTIONS);
   };
 
   const handleViewAllParseErrors = () => {
-    onNavigate?.(ViewState.MOMO_OPERATIONS);
+    // Navigate to Transactions page (parse errors can be viewed there)
+    onNavigate?.(ViewState.TRANSACTIONS);
   };
 
   const handleViewAuditLog = () => {
+    // Navigate to Settings page where audit log is available
     onNavigate?.(ViewState.SETTINGS);
   };
 

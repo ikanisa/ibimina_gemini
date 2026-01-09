@@ -295,24 +295,9 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         };
       });
 
-      const mappedSms: SmsMessage[] = (
-        (smsResponse.data as SupabaseSmsMessage[] | null) ?? []
-      ).map((sms) => ({
-        id: sms.id,
-        sender: sms.sender,
-        timestamp: new Date(sms.timestamp).toLocaleString(),
-        body: sms.body,
-        isParsed: sms.is_parsed,
-        parsedData: sms.is_parsed
-          ? {
-            amount: Number(sms.parsed_amount ?? 0),
-            currency: sms.parsed_currency ?? 'RWF',
-            transactionId: sms.parsed_transaction_id ?? '',
-            counterparty: sms.parsed_counterparty ?? '',
-          }
-          : undefined,
-        linkedTransactionId: sms.linked_transaction_id ?? undefined,
-      }));
+      // SMS messages are not currently fetched (table may not exist or not needed)
+      // Set empty array for now
+      const mappedSms: SmsMessage[] = [];
 
       setGroupMembers(mappedMembers);
       setGroupMeetings(mappedMeetings);
