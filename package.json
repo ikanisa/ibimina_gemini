@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
+    "build:production": "NODE_ENV=production vite build",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'No linter configured. Add ESLint or similar.' && exit 0",
     "test": "vitest",

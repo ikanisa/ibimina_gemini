@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   // Load .env files for local development
   const env = loadEnv(mode, process.cwd(), '');
+  const isProduction = mode === 'production';
 
   return {
     server: {
@@ -56,7 +57,12 @@ export default defineConfig(({ mode }) => {
                 }
               }
             }
-          ]
+          ],
+          // Optimize service worker size
+          skipWaiting: true,
+          clientsClaim: true,
+          // Clean up old caches
+          cleanupOutdatedCaches: true,
         },
         devOptions: {
           enabled: true,
@@ -75,6 +81,46 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
-    }
+    },
+    build: {
+      // Production optimizations
+      target: 'esnext',
+      minify: 'esbuild', // Fastest minifier
+      sourcemap: false, // Disable sourcemaps in production for smaller builds
+      cssCodeSplit: true, // Split CSS for better caching
+      rollupOptions: {
+        output: {
+          // Optimize chunk splitting
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'supabase-vendor': ['@supabase/supabase-js'],
+            'ui-vendor': ['lucide-react', 'recharts'],
+          },
+          // Optimize asset naming
+          chunkFileNames: 'assets/js/[name]-[hash].js',
+          entryFileNames: 'assets/js/[name]-[hash].js',
+          assetFileNames: (assetInfo) => {
+            const info = assetInfo.name?.split('.') || [];
+            const ext = info[info.length - 1];
+            if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
+              return `assets/images/[name]-[hash][extname]`;
+            }
+            if (/woff2?|eot|ttf|otf/i.test(ext)) {
+              return `assets/fonts/[name]-[hash][extname]`;
+            }
+            return `assets/[name]-[hash][extname]`;
+          },
+        },
+      },
+      // Optimize chunk size warnings
+      chunkSizeWarningLimit: 1000,
+      // Enable tree shaking
+      treeshake: true,
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['react', 'react-dom', '@supabase/supabase-js'],
+      exclude: [],
+    },
   };
 });
