@@ -2,6 +2,7 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig(({ mode }) => {
   // Load .env files for local development
@@ -147,6 +148,12 @@ export default defineConfig(({ mode }) => {
           enabled: true,
           type: 'module'
         }
+      }),
+      // Bundle analyzer (development only)
+      visualizer({
+        filename: 'dist/stats.html',
+        open: false,
+        gzipSize: true
       })
     ],
     // Explicitly define env vars for Cloudflare Pages compatibility
@@ -155,6 +162,33 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || ''),
       'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || ''),
       'import.meta.env.VITE_USE_MOCK_DATA': JSON.stringify(process.env.VITE_USE_MOCK_DATA || env.VITE_USE_MOCK_DATA || 'false'),
+    },
+    build: {
+      // Target modern browsers for smaller bundles
+      target: 'es2020',
+
+      // Chunk splitting strategy
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-ui': ['lucide-react', 'recharts']
+          }
+        }
+      },
+
+      // Enable minification with console.log removal in production
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: mode === 'production',
+          drop_debugger: true
+        }
+      },
+
+      // Chunk size warnings
+      chunkSizeWarningLimit: 500
     },
     resolve: {
       alias: {

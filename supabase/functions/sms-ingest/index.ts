@@ -48,10 +48,58 @@ function validateHmacSignature(
   if (!secret || !providedSignature) {
     return false
   }
-  
+
   // In production, implement proper HMAC-SHA256 verification
   // For now, we rely on API key authentication
   return false
+}
+
+// ============================================================================
+// Rate Limiting (In-Memory)
+// Limits: 100 requests per minute per API key (or IP if no key)
+// Note: In production with multiple instances, use Redis or KV storage
+// ============================================================================
+
+const RATE_LIMIT = 100 // requests per minute
+const RATE_WINDOW_MS = 60 * 1000 // 1 minute
+
+// Map of clientId -> array of request timestamps
+const rateLimitMap = new Map<string, number[]>()
+
+function checkRateLimit(clientId: string): boolean {
+  const now = Date.now()
+  const timestamps = rateLimitMap.get(clientId) || []
+
+  // Remove timestamps older than the window
+  const recentTimestamps = timestamps.filter(t => now - t < RATE_WINDOW_MS)
+
+  if (recentTimestamps.length >= RATE_LIMIT) {
+    console.warn(`Rate limit exceeded for: ${clientId}`)
+    return false // Rate limited
+  }
+
+  // Add current timestamp and update map
+  recentTimestamps.push(now)
+  rateLimitMap.set(clientId, recentTimestamps)
+
+  // Cleanup old entries periodically (every 100 requests)
+  if (Math.random() < 0.01) {
+    cleanupRateLimitMap()
+  }
+
+  return true // Allowed
+}
+
+function cleanupRateLimitMap() {
+  const now = Date.now()
+  for (const [key, timestamps] of rateLimitMap.entries()) {
+    const recent = timestamps.filter(t => now - t < RATE_WINDOW_MS)
+    if (recent.length === 0) {
+      rateLimitMap.delete(key)
+    } else {
+      rateLimitMap.set(key, recent)
+    }
+  }
 }
 
 Deno.serve(async (req) => {
@@ -73,11 +121,11 @@ Deno.serve(async (req) => {
     const signature = req.headers.get('x-signature')
     const expectedApiKey = Deno.env.get('SMS_INGEST_API_KEY')
     const webhookSecret = Deno.env.get('SMS_WEBHOOK_SECRET')
-    
+
     const bodyText = await req.text()
-    
+
     // Try API key first, then HMAC signature
-    const isAuthenticated = 
+    const isAuthenticated =
       validateApiKey(apiKey, expectedApiKey) ||
       validateHmacSignature(bodyText, signature, webhookSecret)
 
@@ -86,6 +134,16 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Step 1.5: Rate Limiting
+    // Use API key as client identifier, or fall back to a generic key
+    const clientId = apiKey || 'anonymous'
+    if (!checkRateLimit(clientId)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Too many requests. Please slow down.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
       )
     }
 
@@ -169,9 +227,9 @@ Deno.serve(async (req) => {
     if (ingestError) {
       console.error('Ingest RPC error:', ingestError)
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: ingestError.message || 'Failed to ingest SMS' 
+        JSON.stringify({
+          success: false,
+          error: ingestError.message || 'Failed to ingest SMS'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -180,8 +238,8 @@ Deno.serve(async (req) => {
     // Check if ingestion was successful
     if (!ingestResult?.success) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: ingestResult?.error || 'Unknown ingestion error',
           device_identifier
         }),
@@ -204,7 +262,7 @@ Deno.serve(async (req) => {
 
     // Step 5: Trigger parsing immediately
     const smsId = ingestResult.sms_id
-    
+
     const { data: parseResult, error: parseError } = await supabase.rpc('parse_sms_deterministic', {
       p_sms_id: smsId
     })
@@ -235,7 +293,7 @@ Deno.serve(async (req) => {
       if (settings?.enable_ai_fallback) {
         // Call the AI parsing function (existing parse-momo-sms)
         console.log('Triggering AI fallback parsing...')
-        
+
         // Get SMS text for AI parsing
         const { data: smsData } = await supabase
           .from('momo_sms_raw')
@@ -307,9 +365,9 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Ingest error:', error)
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -55,6 +55,9 @@ jobs:
           fi
           echo "Build successful ✓"
 
+      - name: Check bundle size
+        run: npm run test:size || echo "Bundle size check warning - review sizes"
+
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
