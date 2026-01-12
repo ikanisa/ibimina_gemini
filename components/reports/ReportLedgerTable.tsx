@@ -108,7 +108,8 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
         className="max-h-[500px] overflow-y-auto"
       >
         {/* Desktop Table */}
-        <table className="w-full text-left hidden md:table">
+        {!isMobile && (
+          <table className="w-full text-left"
           <thead className="bg-slate-50 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Date</th>

@@ -9,6 +9,7 @@ import { Badge, EmptyState, LoadingSpinner } from '../ui';
 import { MoreHorizontal, User, Loader2, Plus } from 'lucide-react';
 import { Button } from '../ui';
 import { VirtualizedMembersList } from './VirtualizedMembersList';
+import { useIsMobile } from '../../hooks/useResponsive';
 
 interface MembersListProps {
   members: Member[];
@@ -36,6 +37,7 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
   useMockData = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const filteredMembers = members.filter(
     (m) =>
@@ -107,90 +109,185 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
 
   return (
     <div ref={containerRef} className="overflow-y-auto flex-1">
-      {/* Table Header */}
-      <div className="grid grid-cols-12 px-4 py-3 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-        <div className="col-span-4">Member</div>
-        <div className="col-span-3">Ibimina (Groups)</div>
-        <div className="col-span-2 text-right">Savings</div>
-        <div className="col-span-2 text-center">Status</div>
-        <div className="col-span-1"></div>
-      </div>
-
-      {/* Table Body */}
-      {filteredMembers.map((member) => (
-        <div
-          key={member.id}
-          onClick={() => onSelectMember(member)}
-          className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-50 cursor-pointer hover:bg-blue-50/50 active:bg-blue-100 transition-all duration-150 touch-manipulation min-h-[60px] ${
-            selectedMemberId === member.id ? 'bg-blue-50 ring-2 ring-blue-200' : ''
-          }`}
-        >
-          <div className="col-span-4 flex items-center gap-3">
-            <img
-              src={member.avatarUrl}
-              alt=""
-              className="w-8 h-8 rounded-full bg-slate-200 object-cover"
-            />
-            <div>
-              <p className="text-sm font-medium text-slate-900">{member.name}</p>
-              <p className="text-xs text-slate-500">{member.phone}</p>
-            </div>
+      {/* Desktop Table View */}
+      {!isMobile && (
+        <>
+          {/* Table Header */}
+          <div className="grid grid-cols-12 px-4 py-3 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
+            <div className="col-span-4">Member</div>
+            <div className="col-span-3">Ibimina (Groups)</div>
+            <div className="col-span-2 text-right">Savings</div>
+            <div className="col-span-2 text-center">Status</div>
+            <div className="col-span-1"></div>
           </div>
-          <div className="col-span-3 text-sm text-slate-600">
-            {member.groups.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {member.groups.slice(0, 2).map((group, idx) => {
-                  const role = member.groupRoles?.[group];
-                  const isLeader = role === 'LEADER' || role === 'Leader' || role === 'CHAIRPERSON' || role === 'Chairperson';
-                  return (
-                    <span
-                      key={idx}
-                      className={`inline-block px-1.5 py-0.5 text-[10px] rounded border truncate max-w-[100px] ${
-                        isLeader
-                          ? 'bg-purple-50 text-purple-700 border-purple-100'
-                          : 'bg-blue-50 text-blue-700 border-blue-100'
-                      }`}
-                      title={role ? `Role: ${role}` : undefined}
-                    >
-                      {group}
-                      {isLeader && ' 👑'}
-                    </span>
-                  );
-                })}
-                {member.groups.length > 2 && (
-                  <span className="text-[10px] text-slate-400">
-                    +{member.groups.length - 2}
-                  </span>
+
+          {/* Table Body */}
+          {filteredMembers.map((member) => (
+            <div
+              key={member.id}
+              onClick={() => onSelectMember(member)}
+              className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-50 cursor-pointer hover:bg-blue-50/50 active:bg-blue-100 transition-all duration-150 touch-manipulation min-h-[60px] ${
+                selectedMemberId === member.id ? 'bg-blue-50 ring-2 ring-blue-200' : ''
+              }`}
+            >
+              <div className="col-span-4 flex items-center gap-3">
+                <img
+                  src={member.avatarUrl}
+                  alt=""
+                  className="w-8 h-8 rounded-full bg-slate-200 object-cover"
+                />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{member.name}</p>
+                  <p className="text-xs text-slate-500">{member.phone}</p>
+                </div>
+              </div>
+              <div className="col-span-3 text-sm text-slate-600">
+                {member.groups.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {member.groups.slice(0, 2).map((group, idx) => {
+                      const role = member.groupRoles?.[group];
+                      const isLeader = role === 'LEADER' || role === 'Leader' || role === 'CHAIRPERSON' || role === 'Chairperson';
+                      return (
+                        <span
+                          key={idx}
+                          className={`inline-block px-1.5 py-0.5 text-[10px] rounded border truncate max-w-[100px] ${
+                            isLeader
+                              ? 'bg-purple-50 text-purple-700 border-purple-100'
+                              : 'bg-blue-50 text-blue-700 border-blue-100'
+                          }`}
+                          title={role ? `Role: ${role}` : undefined}
+                        >
+                          {group}
+                          {isLeader && ' 👑'}
+                        </span>
+                      );
+                    })}
+                    {member.groups.length > 2 && (
+                      <span className="text-[10px] text-slate-400">
+                        +{member.groups.length - 2}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-slate-400 italic text-xs">No groups</span>
                 )}
               </div>
-            ) : (
-              <span className="text-slate-400 italic text-xs">No groups</span>
-            )}
-          </div>
-          <div className="col-span-2 text-right text-sm font-medium text-slate-900">
-            {member.savingsBalance.toLocaleString()} RWF
-          </div>
-          <div className="col-span-2 flex justify-center">
-            <Badge
-              variant={
-                member.status === 'Active'
-                  ? 'success'
-                  : member.status === 'Pending'
-                  ? 'warning'
-                  : 'danger'
-              }
-            >
-              {member.status}
-            </Badge>
-          </div>
-          <div className="col-span-1 flex justify-end text-slate-400">
-            <MoreHorizontal size={16} />
-          </div>
-        </div>
-      ))}
+              <div className="col-span-2 text-right text-sm font-medium text-slate-900">
+                {member.savingsBalance.toLocaleString()} RWF
+              </div>
+              <div className="col-span-2 flex justify-center">
+                <Badge
+                  variant={
+                    member.status === 'Active'
+                      ? 'success'
+                      : member.status === 'Pending'
+                      ? 'warning'
+                      : 'danger'
+                  }
+                >
+                  {member.status}
+                </Badge>
+              </div>
+              <div className="col-span-1 flex justify-end text-slate-400">
+                <MoreHorizontal size={16} />
+              </div>
+            </div>
+          ))}
+        </>
+      )}
 
-      {/* Loading more indicator */}
-      {loadingMore && (
+      {/* Mobile Card View */}
+      {isMobile && (
+        <div className="p-4 space-y-3">
+          {filteredMembers.map((member) => (
+            <div
+              key={member.id}
+              onClick={() => onSelectMember(member)}
+              className={`bg-white rounded-lg border border-slate-200 p-4 space-y-3 cursor-pointer active:bg-slate-50 transition-all ${
+                selectedMemberId === member.id ? 'ring-2 ring-blue-200 border-blue-300' : ''
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <img
+                  src={member.avatarUrl}
+                  alt=""
+                  className="w-12 h-12 rounded-full bg-slate-200 object-cover shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
+                  <p className="text-xs text-slate-500 truncate">{member.phone}</p>
+                </div>
+                <Badge
+                  variant={
+                    member.status === 'Active'
+                      ? 'success'
+                      : member.status === 'Pending'
+                      ? 'warning'
+                      : 'danger'
+                  }
+                >
+                  {member.status}
+                </Badge>
+              </div>
+
+              {member.groups.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-xs text-slate-500 uppercase mb-2">Ibimina (Groups)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {member.groups.slice(0, 3).map((group, idx) => {
+                      const role = member.groupRoles?.[group];
+                      const isLeader = role === 'LEADER' || role === 'Leader' || role === 'CHAIRPERSON' || role === 'Chairperson';
+                      return (
+                        <span
+                          key={idx}
+                          className={`inline-block px-2 py-1 text-xs rounded border ${
+                            isLeader
+                              ? 'bg-purple-50 text-purple-700 border-purple-100'
+                              : 'bg-blue-50 text-blue-700 border-blue-100'
+                          }`}
+                        >
+                          {group}
+                          {isLeader && ' 👑'}
+                        </span>
+                      );
+                    })}
+                    {member.groups.length > 3 && (
+                      <span className="text-xs text-slate-400 px-2 py-1">
+                        +{member.groups.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-xs text-slate-500 uppercase mb-1">Savings Balance</p>
+                <p className="text-lg font-bold text-slate-900">{member.savingsBalance.toLocaleString()} RWF</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Loading more indicator */}
+          {loadingMore && (
+            <div className="px-4 py-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-slate-500">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="text-sm">Loading more...</span>
+              </div>
+            </div>
+          )}
+
+          {/* End of list indicator */}
+          {!hasMore && members.length > 0 && !searchTerm && (
+            <div className="px-4 py-4 text-center text-sm text-slate-400">
+              All {members.length} members loaded
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Loading more indicator (Desktop) */}
+      {!isMobile && loadingMore && (
         <div className="px-4 py-4 text-center">
           <div className="flex items-center justify-center gap-2 text-slate-500">
             <Loader2 size={16} className="animate-spin" />
@@ -199,8 +296,8 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
         </div>
       )}
 
-      {/* End of list indicator */}
-      {!hasMore && members.length > 0 && !searchTerm && (
+      {/* End of list indicator (Desktop) */}
+      {!isMobile && !hasMore && members.length > 0 && !searchTerm && (
         <div className="px-4 py-4 text-center text-sm text-slate-400">
           All {members.length} members loaded
         </div>

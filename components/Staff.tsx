@@ -28,6 +28,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { buildInitialsAvatar } from '../lib/avatars';
 import { mapStaffRole, mapStaffStatus } from '../lib/mappers';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, FormField, SearchInput, Badge, Modal } from './ui';
+import { useIsMobile } from '../hooks/useResponsive';
 
 type Tab = 'Staff List' | 'Roles & Permissions';
 type ImportStep = 'upload' | 'processing' | 'review' | 'success';
@@ -50,6 +51,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const [activeTab, setActiveTab] = useState<Tab>('Staff List');
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
+  const isMobile = useIsMobile();
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>(useMockData ? MOCK_STAFF : []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
