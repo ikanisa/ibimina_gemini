@@ -10,6 +10,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ViewState } from '../types';
+import { isSuperAdmin } from '../lib/utils/roleHelpers';
 import { withTimeout } from '../lib/utils/timeout';
 import {
   KpiCard,
@@ -101,7 +102,7 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInstitutionId, setSelectedInstitutionId] = useState<string | null>(null);
 
-  const isPlatformAdmin = role === 'Super Admin' || role === 'PLATFORM_ADMIN';
+  const isPlatformAdmin = isSuperAdmin(role);
 
   const loadDashboard = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) {

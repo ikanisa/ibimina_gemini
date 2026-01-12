@@ -20,6 +20,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { InstitutionDrawer } from './InstitutionDrawer';
 import { CreateInstitutionDrawer } from './CreateInstitutionDrawer';
 import { ViewState, InstitutionType } from '../../types';
+import { isSuperAdmin } from '../../lib/utils/roleHelpers';
+import { deduplicateRequest } from '../../lib/utils/requestDeduplication';
 
 interface Institution {
   id: string;
@@ -48,7 +50,7 @@ const ITEMS_PER_PAGE = 30;
 
 const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
   const { role, institutionId: userInstitutionId } = useAuth();
-  const isPlatformAdmin = role === 'PLATFORM_ADMIN';
+  const isPlatformAdmin = isSuperAdmin(role);
 
   // Data state
   const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -105,40 +107,44 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
     setError(null);
 
     try {
-      let query = supabase
-        .from('institutions')
-        .select('*')
-        .order('name', { ascending: true })
-        .range(offsetRef.current, offsetRef.current + ITEMS_PER_PAGE - 1);
+      // Use deduplication to prevent duplicate requests
+      const key = `loadInstitutions:${isPlatformAdmin ? 'all' : userInstitutionId}:${offsetRef.current}:${debouncedSearch}:${typeFilter}:${statusFilter}`;
+      
+      const fetchedInstitutions = await deduplicateRequest(key, async () => {
+        let query = supabase
+          .from('institutions')
+          .select('*')
+          .order('name', { ascending: true })
+          .range(offsetRef.current, offsetRef.current + ITEMS_PER_PAGE - 1);
 
-      // Non-platform admin can only see their institution
-      if (!isPlatformAdmin && userInstitutionId) {
-        query = query.eq('id', userInstitutionId);
-      }
+        // Non-platform admin can only see their institution
+        if (!isPlatformAdmin && userInstitutionId) {
+          query = query.eq('id', userInstitutionId);
+        }
 
-      // Apply search
-      if (debouncedSearch) {
-        query = query.or(`name.ilike.%${debouncedSearch}%,code.ilike.%${debouncedSearch}%,supervisor.ilike.%${debouncedSearch}%`);
-      }
+        // Apply search
+        if (debouncedSearch) {
+          query = query.or(`name.ilike.%${debouncedSearch}%,code.ilike.%${debouncedSearch}%,supervisor.ilike.%${debouncedSearch}%`);
+        }
 
-      // Apply type filter
-      if (typeFilter !== 'ALL') {
-        query = query.eq('type', typeFilter);
-      }
+        // Apply type filter
+        if (typeFilter !== 'ALL') {
+          query = query.eq('type', typeFilter);
+        }
 
-      // Apply status filter
-      if (statusFilter !== 'ALL') {
-        query = query.eq('status', statusFilter);
-      }
+        // Apply status filter
+        if (statusFilter !== 'ALL') {
+          query = query.eq('status', statusFilter);
+        }
 
-      const { data, error: fetchError } = await query;
+        const { data, error: fetchError } = await query;
 
-      if (fetchError) {
-        setError(`Unable to load institutions: ${fetchError.message}`);
-        return;
-      }
+        if (fetchError) {
+          throw new Error(`Unable to load institutions: ${fetchError.message}`);
+        }
 
-      const fetchedInstitutions = (data || []) as Institution[];
+        return (data || []) as Institution[];
+      });
 
       // Fetch counts for each institution
       const institutionIds = fetchedInstitutions.map(i => i.id);
@@ -198,7 +204,7 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
       setHasMore(fetchedInstitutions.length === ITEMS_PER_PAGE);
       offsetRef.current += fetchedInstitutions.length;
     } catch (err) {
-      setError('Failed to load institutions');
+      setError(err instanceof Error ? err.message : 'Failed to load institutions');
     } finally {
       setLoading(false);
       setLoadingMore(false);

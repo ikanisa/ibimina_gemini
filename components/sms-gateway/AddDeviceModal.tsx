@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { AddDeviceData, Institution } from './types';
+import { isSuperAdmin } from '../../lib/utils/roleHelpers';
 
 interface AddDeviceModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
   onSuccess,
 }) => {
   const { role, institutionId: userInstitutionId } = useAuth();
-  const isPlatformAdmin = role === 'PLATFORM_ADMIN';
+  const isPlatformAdmin = isSuperAdmin(role);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});

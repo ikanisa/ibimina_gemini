@@ -7,6 +7,9 @@ import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from 
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge } from './ui';
 import { TransactionsSkeleton } from './ui/PageSkeletons';
 import { VirtualizedTransactionTable } from './Transactions/VirtualizedTransactionTable';
+import { isSuperAdmin } from '../lib/utils/roleHelpers';
+import { deduplicateRequest } from '../lib/utils/requestDeduplication';
+import { useIsMobile } from '../hooks/useResponsive';
 
 const TransactionDrawer = lazy(() => import('./TransactionDrawer'));
 
@@ -42,8 +45,9 @@ const LOAD_MORE = 25;
 
 const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsProp, onNavigate }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-  const { institutionId } = useAuth();
+  const { institutionId, role } = useAuth();
   const isMobile = useIsMobile();
+  const isPlatformAdmin = isSuperAdmin(role);
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -72,7 +76,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const loadTransactions = useCallback(async (loadOffset: number, limit: number, append: boolean = false) => {
-    if (!institutionId) return;
+    // Super Admin can access all transactions, others need institutionId
+    if (!isPlatformAdmin && !institutionId) return;
 
     if (append) {
       setLoadingMore(true);
@@ -82,29 +87,38 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
     setError(null);
 
     try {
-      let query = supabase
-        .from('transactions')
-        .select('*, members(full_name), groups(name)')
-        .eq('institution_id', institutionId)
-        .gte('occurred_at', `${dateRange.start}T00:00:00`)
-        .lte('occurred_at', `${dateRange.end}T23:59:59`)
-        .order('occurred_at', { ascending: false });
+      // Use deduplication to prevent duplicate requests
+      const key = `loadTransactions:${isPlatformAdmin ? 'all' : institutionId}:${loadOffset}:${limit}:${statusFilter}:${dateRange.start}:${dateRange.end}:${searchTerm}`;
+      
+      const fetchedData = await deduplicateRequest(key, async () => {
+        let query = supabase
+          .from('transactions')
+          .select('*, members(full_name), groups(name)')
+          .gte('occurred_at', `${dateRange.start}T00:00:00`)
+          .lte('occurred_at', `${dateRange.end}T23:59:59`)
+          .order('occurred_at', { ascending: false });
 
-      // Apply status filter
-      if (statusFilter !== 'all') {
-        query = query.eq('allocation_status', statusFilter);
-      }
+        // Filter by institution if not platform admin
+        if (!isPlatformAdmin && institutionId) {
+          query = query.eq('institution_id', institutionId);
+        }
 
-      // Apply search
-      if (searchTerm.trim()) {
-        query = query.or(`payer_phone.ilike.%${searchTerm}%,momo_ref.ilike.%${searchTerm}%,payer_name.ilike.%${searchTerm}%`);
-      }
+        // Apply status filter
+        if (statusFilter !== 'all') {
+          query = query.eq('allocation_status', statusFilter);
+        }
 
-      const { data, error: fetchError } = await query.range(loadOffset, loadOffset + limit - 1);
+        // Apply search
+        if (searchTerm.trim()) {
+          query = query.or(`payer_phone.ilike.%${searchTerm}%,momo_ref.ilike.%${searchTerm}%,payer_name.ilike.%${searchTerm}%`);
+        }
 
-      if (fetchError) throw fetchError;
+        const { data, error: fetchError } = await query.range(loadOffset, loadOffset + limit - 1);
 
-      const fetchedData = data as SupabaseTransaction[];
+        if (fetchError) throw fetchError;
+
+        return (data || []) as SupabaseTransaction[];
+      });
 
       if (append) {
         setTransactions(prev => [...prev, ...fetchedData]);
@@ -122,24 +136,24 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
       setLoadingMore(false);
       loadingRef.current = false;
     }
-  }, [institutionId, statusFilter, dateRange, searchTerm]);
+  }, [isPlatformAdmin, institutionId, statusFilter, dateRange, searchTerm]);
 
   // Initial load and filter change
   useEffect(() => {
     if (transactionsProp !== undefined) return;
     if (useMockData) return;
-    if (!institutionId) {
+    if (!isPlatformAdmin && !institutionId) {
       setTransactions([]);
       return;
     }
 
     setOffset(0);
     loadTransactions(0, INITIAL_LOAD, false);
-  }, [transactionsProp, useMockData, institutionId, statusFilter, dateRange, loadTransactions]);
+  }, [transactionsProp, useMockData, isPlatformAdmin, institutionId, statusFilter, dateRange, loadTransactions]);
 
   // Debounced search
   useEffect(() => {
-    if (transactionsProp !== undefined || useMockData || !institutionId) return;
+    if (transactionsProp !== undefined || useMockData || (!isPlatformAdmin && !institutionId)) return;
 
     const timer = setTimeout(() => {
       setOffset(0);
@@ -147,7 +161,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, transactionsProp, useMockData, isPlatformAdmin, institutionId, loadTransactions]);
 
   // Load more function
   const loadMore = useCallback(() => {

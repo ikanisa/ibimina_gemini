@@ -9,6 +9,7 @@ import { Filter, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageLayout, Section } from './layout';
+import { isSuperAdmin } from '../lib/utils/roleHelpers';
 import { Button, Badge, ErrorDisplay, LoadingSpinner } from './ui';
 import { ReportsSkeleton } from './ui/PageSkeletons';
 import { ReportFilters } from './reports/ReportFilters';
@@ -33,7 +34,7 @@ const LEDGER_PAGE_SIZE = 50;
 
 const Reports: React.FC = () => {
   const { institutionId, role } = useAuth();
-  const isPlatformAdmin = role === 'PLATFORM_ADMIN' || role === 'Super Admin';
+  const isPlatformAdmin = isSuperAdmin(role);
 
   // Scope state
   const [scope, setScope] = useState<ReportScope>('institution');

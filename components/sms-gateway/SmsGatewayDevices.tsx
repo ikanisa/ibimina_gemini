@@ -13,10 +13,12 @@ import { AddDeviceModal } from './AddDeviceModal';
 import { EditDeviceModal } from './EditDeviceModal';
 import { DeviceDrawer } from './DeviceDrawer';
 import type { SmsGatewayDevice, Institution } from './types';
+import { isSuperAdmin } from '../../lib/utils/roleHelpers';
+import { deduplicateRequest } from '../../lib/utils/requestDeduplication';
 
 export const SmsGatewayDevices: React.FC = () => {
   const { role, institutionId: userInstitutionId } = useAuth();
-  const isPlatformAdmin = role === 'PLATFORM_ADMIN';
+  const isPlatformAdmin = isSuperAdmin(role);
 
   // Data state
   const [devices, setDevices] = useState<SmsGatewayDevice[]>([]);
@@ -84,39 +86,46 @@ export const SmsGatewayDevices: React.FC = () => {
     setError(null);
 
     try {
-      let query = supabase
-        .from('sms_gateway_devices')
-        .select(`
-          *,
-          institutions!inner(id, name)
-        `)
-        .order('created_at', { ascending: false });
+      // Use deduplication to prevent duplicate requests
+      const key = `loadDevices:${isPlatformAdmin ? 'all' : userInstitutionId}:${institutionFilter}:${statusFilter}`;
+      
+      const devicesData = await deduplicateRequest(key, async () => {
+        let query = supabase
+          .from('sms_gateway_devices')
+          .select(`
+            *,
+            institutions!inner(id, name)
+          `)
+          .order('created_at', { ascending: false });
 
-      // Filter by institution if not platform admin
-      if (!isPlatformAdmin && userInstitutionId) {
-        query = query.eq('institution_id', userInstitutionId);
-      } else if (institutionFilter !== 'ALL') {
-        query = query.eq('institution_id', institutionFilter);
-      }
+        // Filter by institution if not platform admin
+        if (!isPlatformAdmin && userInstitutionId) {
+          query = query.eq('institution_id', userInstitutionId);
+        } else if (institutionFilter !== 'ALL') {
+          query = query.eq('institution_id', institutionFilter);
+        }
 
-      // Filter by status
-      if (statusFilter !== 'ALL') {
-        query = query.eq('status', statusFilter.toLowerCase());
-      }
+        // Filter by status
+        if (statusFilter !== 'ALL') {
+          query = query.eq('status', statusFilter.toLowerCase());
+        }
 
-      const { data, error: fetchError } = await query;
+        const { data, error: fetchError } = await query;
 
-      if (fetchError) {
-        throw fetchError;
-      }
+        if (fetchError) {
+          throw fetchError;
+        }
 
-      if (data) {
-        const devicesWithInstitution = data.map((d: any) => ({
-          ...d,
-          institution_name: d.institutions?.name || null,
-        }));
-        setDevices(devicesWithInstitution);
-      }
+        if (data) {
+          return data.map((d: any) => ({
+            ...d,
+            institution_name: d.institutions?.name || null,
+          }));
+        }
+        return [];
+      });
+
+      setDevices(devicesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load devices');
       console.error('Error loading devices:', err);

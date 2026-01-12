@@ -23,7 +23,7 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
   device,
 }) => {
   const { role, institutionId: userInstitutionId } = useAuth();
-  const isPlatformAdmin = role === 'PLATFORM_ADMIN';
+  const isPlatformAdmin = isSuperAdmin(role);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
