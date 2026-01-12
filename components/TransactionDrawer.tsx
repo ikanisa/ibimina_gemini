@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Calendar, DollarSign, Phone, Hash, FileText, CheckCircle2, Search, AlertCircle, MapPin, Clock, MessageSquare, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button, Badge, SearchInput, LoadingSpinner, EmptyState } from './ui';
+import { drawerSlide, transitions } from '../lib/animations/framer-motion';
+import { useTransactions } from '../hooks/useTransactions';
 
 interface TransactionDetails {
   id: string;
@@ -214,18 +217,29 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
     });
   };
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
-        onClick={onClose}
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 bg-black/50 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={transitions.normal}
+            onClick={onClose}
+          />
 
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+          {/* Drawer */}
+          <motion.div
+            className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-xl z-50 flex flex-col"
+            variants={drawerSlide}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={transitions.spring}
+          >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Transaction Details</h2>
@@ -505,8 +519,10 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
             />
           )}
         </div>
-      </div>
-    </>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 

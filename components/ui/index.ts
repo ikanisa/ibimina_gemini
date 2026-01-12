@@ -11,6 +11,7 @@ export * from './FormField';
 export * from './Badge';
 export * from './SearchInput';
 export * from './Skeleton';
+export * from './PageSkeletons';
 export * from './SkipLink';
 export * from './Card';
 export * from './StatusIndicator';

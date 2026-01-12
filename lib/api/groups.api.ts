@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../supabase';
+import { deduplicateRequest } from '../utils/requestDeduplication';
 import type { SupabaseGroup, SupabaseGroupMember, SupabaseMeeting, SupabaseContribution } from '../../types';
 
 export interface CreateGroupParams {
@@ -44,7 +45,11 @@ export interface PaginationOptions {
 export async function fetchGroups(institutionId: string, options: PaginationOptions = {}) {
   const { limit, offset = 0 } = options;
   
-  let query = supabase
+  // Create unique key for deduplication
+  const key = `groups:${institutionId}:${limit || 'all'}:${offset}`;
+  
+  return deduplicateRequest(key, async () => {
+    let query = supabase
     .from('groups')
     .select('*')
     .eq('institution_id', institutionId)
@@ -54,13 +59,14 @@ export async function fetchGroups(institutionId: string, options: PaginationOpti
     query = query.range(offset, offset + limit - 1);
   }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    throw new Error(`Failed to fetch groups: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch groups: ${error.message}`);
+    }
 
-  return data as SupabaseGroup[];
+    return data as SupabaseGroup[];
+  });
 }
 
 /**

@@ -124,6 +124,84 @@ async function parseWithGemini(smsText: string, apiKey: string, model: string): 
   return JSON.parse(jsonMatch[0])
 }
 
+// ============================================================================
+// Rate Limiting (In-Memory)
+// ============================================================================
+
+const RATE_LIMIT = 50 // requests per minute (lower than sms-ingest since this is more expensive)
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute in milliseconds
+
+const rateLimitMap = new Map<string, number[]>()
+
+function checkRateLimit(clientId: string): boolean {
+  const now = Date.now()
+  const timestamps = rateLimitMap.get(clientId) || []
+  
+  // Filter timestamps within the rate limit window
+  const recentTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW)
+  
+  if (recentTimestamps.length >= RATE_LIMIT) {
+    console.warn(`Rate limit exceeded for: ${clientId}`)
+    return false // Rate limited
+  }
+  
+  // Add current timestamp
+  recentTimestamps.push(now)
+  rateLimitMap.set(clientId, recentTimestamps)
+  
+  // Cleanup old entries periodically
+  if (Math.random() < 0.1) { // 10% chance to cleanup
+    cleanupRateLimitMap()
+  }
+  
+  return true
+}
+
+function cleanupRateLimitMap() {
+  const now = Date.now()
+  for (const [key, timestamps] of rateLimitMap.entries()) {
+    const recent = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW)
+    if (recent.length === 0) {
+      rateLimitMap.delete(key)
+    } else {
+      rateLimitMap.set(key, recent)
+    }
+  }
+}
+
+// ============================================================================
+// IP Allowlisting (Optional)
+// ============================================================================
+
+function isIPAllowed(clientIP: string | null): boolean {
+  const allowedIPs = Deno.env.get('SMS_WEBHOOK_ALLOWED_IPS')
+  
+  // If no allowlist configured, allow all (backward compatible)
+  if (!allowedIPs) {
+    return true
+  }
+  
+  // Parse comma-separated list of allowed IPs
+  const allowedIPList = allowedIPs.split(',').map(ip => ip.trim())
+  
+  // Check if client IP is in allowlist
+  if (!clientIP) {
+    return false
+  }
+  
+  // Support CIDR notation or exact IPs
+  return allowedIPList.some(allowedIP => {
+    if (allowedIP.includes('/')) {
+      // CIDR notation (simplified check - for production use a proper CIDR library)
+      const [network, prefix] = allowedIP.split('/')
+      // For now, just check if IP starts with network (simplified)
+      return clientIP.startsWith(network)
+    } else {
+      return clientIP === allowedIP
+    }
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -132,6 +210,52 @@ Deno.serve(async (req) => {
   const startTime = Date.now()
 
   try {
+    // ============================================================================
+    // Step 1: Get client information for rate limiting and IP allowlisting
+    // ============================================================================
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 
+                     null
+    const authHeader = req.headers.get('Authorization')
+
+    // ============================================================================
+    // Step 2: IP Allowlisting (if configured)
+    // ============================================================================
+    if (!isIPAllowed(clientIP)) {
+      console.warn(`IP not allowed: ${clientIP}`)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: IP not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ============================================================================
+    // Step 3: Rate Limiting
+    // ============================================================================
+    // Use IP or auth token as client identifier
+    const clientId = authHeader ? `auth-${authHeader.substring(0, 20)}` : `ip-${clientIP || 'unknown'}`
+    
+    if (!checkRateLimit(clientId)) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Too many requests. Please slow down.',
+          retryAfter: 60 
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '60'
+          } 
+        }
+      )
+    }
+
+    // ============================================================================
+    // Step 4: Continue with existing logic
+    // ============================================================================
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
@@ -146,8 +270,7 @@ Deno.serve(async (req) => {
       }
     })
 
-    // Get auth token from request (can be service role for internal calls)
-    const authHeader = req.headers.get('Authorization')
+    // Verify authorization header exists
     if (!authHeader) {
       throw new Error('Missing authorization header')
     }

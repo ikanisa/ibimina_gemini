@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageLayout, Section } from './layout';
 import { Button, Badge, ErrorDisplay, LoadingSpinner } from './ui';
+import { ReportsSkeleton } from './ui/PageSkeletons';
 import { ReportFilters } from './reports/ReportFilters';
 import { ReportKPIs } from './reports/ReportKPIs';
 import {
@@ -289,6 +290,17 @@ const Reports: React.FC = () => {
 
   const breakdownTitle =
     scope === 'institution' ? 'Breakdown by Group' : 'Breakdown by Member';
+
+  // Show skeleton while loading initial data
+  if (loading && !summary) {
+    return (
+      <PageLayout>
+        <Section>
+          <ReportsSkeleton />
+        </Section>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout

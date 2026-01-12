@@ -8,6 +8,7 @@ import { Member } from '../../types';
 import { Badge, EmptyState, LoadingSpinner } from '../ui';
 import { MoreHorizontal, User, Loader2, Plus } from 'lucide-react';
 import { Button } from '../ui';
+import { VirtualizedMembersList } from './VirtualizedMembersList';
 
 interface MembersListProps {
   members: Member[];
@@ -83,6 +84,24 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
           ) : undefined
         }
       />
+    );
+  }
+
+  // Use virtualization for large lists (50+ items)
+  const useVirtualization = filteredMembers.length > 50;
+
+  if (useVirtualization) {
+    return (
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <VirtualizedMembersList
+          members={filteredMembers}
+          selectedMemberId={selectedMemberId}
+          onSelectMember={onSelectMember}
+          loadingMore={loadingMore}
+          hasMore={hasMore}
+          onScroll={onLoadMore}
+        />
+      </div>
     );
   }
 

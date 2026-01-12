@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase';
+import { deduplicateRequest } from '../utils/requestDeduplication';
 
 export interface GenerateReportParams {
   groupId: string;
@@ -46,30 +47,33 @@ export interface GroupReport {
 export async function generateGroupReport(
   params: GenerateReportParams
 ): Promise<GroupReport> {
-  const { data, error } = await supabase.functions.invoke('generate-group-report', {
-    body: params,
+  const key = `generateGroupReport:${params.groupId}:${params.reportType}:${params.periodStart || ''}:${params.periodEnd || ''}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase.functions.invoke('generate-group-report', {
+      body: params,
+    });
+
+    if (error) {
+      throw new Error(`Failed to generate report: ${error.message}`);
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to generate report');
+    }
+
+    // Fetch the created report
+    const { data: report, error: fetchError } = await supabase
+      .from('group_reports')
+      .select('*')
+      .eq('id', data.reportId)
+      .single();
+
+    if (fetchError || !report) {
+      throw new Error('Failed to fetch generated report');
+    }
+
+    return report as GroupReport;
   });
-
-  if (error) {
-    throw new Error(`Failed to generate report: ${error.message}`);
-  }
-
-  if (!data.success) {
-    throw new Error(data.error || 'Failed to generate report');
-  }
-
-  // Fetch the created report
-  const { data: report, error: fetchError } = await supabase
-    .from('group_reports')
-    .select('*')
-    .eq('id', data.reportId)
-    .single();
-
-  if (fetchError || !report) {
-    throw new Error('Failed to fetch generated report');
-  }
-
-  return report as GroupReport;
 }
 
 /**

@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '../lib/mappers';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge } from './ui';
+import { TransactionsSkeleton } from './ui/PageSkeletons';
+import { VirtualizedTransactionTable } from './Transactions/VirtualizedTransactionTable';
 
 const TransactionDrawer = lazy(() => import('./TransactionDrawer'));
 
@@ -41,6 +43,7 @@ const LOAD_MORE = 25;
 const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsProp, onNavigate }) => {
   const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
+  const isMobile = useIsMobile();
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -306,94 +309,28 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
 
       {/* Table with infinite scroll */}
       {loading && transactions.length === 0 ? (
-        <LoadingSpinner size="lg" text="Loading transactions..." className="h-64" />
+        <TransactionsSkeleton />
       ) : (
-        <div ref={containerRef} className="flex-1 overflow-y-auto">
-          {/* Desktop Table */}
-          <table className="w-full text-left hidden md:table">
-            <thead className="bg-slate-50 sticky top-0 z-10">
-              <tr>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Date</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Amount</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Payer</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Ref</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Allocated To</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {transactions.map((tx) => (
-                <tr
-                  key={tx.id}
-                  onClick={() => handleRowClick(tx.id)}
-                  className="hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 cursor-pointer"
-                >
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm text-slate-900 font-medium">{formatDate(tx.occurred_at)}</div>
-                    <div className="text-xs text-slate-400">{formatTime(tx.occurred_at)}</div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-bold text-green-600">
-                      {tx.amount.toLocaleString()} {tx.currency || 'RWF'}
-                    </div>
-                    <div className="text-xs text-slate-400">{tx.channel}</div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm text-slate-900">
-                      {tx.payer_name || tx.payer_phone || '—'}
-                    </div>
-                    {tx.payer_name && tx.payer_phone && (
-                      <div className="text-xs text-slate-400 font-mono">{tx.payer_phone}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-xs text-slate-600 font-mono max-w-[120px] truncate">
-                      {tx.momo_ref || tx.reference || '—'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {getStatusBadge(tx.allocation_status)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {tx.member_id ? (
-                      <div>
-                        <div className="text-sm text-slate-900">{tx.members?.full_name || '—'}</div>
-                        {tx.groups?.name && (
-                          <div className="text-xs text-slate-400">{tx.groups.name}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-400">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              
-              {/* Loading more indicator */}
-              {loadingMore && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2 text-slate-500">
-                      <Loader2 size={16} className="animate-spin" />
-                      <span className="text-sm">Loading more...</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-              
-              {/* End of list indicator */}
-              {!hasMore && transactions.length > 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-sm text-slate-400">
-                    All {transactions.length} transactions loaded
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div ref={containerRef} className="flex-1 overflow-hidden flex flex-col">
+          {/* Desktop Table with Virtualization */}
+          {!isMobile && (
+          <div className="flex-1 overflow-hidden">
+            <VirtualizedTransactionTable
+              transactions={transactions}
+              onRowClick={handleRowClick}
+              formatDate={formatDate}
+              formatTime={formatTime}
+              getStatusBadge={getStatusBadge}
+              onScroll={loadMore}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+            />
+          </div>
+          )}
 
           {/* Mobile Cards */}
-          <div className="md:hidden p-4 space-y-3">
+          {isMobile && (
+          <div className="p-4 space-y-3">
             {transactions.map((tx) => (
               <div
                 key={tx.id}
@@ -442,6 +379,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
               </div>
             )}
           </div>
+          )}
 
           {transactions.length === 0 && !loading && (
             <EmptyState

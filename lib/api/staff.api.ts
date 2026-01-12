@@ -29,21 +29,24 @@ export interface UpdateStaffParams {
  * Fetch all staff for an institution
  */
 export async function fetchStaff(institutionId?: string) {
-  let query = supabase
-    .from('profiles')
-    .select('user_id, email, role, full_name, branch, avatar_url, status, last_login_at, institution_id');
+  const key = `fetchStaff:${institutionId || 'all'}`;
+  return deduplicateRequest(key, async () => {
+    let query = supabase
+      .from('profiles')
+      .select('user_id, email, role, full_name, branch, avatar_url, status, last_login_at, institution_id');
 
-  if (institutionId) {
-    query = query.eq('institution_id', institutionId);
-  }
+    if (institutionId) {
+      query = query.eq('institution_id', institutionId);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    throw new Error(`Failed to fetch staff: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch staff: ${error.message}`);
+    }
 
-  return data as SupabaseProfile[];
+    return data as SupabaseProfile[];
+  });
 }
 
 /**

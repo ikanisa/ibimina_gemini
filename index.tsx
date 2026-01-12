@@ -1,12 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { initSentry } from './lib/sentry';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
+import { queryClient } from './lib/query-client';
 import { clearLegacyPwaCaches } from './lib/pwa';
 import './index.css';
+
+// React Query DevTools - lazy load only in development
+const ReactQueryDevtools = import.meta.env.DEV
+  ? React.lazy(() => import('@tanstack/react-query-devtools').then((mod) => ({ default: mod.ReactQueryDevtools })))
+  : null;
 
 // Initialize Sentry error tracking (before React renders)
 initSentry();
@@ -25,9 +32,17 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+        {/* React Query DevTools - only in development */}
+        {ReactQueryDevtools && (
+          <React.Suspense fallback={null}>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </React.Suspense>
+        )}
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

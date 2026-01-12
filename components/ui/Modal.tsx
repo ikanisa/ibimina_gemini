@@ -5,7 +5,9 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { modalBackdrop, modalContent, transitions } from '../../lib/animations/framer-motion';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -106,30 +108,37 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      role="presentation"
-      onClick={closeOnOverlayClick ? onClose : undefined}
-    >
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="presentation"
+          onClick={closeOnOverlayClick ? onClose : undefined}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          {/* Overlay */}
+          <motion.div
+            className="absolute inset-0 bg-black/50"
+            aria-hidden="true"
+            variants={modalBackdrop}
+            transition={transitions.normal}
+          />
 
-      {/* Modal Content */}
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? titleId : undefined}
-        className={`relative bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200`}
-        onClick={(e) => e.stopPropagation()}
-        tabIndex={-1}
-      >
+          {/* Modal Content */}
+          <motion.div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            className={`relative bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
+            onClick={(e) => e.stopPropagation()}
+            tabIndex={-1}
+            variants={modalContent}
+            transition={transitions.spring}
+          >
         {/* Header */}
         {(title || showCloseButton) && (
           <div className="p-6 border-b border-slate-200 flex justify-between items-center">
@@ -158,8 +167,10 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
           {children}
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

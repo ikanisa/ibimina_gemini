@@ -1,12 +1,13 @@
 /**
- * Custom hook for member data management with infinite scroll support
+ * Custom hook for member data management with React Query
  * 
- * Provides a clean interface for components to interact with member data,
- * including loading states, error handling, and CRUD operations.
+ * Provides a clean interface for components to interact with member data
+ * Uses React Query for caching, background refetching, and optimistic updates
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import * as membersApi from '../lib/api/members.api';
+import { queryKeys } from '../lib/query-client';
 import type { SupabaseMember } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,6 +30,9 @@ export interface UseMembersReturn {
   updateMember: (id: string, params: membersApi.UpdateMemberParams) => Promise<SupabaseMember>;
   deleteMember: (id: string) => Promise<void>;
   searchMembers: (searchTerm: string) => Promise<SupabaseMember[]>;
+  // Additional React Query features
+  isFetching: boolean;
+  isRefetching: boolean;
 }
 
 const DEFAULT_INITIAL_LIMIT = 50;
@@ -42,133 +46,172 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
     initialLimit = DEFAULT_INITIAL_LIMIT,
     loadMoreLimit = DEFAULT_LOAD_MORE_LIMIT
   } = options;
+  const queryClient = useQueryClient();
 
-  const [members, setMembers] = useState<SupabaseMember[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
-  const loadingRef = useRef(false);
+  // Build query key
+  const queryKey = queryKeys.members.list({
+    institutionId: institutionId || '',
+    searchTerm: undefined, // Can be extended later
+  });
 
-  const fetchMembers = useCallback(async (loadOffset: number = 0, limit: number = initialLimit, append: boolean = false) => {
-    if (!institutionId) {
-      setMembers([]);
-      return;
-    }
-
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      const data = includeGroups
-        ? await membersApi.fetchMembersWithGroups(institutionId, { limit, offset: loadOffset })
-        : await membersApi.fetchMembers(institutionId, { limit, offset: loadOffset });
-      
-      if (append) {
-        setMembers(prev => [...prev, ...data]);
-      } else {
-        setMembers(data);
+  // Use infinite query for pagination
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isRefetching,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    refetch: refetchQuery,
+  } = useInfiniteQuery({
+    queryKey: [...queryKey, 'infinite'],
+    queryFn: async ({ pageParam = 0 }) => {
+      if (!institutionId) {
+        return { data: [], nextPage: null };
       }
+
+      const limit = pageParam === 0 ? initialLimit : loadMoreLimit;
+      const data = includeGroups
+        ? await membersApi.fetchMembersWithGroups(institutionId, { limit, offset: pageParam })
+        : await membersApi.fetchMembers(institutionId, { limit, offset: pageParam });
+
+      // fetchMembersWithGroups returns MemberWithGroups[], fetchMembers returns SupabaseMember[]
+      const members = data as SupabaseMember[];
+
+      return {
+        data: members,
+        nextPage: members.length === limit ? pageParam + members.length : null,
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    enabled: autoFetch && !!institutionId,
+    initialPageParam: 0,
+  });
+
+  // Flatten pages into single array
+  const members = data?.pages.flatMap(page => page.data) || [];
+
+  // Create member mutation with optimistic update
+  const createMutation = useMutation({
+    mutationFn: (params: membersApi.CreateMemberParams) =>
+      membersApi.createMember(params),
+    onSuccess: (newMember) => {
+      // Invalidate and refetch members list
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.lists() });
       
-      setOffset(loadOffset + data.length);
-      setHasMore(data.length === limit);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch members';
-      setError(errorMessage);
-      console.error('Error fetching members:', err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      loadingRef.current = false;
-    }
-  }, [institutionId, includeGroups, initialLimit]);
+      // Optionally update the cache optimistically
+      queryClient.setQueryData<typeof data>(
+        [...queryKey, 'infinite'],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page, idx) => 
+              idx === 0 
+                ? { ...page, data: [newMember, ...page.data] }
+                : page
+            ),
+          };
+        }
+      );
+    },
+  });
 
-  const loadMore = useCallback(async () => {
-    if (loadingRef.current || !hasMore || loading) return;
-    loadingRef.current = true;
-    await fetchMembers(offset, loadMoreLimit, true);
-  }, [offset, hasMore, loading, fetchMembers, loadMoreLimit]);
+  // Update member mutation with optimistic update
+  const updateMutation = useMutation({
+    mutationFn: ({ id, params }: { id: string; params: membersApi.UpdateMemberParams }) =>
+      membersApi.updateMember(id, params),
+    onMutate: async ({ id, params }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey });
 
-  const refetch = useCallback(async () => {
-    setOffset(0);
-    setHasMore(true);
-    await fetchMembers(0, initialLimit, false);
-  }, [fetchMembers, initialLimit]);
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData<typeof data>([...queryKey, 'infinite']);
 
-  useEffect(() => {
-    if (autoFetch) {
-      fetchMembers(0, initialLimit, false);
-    }
-  }, [autoFetch, fetchMembers, initialLimit]);
+      // Optimistically update
+      queryClient.setQueryData<typeof data>(
+        [...queryKey, 'infinite'],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map(page => ({
+              ...page,
+              data: page.data.map(m => m.id === id ? { ...m, ...params } as SupabaseMember : m),
+            })),
+          };
+        }
+      );
 
-  const createMember = useCallback(async (params: membersApi.CreateMemberParams) => {
-    setError(null);
-    try {
-      const newMember = await membersApi.createMember(params);
-      setMembers(prev => [newMember, ...prev]);
-      return newMember;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create member';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData([...queryKey, 'infinite'], context.previousData);
+      }
+    },
+    onSuccess: () => {
+      // Invalidate to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.lists() });
+    },
+  });
 
-  const updateMember = useCallback(async (id: string, params: membersApi.UpdateMemberParams) => {
-    setError(null);
-    try {
-      const updated = await membersApi.updateMember(id, params);
-      setMembers(prev => prev.map(m => m.id === id ? updated : m));
-      return updated;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update member';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+  // Delete member mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => membersApi.deleteMember(id),
+    onSuccess: () => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.lists() });
+    },
+  });
 
-  const deleteMember = useCallback(async (id: string) => {
-    setError(null);
-    try {
-      await membersApi.deleteMember(id);
-      setMembers(prev => prev.filter(m => m.id !== id));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete member';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+  const createMember = async (params: membersApi.CreateMemberParams) => {
+    return createMutation.mutateAsync(params);
+  };
 
-  const searchMembers = useCallback(async (searchTerm: string) => {
+  const updateMember = async (id: string, params: membersApi.UpdateMemberParams) => {
+    return updateMutation.mutateAsync({ id, params });
+  };
+
+  const deleteMember = async (id: string) => {
+    return deleteMutation.mutateAsync(id);
+  };
+
+  const searchMembers = async (searchTerm: string) => {
     if (!institutionId) return [];
-    
-    setError(null);
     try {
-      const results = await membersApi.searchMembers(institutionId, searchTerm);
-      return results;
+      return await membersApi.searchMembers(institutionId, searchTerm);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to search members';
-      setError(errorMessage);
+      console.error('Error searching members:', err);
       return [];
     }
-  }, [institutionId]);
+  };
+
+  const loadMore = async () => {
+    if (hasNextPage && !isFetching) {
+      await fetchNextPage();
+    }
+  };
+
+  const refetch = async () => {
+    await refetchQuery();
+  };
 
   return {
     members,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
+    loading: isLoading,
+    loadingMore: isFetching && !isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch members') : null,
+    hasMore: hasNextPage || false,
     refetch,
     loadMore,
     createMember,
     updateMember,
     deleteMember,
-    searchMembers
+    searchMembers,
+    isFetching,
+    isRefetching,
   };
 }

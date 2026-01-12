@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Menu, Bell, Search, WifiOff, LogOut, UserCircle, KeyRound } from 'lucide-react';
 import { ViewState } from '../../types';
 import type { HeaderProps } from './types';
+import { useIsMobile, useIsTabletOrLarger } from '../../hooks/useResponsive';
 
 export const Header: React.FC<HeaderProps> = ({
   currentView,
@@ -19,6 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   onMobileMenuToggle,
   onChangePassword,
 }) => {
+  const isMobile = useIsMobile();
+  const isTabletOrLarger = useIsTabletOrLarger();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const getViewTitle = () => {
@@ -49,13 +52,15 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-40 sticky top-0 backdrop-blur-sm bg-white/95">
       <div className="flex items-center gap-4">
+        {isMobile && (
         <button
-          className="md:hidden text-slate-500 p-2 -ml-2 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="text-slate-500 p-2 -ml-2 rounded-lg hover:bg-slate-100 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
           onClick={onMobileMenuToggle}
           aria-label="Toggle menu"
         >
           <Menu size={24} />
         </button>
+        )}
         <h2 className="text-base md:text-lg font-semibold text-slate-800 truncate">
           {getViewTitle()}
         </h2>
@@ -75,7 +80,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        <div className="relative hidden lg:block">
+        {isTabletOrLarger && (
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
@@ -83,6 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="pl-9 pr-4 py-2 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 xl:w-64 transition-all"
           />
         </div>
+        )}
         <button
           className="relative text-slate-500 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-slate-100 active:scale-95 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Notifications"

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ViewState } from '../../types';
 import { cn } from '../../lib/utils/cn';
+import { useIsMobile } from '../../hooks/useResponsive';
 
 interface MobileBottomNavProps {
   currentView: ViewState;
@@ -53,13 +54,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onNavigate,
   canAccess,
 }) => {
+  const isMobile = useIsMobile();
   const visibleItems = navItems.filter((item) => canAccess(item.view));
 
-  if (visibleItems.length === 0) return null;
+  if (visibleItems.length === 0 || !isMobile) return null;
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200"
       aria-label="Main navigation"
     >
       <div className="grid grid-cols-5 h-16">

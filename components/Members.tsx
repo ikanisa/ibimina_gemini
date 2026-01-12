@@ -13,6 +13,7 @@ import { useMembers } from '../hooks';
 import { transformMembers } from '../lib/transformers/memberTransformer';
 import { PageLayout, Section } from './layout';
 import { Button, SearchInput, ErrorDisplay } from './ui';
+import { MembersSkeleton } from './ui/PageSkeletons';
 import { MembersList } from './members/MembersList';
 import { MemberDetail } from './members/MemberDetail';
 import { AddMemberModal } from './members/AddMemberModal';
@@ -72,6 +73,17 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
       (m) => m.name.toLowerCase().includes(term) || m.phone.includes(term)
     );
   }, [members, searchTerm]);
+
+  // Show skeleton while loading initial data
+  if (loading && !membersProp && !useMockData && members.length === 0) {
+    return (
+      <PageLayout>
+        <Section>
+          <MembersSkeleton />
+        </Section>
+      </PageLayout>
+    );
+  }
 
   return (
     <>

@@ -1,12 +1,13 @@
 /**
- * Custom hook for group data management with infinite scroll support
+ * Custom hook for group data management with React Query
  * 
- * Provides a clean interface for components to interact with group data,
- * including loading states, error handling, and CRUD operations.
+ * Provides a clean interface for components to interact with group data
+ * Uses React Query for caching, background refetching, and optimistic updates
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import * as groupsApi from '../lib/api/groups.api';
+import { queryKeys } from '../lib/query-client';
 import type { SupabaseGroup } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -30,6 +31,9 @@ export interface UseGroupsReturn {
   updateGroup: (id: string, params: groupsApi.UpdateGroupParams) => Promise<SupabaseGroup>;
   deleteGroup: (id: string) => Promise<void>;
   searchGroups: (searchTerm: string) => Promise<SupabaseGroup[]>;
+  // Additional React Query features
+  isFetching: boolean;
+  isRefetching: boolean;
 }
 
 const DEFAULT_INITIAL_LIMIT = 50;
@@ -43,151 +47,182 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
     initialLimit = DEFAULT_INITIAL_LIMIT,
     loadMoreLimit = DEFAULT_LOAD_MORE_LIMIT
   } = options;
+  const queryClient = useQueryClient();
 
-  const [groups, setGroups] = useState<SupabaseGroup[]>([]);
-  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
-  const loadingRef = useRef(false);
+  // Build query key
+  const queryKey = queryKeys.groups.list({
+    institutionId: institutionId || '',
+    searchTerm: undefined, // Can be extended later
+  });
 
-  const fetchGroups = useCallback(async (loadOffset: number = 0, limit: number = initialLimit, append: boolean = false) => {
-    if (!institutionId) {
-      setGroups([]);
-      setMemberCounts({});
-      return;
-    }
-
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      if (includeMemberCounts) {
-        const { groups: fetchedGroups, memberCounts: counts } = 
-          await groupsApi.fetchGroupsWithMemberCounts(institutionId, { limit, offset: loadOffset });
-        
-        if (append) {
-          setGroups(prev => [...prev, ...fetchedGroups]);
-          setMemberCounts(prev => ({ ...prev, ...counts }));
-        } else {
-          setGroups(fetchedGroups);
-          setMemberCounts(counts);
-        }
-        
-        setOffset(loadOffset + fetchedGroups.length);
-        setHasMore(fetchedGroups.length === limit);
-      } else {
-        const fetchedGroups = await groupsApi.fetchGroups(institutionId, { limit, offset: loadOffset });
-        
-        if (append) {
-          setGroups(prev => [...prev, ...fetchedGroups]);
-        } else {
-          setGroups(fetchedGroups);
-        }
-        
-        setOffset(loadOffset + fetchedGroups.length);
-        setHasMore(fetchedGroups.length === limit);
-        setMemberCounts({});
+  // Use infinite query for pagination
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isRefetching,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    refetch: refetchQuery,
+  } = useInfiniteQuery({
+    queryKey: [...queryKey, 'infinite', includeMemberCounts],
+    queryFn: async ({ pageParam = 0 }) => {
+      if (!institutionId) {
+        return { data: [], memberCounts: {}, nextPage: null };
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch groups';
-      setError(errorMessage);
-      console.error('Error fetching groups:', err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      loadingRef.current = false;
-    }
-  }, [institutionId, includeMemberCounts, initialLimit]);
 
-  const loadMore = useCallback(async () => {
-    if (loadingRef.current || !hasMore || loading) return;
-    loadingRef.current = true;
-    await fetchGroups(offset, loadMoreLimit, true);
-  }, [offset, hasMore, loading, fetchGroups, loadMoreLimit]);
+      const limit = pageParam === 0 ? initialLimit : loadMoreLimit;
 
-  const refetch = useCallback(async () => {
-    setOffset(0);
-    setHasMore(true);
-    await fetchGroups(0, initialLimit, false);
-  }, [fetchGroups, initialLimit]);
+      if (includeMemberCounts) {
+        const result = await groupsApi.fetchGroupsWithMemberCounts(
+          institutionId, 
+          { limit, offset: pageParam }
+        );
+        return {
+          data: result.groups,
+          memberCounts: result.memberCounts,
+          nextPage: result.groups.length === limit ? pageParam + result.groups.length : null,
+        };
+      } else {
+        const groups = await groupsApi.fetchGroups(institutionId, { limit, offset: pageParam });
+        return {
+          data: groups,
+          memberCounts: {},
+          nextPage: groups.length === limit ? pageParam + groups.length : null,
+        };
+      }
+    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    enabled: autoFetch && !!institutionId,
+    initialPageParam: 0,
+  });
 
-  useEffect(() => {
-    if (autoFetch) {
-      fetchGroups(0, initialLimit, false);
-    }
-  }, [autoFetch, fetchGroups, initialLimit]);
+  // Flatten pages into single array and merge member counts
+  const groups = data?.pages.flatMap(page => page.data) || [];
+  const memberCounts = data?.pages.reduce((acc, page) => ({ ...acc, ...page.memberCounts }), {}) || {};
 
-  const createGroup = useCallback(async (params: groupsApi.CreateGroupParams) => {
-    setError(null);
-    try {
-      const newGroup = await groupsApi.createGroup(params);
-      setGroups(prev => [newGroup, ...prev]);
-      return newGroup;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create group';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+  // Create group mutation with optimistic update
+  const createMutation = useMutation({
+    mutationFn: (params: groupsApi.CreateGroupParams) =>
+      groupsApi.createGroup(params),
+    onSuccess: (newGroup) => {
+      // Invalidate and refetch groups list
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
+      
+      // Optionally update the cache optimistically
+      queryClient.setQueryData<typeof data>(
+        [...queryKey, 'infinite', includeMemberCounts],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page, idx) => 
+              idx === 0 
+                ? { ...page, data: [newGroup, ...page.data] }
+                : page
+            ),
+          };
+        }
+      );
+    },
+  });
 
-  const updateGroup = useCallback(async (id: string, params: groupsApi.UpdateGroupParams) => {
-    setError(null);
-    try {
-      const updated = await groupsApi.updateGroup(id, params);
-      setGroups(prev => prev.map(g => g.id === id ? updated : g));
-      return updated;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update group';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+  // Update group mutation with optimistic update
+  const updateMutation = useMutation({
+    mutationFn: ({ id, params }: { id: string; params: groupsApi.UpdateGroupParams }) =>
+      groupsApi.updateGroup(id, params),
+    onMutate: async ({ id, params }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey });
 
-  const deleteGroup = useCallback(async (id: string) => {
-    setError(null);
-    try {
-      await groupsApi.deleteGroup(id);
-      setGroups(prev => prev.filter(g => g.id !== id));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete group';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData<typeof data>([...queryKey, 'infinite', includeMemberCounts]);
 
-  const searchGroups = useCallback(async (searchTerm: string) => {
+      // Optimistically update
+      queryClient.setQueryData<typeof data>(
+        [...queryKey, 'infinite', includeMemberCounts],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map(page => ({
+              ...page,
+              data: page.data.map(g => g.id === id ? { ...g, ...params } as SupabaseGroup : g),
+            })),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData([...queryKey, 'infinite', includeMemberCounts], context.previousData);
+      }
+    },
+    onSuccess: () => {
+      // Invalidate to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
+    },
+  });
+
+  // Delete group mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => groupsApi.deleteGroup(id),
+    onSuccess: () => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
+    },
+  });
+
+  const createGroup = async (params: groupsApi.CreateGroupParams) => {
+    return createMutation.mutateAsync(params);
+  };
+
+  const updateGroup = async (id: string, params: groupsApi.UpdateGroupParams) => {
+    return updateMutation.mutateAsync({ id, params });
+  };
+
+  const deleteGroup = async (id: string) => {
+    return deleteMutation.mutateAsync(id);
+  };
+
+  const searchGroups = async (searchTerm: string) => {
     if (!institutionId) return [];
-    
-    setError(null);
     try {
-      const results = await groupsApi.searchGroups(institutionId, searchTerm);
-      return results;
+      return await groupsApi.searchGroups(institutionId, searchTerm);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to search groups';
-      setError(errorMessage);
+      console.error('Error searching groups:', err);
       return [];
     }
-  }, [institutionId]);
+  };
+
+  const loadMore = async () => {
+    if (hasNextPage && !isFetching) {
+      await fetchNextPage();
+    }
+  };
+
+  const refetch = async () => {
+    await refetchQuery();
+  };
 
   return {
     groups,
     memberCounts,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
+    loading: isLoading,
+    loadingMore: isFetching && !isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch groups') : null,
+    hasMore: hasNextPage || false,
     refetch,
     loadMore,
     createGroup,
     updateGroup,
     deleteGroup,
-    searchGroups
+    searchGroups,
+    isFetching,
+    isRefetching,
   };
 }

@@ -36,31 +36,34 @@ export async function fetchSmsMessages(institutionId: string, filters?: {
   limit?: number;
   offset?: number;
 }) {
-  let query = supabase
-    .from('sms_messages')
-    .select('*')
-    .eq('institution_id', institutionId);
+  const key = `fetchSmsMessages:${institutionId}:${JSON.stringify(filters || {})}`;
+  return deduplicateRequest(key, async () => {
+    let query = supabase
+      .from('sms_messages')
+      .select('*')
+      .eq('institution_id', institutionId);
 
-  if (filters?.isParsed !== undefined) {
-    query = query.eq('is_parsed', filters.isParsed);
-  }
+    if (filters?.isParsed !== undefined) {
+      query = query.eq('is_parsed', filters.isParsed);
+    }
 
-  query = query.order('timestamp', { ascending: false });
+    query = query.order('timestamp', { ascending: false });
 
-  if (filters?.limit) {
-    query = query.limit(filters.limit);
-  }
-  if (filters?.offset) {
-    query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
-  }
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (filters?.offset) {
+      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    throw new Error(`Failed to fetch SMS messages: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch SMS messages: ${error.message}`);
+    }
 
-  return data as SupabaseSmsMessage[];
+    return data as SupabaseSmsMessage[];
+  });
 }
 
 /**

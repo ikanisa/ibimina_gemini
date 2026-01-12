@@ -3,6 +3,8 @@
  */
 
 import React from 'react';
+import { motion } from 'framer-motion';
+import { loadingSpin } from '../../lib/animations/framer-motion';
 
 export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
@@ -23,13 +25,22 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-      <div
-        className={`animate-spin rounded-full border-b-2 border-blue-600 ${sizeClasses[size]}`}
+      <motion.div
+        className={`rounded-full border-b-2 border-blue-600 ${sizeClasses[size]}`}
         role="status"
         aria-label="Loading"
+        variants={loadingSpin}
+        animate="animate"
       />
       {text && (
-        <p className="text-sm text-slate-500">{text}</p>
+        <motion.p 
+          className="text-sm text-slate-500"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          {text}
+        </motion.p>
       )}
     </div>
   );

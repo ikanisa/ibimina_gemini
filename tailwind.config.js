@@ -1,3 +1,5 @@
+import { tokens } from './lib/design-tokens';
+
 export default {
   content: [
     './index.html',
@@ -10,8 +12,31 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        primary: tokens.colors.primary,
+        success: tokens.colors.success,
+        warning: tokens.colors.warning,
+        danger: tokens.colors.danger,
+        neutral: tokens.colors.neutral,
+      },
+      spacing: tokens.spacing,
+      borderRadius: tokens.borderRadius,
       fontFamily: {
+        sans: tokens.typography.fontFamily.sans,
+        mono: tokens.typography.fontFamily.mono,
         inter: ['Inter', 'sans-serif']
+      },
+      fontSize: tokens.typography.fontSize,
+      fontWeight: tokens.typography.fontWeight,
+      lineHeight: tokens.typography.lineHeight,
+      boxShadow: tokens.shadows,
+      transitionDuration: tokens.transitions,
+      transitionTimingFunction: tokens.easing,
+      zIndex: tokens.zIndex,
+      screens: {
+        ...tokens.breakpoints,
+        'xs': '475px',
+        'touch': { 'raw': '(hover: none) and (pointer: coarse)' }
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',
@@ -68,12 +93,9 @@ export default {
         }
       },
       transitionDuration: {
+        ...tokens.transitions,
         '2000': '2000ms',
         '3000': '3000ms'
-      },
-      screens: {
-        'xs': '475px',
-        'touch': { 'raw': '(hover: none) and (pointer: coarse)' }
       }
     }
   },

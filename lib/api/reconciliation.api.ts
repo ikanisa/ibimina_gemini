@@ -24,28 +24,31 @@ export async function fetchReconciliationIssues(institutionId: string, filters?:
   status?: 'OPEN' | 'RESOLVED' | 'IGNORED';
   limit?: number;
 }) {
-  let query = supabase
-    .from('reconciliation_issues')
-    .select('*')
-    .eq('institution_id', institutionId);
+  const key = `fetchReconciliationIssues:${institutionId}:${JSON.stringify(filters || {})}`;
+  return deduplicateRequest(key, async () => {
+    let query = supabase
+      .from('reconciliation_issues')
+      .select('*')
+      .eq('institution_id', institutionId);
 
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
-  }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
 
-  query = query.order('detected_at', { ascending: false });
+    query = query.order('detected_at', { ascending: false });
 
-  if (filters?.limit) {
-    query = query.limit(filters.limit);
-  }
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    throw new Error(`Failed to fetch reconciliation issues: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch reconciliation issues: ${error.message}`);
+    }
 
-  return data as SupabaseReconciliationIssue[];
+    return data as SupabaseReconciliationIssue[];
+  });
 }
 
 /**

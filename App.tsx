@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 import { Eye, WifiOff } from 'lucide-react';
 import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
@@ -12,6 +13,7 @@ import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './
 import { useAuth } from './contexts/AuthContext';
 import { buildInitialsAvatar } from './lib/avatars';
 import { Sidebar, Header, MobileBottomNav } from './components/navigation';
+import { AnimatedPage } from './components/ui/AnimatedPage';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const MinimalistDashboard = lazy(() => import('./components/MinimalistDashboard'));
@@ -398,63 +400,91 @@ const App: React.FC = () => {
               onChangePassword={() => setIsChangePasswordOpen(true)}
             />
 
-            {/* View Area */}
+            {/* View Area with Page Transitions */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth pb-20 md:pb-6">
               <Suspense fallback={<SectionLoading />}>
-                {currentView === ViewState.DASHBOARD && (
-                  showMinimalistDashboard ? (
-                    <MinimalistDashboard onNavigate={setCurrentView} />
-                  ) : (
-                    <Dashboard
-                      stats={dashboardStats}
-                      recentTransactions={dashboardTransactions}
-                      onNavigate={setCurrentView}
-                    />
-                  )
-                )}
-                {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
-                  <Groups onNavigate={setCurrentView} institutionId={institutionId} />
-                )}
-                {currentView === ViewState.INSTITUTIONS && canAccess(ViewState.INSTITUTIONS) && (
-                  <Institutions onNavigate={setCurrentView} />
-                )}
-                {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
-                  <Members members={useMockData ? MOCK_MEMBERS : undefined} onNavigate={setCurrentView} />
-                )}
-                {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
-                  <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
-                )}
-                {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && <Reports />}
-                {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
-                  <Staff
-                    currentUser={currentUser}
-                    onImpersonate={(staff) => {
-                      setViewingAsUser(staff);
-                      setCurrentView(ViewState.DASHBOARD);
-                    }}
-                  />
-                )}
-                {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && (
-                  <SettingsPage />
-                )}
-                {currentView === ViewState.SMS_GATEWAY_DEVICES && canAccess(ViewState.SMS_GATEWAY_DEVICES) && (
-                  <SmsGatewayDevices />
-                )}
-                {currentView === ViewState.PROFILE && <Profile user={currentUser} />}
-
-                {!canAccess(currentView) &&
-                  currentView !== ViewState.PROFILE &&
-                  currentView !== ViewState.DASHBOARD && (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                      <div className="bg-red-50 p-6 rounded-full mb-4 text-red-500">
-                        <Eye size={48} />
-                      </div>
-                      <h3 className="text-lg font-semibold text-slate-700">Access Denied</h3>
-                      <p className="max-w-sm text-center mt-2">
-                        Your role as <strong>{currentUser.role}</strong> does not have permission to view this section.
-                      </p>
-                    </div>
+                <AnimatePresence mode="wait">
+                  {currentView === ViewState.DASHBOARD && (
+                    <AnimatedPage key="dashboard" initial="fade">
+                      {showMinimalistDashboard ? (
+                        <MinimalistDashboard onNavigate={setCurrentView} />
+                      ) : (
+                        <Dashboard
+                          stats={dashboardStats}
+                          recentTransactions={dashboardTransactions}
+                          onNavigate={setCurrentView}
+                        />
+                      )}
+                    </AnimatedPage>
                   )}
+                  {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
+                    <AnimatedPage key="groups" initial="slide">
+                      <Groups onNavigate={setCurrentView} institutionId={institutionId} />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.INSTITUTIONS && canAccess(ViewState.INSTITUTIONS) && (
+                    <AnimatedPage key="institutions" initial="slide">
+                      <Institutions onNavigate={setCurrentView} />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
+                    <AnimatedPage key="members" initial="slide">
+                      <Members members={useMockData ? MOCK_MEMBERS : undefined} onNavigate={setCurrentView} />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
+                    <AnimatedPage key="transactions" initial="slide">
+                      <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && (
+                    <AnimatedPage key="reports" initial="slide">
+                      <Reports />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
+                    <AnimatedPage key="staff" initial="slide">
+                      <Staff
+                        currentUser={currentUser}
+                        onImpersonate={(staff) => {
+                          setViewingAsUser(staff);
+                          setCurrentView(ViewState.DASHBOARD);
+                        }}
+                      />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && (
+                    <AnimatedPage key="settings" initial="slide">
+                      <SettingsPage />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.SMS_GATEWAY_DEVICES && canAccess(ViewState.SMS_GATEWAY_DEVICES) && (
+                    <AnimatedPage key="sms-gateway" initial="slide">
+                      <SmsGatewayDevices />
+                    </AnimatedPage>
+                  )}
+                  {currentView === ViewState.PROFILE && (
+                    <AnimatedPage key="profile" initial="fade">
+                      <Profile user={currentUser} />
+                    </AnimatedPage>
+                  )}
+
+                  {!canAccess(currentView) &&
+                    currentView !== ViewState.PROFILE &&
+                    currentView !== ViewState.DASHBOARD && (
+                      <AnimatedPage key="access-denied" initial="scale">
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                          <div className="bg-red-50 p-6 rounded-full mb-4 text-red-500">
+                            <Eye size={48} />
+                          </div>
+                          <h3 className="text-lg font-semibold text-slate-700">Access Denied</h3>
+                          <p className="max-w-sm text-center mt-2">
+                            Your role as <strong>{currentUser.role}</strong> does not have permission to view this section.
+                          </p>
+                        </div>
+                      </AnimatedPage>
+                    )}
+                </AnimatePresence>
               </Suspense>
             </div>
 

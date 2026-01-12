@@ -9,6 +9,7 @@ import { Table, TableHeader, TableRow, TableHead, TableCell } from '../ui/Table'
 import { StatusIndicator } from '../ui/StatusIndicator';
 import { Calendar, ChevronRight, Briefcase } from 'lucide-react';
 import { EmptyState } from '../ui';
+import { VirtualizedGroupsList } from './VirtualizedGroupsList';
 
 interface GroupsListProps {
   groups: Group[];
@@ -34,6 +35,20 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
         title="No groups found"
         description={searchTerm ? 'No groups match your search.' : 'Create your first group to get started.'}
       />
+    );
+  }
+
+  // Use virtualization for large lists (50+ items)
+  const useVirtualization = filteredGroups.length > 50;
+
+  if (useVirtualization) {
+    return (
+      <div className="flex-1 overflow-hidden flex flex-col h-full">
+        <VirtualizedGroupsList
+          groups={filteredGroups}
+          onSelectGroup={onSelectGroup}
+        />
+      </div>
     );
   }
 

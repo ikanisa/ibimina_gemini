@@ -36,6 +36,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { transformGroups } from '../lib/transformers/groupTransformer';
 import { PageLayout, Section } from './layout';
 import { Button, SearchInput, ErrorDisplay, LoadingSpinner } from './ui';
+import { GroupsSkeleton } from './ui/PageSkeletons';
 import { GroupsList } from './groups/GroupsList';
 import { GroupDetail } from './groups/GroupDetail';
 import { CreateGroupModal } from './groups/CreateGroupModal';
@@ -83,6 +84,17 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
   // Create Group Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+
+  // Show skeleton while loading initial data
+  if (loading && !useMockData && groups.length === 0) {
+    return (
+      <PageLayout>
+        <Section>
+          <GroupsSkeleton />
+        </Section>
+      </PageLayout>
+    );
+  }
 
   // Calculate stats for header
   const totalGroupFunds = groups.reduce((sum, group) => sum + group.fundBalance, 0);

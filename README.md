@@ -167,16 +167,40 @@ npm install
 
 ### 2) Configure environment variables
 
-Create `.env.local` for the frontend app (start from `env.example`):
+Create `.env.local` for the frontend app (start from `.env.example`):
 
 ```bash
-cp env.example .env.local
-
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+cp .env.example .env.local
 ```
 
-> ⚠️ **Never put Supabase service role key in the frontend.**
+Then edit `.env.local` and add your Supabase credentials:
+
+```bash
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_USE_MOCK_DATA=false
+```
+
+**Where to get your Supabase credentials:**
+1. Go to [Supabase Dashboard](https://app.supabase.com)
+2. Select your project
+3. Navigate to **Settings → API**
+4. Copy the **Project URL** and **anon public** key
+
+> ⚠️ **Never put Supabase service role key in the frontend.** Only use the `anon` key (public key) which is safe to expose. Row Level Security (RLS) provides the actual security.
+
+**Verify your configuration:**
+
+```bash
+# Quick verification (checks file format and JWT structure)
+node -e "const fs=require('fs'); const env=fs.readFileSync('.env.local','utf8'); const url=env.match(/VITE_SUPABASE_URL=(.+)/)?.[1]?.trim(); const key=env.match(/VITE_SUPABASE_ANON_KEY=(.+)/)?.[1]?.trim(); console.log('URL:', url); console.log('Key:', key?.substring(0,30)+'...'); if(url&&key) console.log('✓ Configuration looks good');"
+```
+
+Or use the verification script:
+
+```bash
+node scripts/verify-supabase-config.js
+```
 
 For Edge Functions, set secrets via Supabase CLI:
 
@@ -205,7 +229,14 @@ supabase db reset
 npm run dev
 ```
 
-App will be available at `http://localhost:5173`
+App will be available at `http://localhost:3000` (configured in `vite.config.ts`)
+
+**Troubleshooting:**
+- **`placeholder.supabase.co` errors**: Make sure `.env.local` exists and has the correct `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values
+- **Environment variables not loading**: Restart the dev server after changing `.env.local` (Vite loads env vars at startup)
+- **Connection issues**: Check the browser console for `[Supabase Config]` log to verify the connection
+- **Network errors**: Verify your Supabase project is active (not paused) in the Supabase dashboard
+- **JWT errors**: Ensure you're using the `anon` key, not the `service_role` key
 
 ---
 
@@ -307,29 +338,43 @@ Before go-live:
 - [ ] UAT checklist completed on staging (see `docs/UAT.md`)
 - [ ] Rollback plan documented (see `docs/RELEASE_RUNBOOK.md`)
 
-See `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` for detailed checklist.
+**📊 Comprehensive Audit:** See `docs/AUDIT_REPORT.md` for a detailed production readiness assessment with:
+- Critical issues requiring immediate attention
+- Performance optimization recommendations
+- Security audit findings
+- UI/UX improvement suggestions
+- Complete production readiness checklist
+
+See `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` for additional checklist items.
 
 ---
 
 ## Project structure
 
 ```
-├── src/
-│   ├── components/       # React components
-│   ├── contexts/         # React contexts (Auth, etc.)
-│   ├── hooks/            # Custom hooks
-│   ├── lib/              # Supabase client, utilities
-│   └── types.ts          # TypeScript types
+├── components/           # React components (UI, dashboard, forms, etc.)
+├── contexts/             # React contexts (AuthContext, etc.)
+├── hooks/                # Custom React hooks
+├── lib/                  # Core libraries
+│   ├── api/              # API client, error handling
+│   ├── supabase.ts       # Supabase client configuration
+│   ├── env.ts            # Environment variable utilities
+│   └── ...               # Utilities, validation, transformers
 ├── supabase/
-│   ├── migrations/       # Database migrations
-│   ├── functions/        # Edge Functions
-│   └── seed/             # Seed data
+│   ├── migrations/       # Database migrations (SQL)
+│   ├── functions/        # Supabase Edge Functions
+│   ├── seed/             # Seed data for development
+│   └── config.toml       # Supabase local config
 ├── e2e/                  # Playwright E2E tests
-├── docs/                 # Documentation
+├── docs/                 # Comprehensive documentation
 │   ├── UAT.md            # User acceptance testing checklist
 │   ├── RELEASE_RUNBOOK.md # Deployment guide
+│   ├── DEPLOYMENT.md     # Deployment instructions
 │   └── redesign/         # Architecture & implementation docs
-├── public/               # Static assets + _redirects
+├── scripts/              # Utility scripts
+│   └── verify-supabase-config.js  # Configuration verification
+├── public/               # Static assets, _redirects, _headers
+├── .env.example          # Environment variables template
 └── package.json
 ```
 
@@ -339,12 +384,22 @@ See `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` for detailed checklist.
 
 | Document | Purpose |
 |----------|---------|
+| `docs/IMPLEMENTATION_PLAN.md` | **📋 Comprehensive implementation plan** - Gap analysis & prioritized roadmap to production readiness |
+| `docs/AUDIT_REPORT.md` | **Comprehensive fullstack audit & production readiness report** (Score: 7.2/10) |
 | `docs/UAT.md` | User acceptance testing checklist |
 | `docs/RELEASE_RUNBOOK.md` | Production deployment runbook |
+| `docs/DEPLOYMENT.md` | Deployment instructions for Cloudflare Pages |
+| `docs/deploy/env-matrix.md` | Complete environment variables reference |
 | `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` | Pre-launch checklist |
 | `docs/redesign/QA_GAP_REPORT.md` | Test coverage audit |
 | `docs/redesign/FINAL_SCHEMA.md` | Database schema documentation |
 | `docs/redesign/ROUTES_PAGES_MAP.md` | Frontend routes map |
+| `TROUBLESHOOTING.md` | Common issues and solutions |
+
+> **📋 Production Readiness:** 
+> - **Start here:** `docs/IMPLEMENTATION_PLAN.md` - Comprehensive gap analysis and 3-week implementation roadmap
+> - **Detailed audit:** `docs/AUDIT_REPORT.md` - Full assessment with recommendations
+> - **Current status:** ~60% of critical items implemented, ~25% partial, ~15% missing
 
 ---
 
@@ -375,7 +430,28 @@ See `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` for detailed checklist.
 - **Backend**: Supabase (PostgreSQL, Auth, Edge Functions, RLS)
 - **Hosting**: Cloudflare Pages
 - **Testing**: Playwright (E2E), Vitest (Unit)
-- **PWA**: vite-plugin-pwa
+- **PWA**: vite-plugin-pwa (Service Worker, offline support)
+
+## Environment Configuration
+
+### Local Development
+
+The app uses `.env.local` for local development (git-ignored). Required variables:
+
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anon/public key
+- `VITE_USE_MOCK_DATA` - Set to `false` for real Supabase connection (optional, defaults to `false`)
+
+See `.env.example` for the complete template.
+
+### Production/Cloudflare Pages
+
+For production deployments on Cloudflare Pages, set environment variables in:
+**Cloudflare Dashboard → Pages → Your Project → Settings → Environment Variables**
+
+Set the same `VITE_*` variables for Production, Preview, and Development environments as needed.
+
+**Important:** Environment variables must start with `VITE_` to be exposed to the browser. Never put secrets in `VITE_*` variables - only use the public `anon` key for Supabase.
 
 ---
 

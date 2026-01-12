@@ -4,7 +4,9 @@
  */
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils/cn';
+import { cardHover, transitions } from '../../lib/animations/framer-motion';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -28,8 +30,17 @@ export const Card: React.FC<CardProps> = React.memo(({
   hover = false,
   onClick,
 }) => {
+  const MotionDiv = hover || onClick ? motion.div : 'div';
+  const motionProps = hover || onClick ? {
+    variants: cardHover,
+    initial: 'initial',
+    whileHover: 'hover',
+    whileTap: 'tap',
+    transition: transitions.normal,
+  } : {};
+
   return (
-    <div
+    <MotionDiv
       className={cn(
         'bg-white rounded-lg border border-slate-200',
         paddingClasses[padding],
@@ -38,9 +49,10 @@ export const Card: React.FC<CardProps> = React.memo(({
         className
       )}
       onClick={onClick}
+      {...motionProps}
     >
       {children}
-    </div>
+    </MotionDiv>
   );
 });
 

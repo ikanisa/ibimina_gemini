@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useResponsive';
 
 // ============================================================================
 // TYPES
@@ -45,6 +46,7 @@ export function ResponsiveTable<T>({
     className = '',
     stickyHeader = false,
 }: ResponsiveTableProps<T>) {
+    const isMobile = useIsMobile();
     const [sortKey, setSortKey] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
@@ -99,7 +101,8 @@ export function ResponsiveTable<T>({
     return (
         <div className={className}>
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
+            {!isMobile && (
+            <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead className={stickyHeader ? 'sticky top-0 z-10' : ''}>
                         <tr className="bg-slate-50 border-b border-slate-200">
@@ -146,9 +149,11 @@ export function ResponsiveTable<T>({
                     </tbody>
                 </table>
             </div>
+            )}
 
             {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
+            {isMobile && (
+            <div className="space-y-3">
                 {sortedData.map((item) => (
                     <div
                         key={keyExtractor(item)}
@@ -179,6 +184,7 @@ export function ResponsiveTable<T>({
                     </div>
                 ))}
             </div>
+            )}
         </div>
     );
 }

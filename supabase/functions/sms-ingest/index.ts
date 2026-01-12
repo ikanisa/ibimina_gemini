@@ -55,6 +55,7 @@ function validateHmacSignature(
 }
 
 // ============================================================================
+// ============================================================================
 // Rate Limiting (In-Memory)
 // Limits: 100 requests per minute per API key (or IP if no key)
 // Note: In production with multiple instances, use Redis or KV storage
@@ -102,6 +103,39 @@ function cleanupRateLimitMap() {
   }
 }
 
+// ============================================================================
+// IP Allowlisting (Optional)
+// ============================================================================
+
+function isIPAllowed(clientIP: string | null): boolean {
+  const allowedIPs = Deno.env.get('SMS_WEBHOOK_ALLOWED_IPS')
+  
+  // If no allowlist configured, allow all (backward compatible)
+  if (!allowedIPs) {
+    return true
+  }
+  
+  // Parse comma-separated list of allowed IPs
+  const allowedIPList = allowedIPs.split(',').map(ip => ip.trim())
+  
+  // Check if client IP is in allowlist
+  if (!clientIP) {
+    return false
+  }
+  
+  // Support CIDR notation or exact IPs
+  return allowedIPList.some(allowedIP => {
+    if (allowedIP.includes('/')) {
+      // CIDR notation (simplified check - for production use a proper CIDR library)
+      const [network] = allowedIP.split('/')
+      // For now, just check if IP starts with network (simplified)
+      return clientIP.startsWith(network)
+    } else {
+      return clientIP === allowedIP
+    }
+  })
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -116,7 +150,24 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Step 1: Authentication
+    // ============================================================================
+    // Step 1: IP Allowlisting (if configured)
+    // ============================================================================
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 
+                     null
+    
+    if (!isIPAllowed(clientIP)) {
+      console.warn(`IP not allowed: ${clientIP}`)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: IP not allowed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ============================================================================
+    // Step 2: Authentication
+    // ============================================================================
     const apiKey = req.headers.get('x-api-key')
     const signature = req.headers.get('x-signature')
     const expectedApiKey = Deno.env.get('SMS_INGEST_API_KEY')
@@ -137,9 +188,11 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Step 1.5: Rate Limiting
-    // Use API key as client identifier, or fall back to a generic key
-    const clientId = apiKey || 'anonymous'
+    // ============================================================================
+    // Step 3: Rate Limiting
+    // ============================================================================
+    // Use API key as client identifier, or fall back to IP
+    const clientId = apiKey || `ip-${clientIP || 'anonymous'}`
     if (!checkRateLimit(clientId)) {
       return new Response(
         JSON.stringify({ success: false, error: 'Too many requests. Please slow down.' }),
