@@ -153,10 +153,11 @@ export async function searchSmsMessages(institutionId: string, searchTerm: strin
     .order('timestamp', { ascending: false })
     .limit(50);
 
-  if (error) {
-    throw new Error(`Failed to search SMS messages: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to search SMS messages: ${error.message}`);
+    }
 
-  return data as SupabaseSmsMessage[];
+    return data as SupabaseSmsMessage[];
+  });
 }
 
