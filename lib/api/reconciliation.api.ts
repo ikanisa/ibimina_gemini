@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../supabase';
+import { deduplicateRequest } from '../utils/requestDeduplication';
 import type { SupabaseReconciliationIssue } from '../../types';
 
 export interface CreateReconciliationIssueParams {
@@ -125,7 +126,9 @@ export async function ignoreReconciliationIssue(issueId: string, notes?: string)
  * Get reconciliation statistics
  */
 export async function getReconciliationStats(institutionId: string) {
-  const [openIssues, resolvedIssues, totalIssues] = await Promise.all([
+  const key = `getReconciliationStats:${institutionId}`;
+  return deduplicateRequest(key, async () => {
+    const [openIssues, resolvedIssues, totalIssues] = await Promise.all([
     supabase
       .from('reconciliation_issues')
       .select('id', { count: 'exact', head: true })
@@ -142,10 +145,11 @@ export async function getReconciliationStats(institutionId: string) {
       .eq('institution_id', institutionId)
   ]);
 
-  return {
-    open: openIssues.count || 0,
-    resolved: resolvedIssues.count || 0,
-    total: totalIssues.count || 0
-  };
+    return {
+      open: openIssues.count || 0,
+      resolved: resolvedIssues.count || 0,
+      total: totalIssues.count || 0
+    };
+  });
 }
 

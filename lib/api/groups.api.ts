@@ -75,7 +75,9 @@ export async function fetchGroups(institutionId: string, options: PaginationOpti
 export async function fetchGroupsWithMemberCounts(institutionId: string, options: PaginationOptions = {}) {
   const { limit, offset = 0 } = options;
   
-  let query = supabase
+  const key = `fetchGroupsWithMemberCounts:${institutionId}:${limit || 'all'}:${offset}`;
+  return deduplicateRequest(key, async () => {
+    let query = supabase
     .from('groups')
     .select('*')
     .eq('institution_id', institutionId)
@@ -98,27 +100,31 @@ export async function fetchGroupsWithMemberCounts(institutionId: string, options
     return acc;
   }, {} as Record<string, number>);
 
-  return {
-    groups: (groups || []) as SupabaseGroup[],
-    memberCounts
-  };
+    return {
+      groups: (groups || []) as SupabaseGroup[],
+      memberCounts
+    };
+  });
 }
 
 /**
  * Fetch a single group by ID
  */
 export async function fetchGroupById(groupId: string) {
-  const { data, error } = await supabase
-    .from('groups')
-    .select('*')
-    .eq('id', groupId)
-    .single();
+  const key = `fetchGroupById:${groupId}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('id', groupId)
+      .single();
 
-  if (error) {
-    throw new Error(`Failed to fetch group: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch group: ${error.message}`);
+    }
 
-  return data as SupabaseGroup;
+    return data as SupabaseGroup;
+  });
 }
 
 /**
@@ -186,7 +192,9 @@ export async function deleteGroup(groupId: string) {
  * Fetch group members (from groups.members JSONB)
  */
 export async function fetchGroupMembers(groupId: string) {
-  const { data: group, error } = await supabase
+  const key = `fetchGroupMembers:${groupId}`;
+  return deduplicateRequest(key, async () => {
+    const { data: group, error } = await supabase
     .from('groups')
     .select('members')
     .eq('id', groupId)
@@ -220,15 +228,16 @@ export async function fetchGroupMembers(groupId: string) {
 
   const membersMap = new Map((membersData || []).map(m => [m.id, m.full_name]));
 
-  return membersArray.map((m: any) => ({
-    id: m.member_id || '',
-    member_id: m.member_id,
-    role: m.role,
-    status: m.status,
-    joined_date: m.joined_date,
-    created_at: m.created_at,
-    members: m.member_id ? { full_name: membersMap.get(m.member_id) || null } : null,
-  })) as Array<SupabaseGroupMember & { members?: { full_name?: string | null } }>;
+    return membersArray.map((m: any) => ({
+      id: m.member_id || '',
+      member_id: m.member_id,
+      role: m.role,
+      status: m.status,
+      joined_date: m.joined_date,
+      created_at: m.created_at,
+      members: m.member_id ? { full_name: membersMap.get(m.member_id) || null } : null,
+    })) as Array<SupabaseGroupMember & { members?: { full_name?: string | null } }>;
+  });
 }
 
 /**
@@ -244,7 +253,9 @@ export async function fetchGroupMeetings(groupId: string) {
  * Fetch group contributions (from transactions table)
  */
 export async function fetchGroupContributions(groupId: string) {
-  const { data, error } = await supabase
+  const key = `fetchGroupContributions:${groupId}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
     .from('transactions')
     .select('*')
     .eq('group_id', groupId)
@@ -255,48 +266,54 @@ export async function fetchGroupContributions(groupId: string) {
     throw new Error(`Failed to fetch group contributions: ${error.message}`);
   }
 
-  // Map transactions to contribution format for compatibility
-  return (data || []).map(tx => ({
-    id: tx.id,
-    institution_id: tx.institution_id,
-    group_id: tx.group_id,
-    member_id: tx.member_id,
-    date: tx.occurred_at || tx.created_at,
-    amount: tx.amount,
-    method: tx.channel,
-    reference: tx.reference || tx.momo_ref,
-    status: tx.allocation_status === 'allocated' ? 'RECONCILED' : 'RECORDED',
-    created_at: tx.created_at,
-  })) as SupabaseContribution[];
+    // Map transactions to contribution format for compatibility
+    return (data || []).map(tx => ({
+      id: tx.id,
+      institution_id: tx.institution_id,
+      group_id: tx.group_id,
+      member_id: tx.member_id,
+      date: tx.occurred_at || tx.created_at,
+      amount: tx.amount,
+      method: tx.channel,
+      reference: tx.reference || tx.momo_ref,
+      status: tx.allocation_status === 'allocated' ? 'RECONCILED' : 'RECORDED',
+      created_at: tx.created_at,
+    })) as SupabaseContribution[];
+  });
 }
 
 /**
  * Fetch all group details (members, meetings, contributions) in parallel
  */
 export async function fetchGroupDetails(groupId: string) {
-  const [membersResult, meetingsResult, contributionsResult] = await Promise.all([
+  const key = `fetchGroupDetails:${groupId}`;
+  return deduplicateRequest(key, async () => {
+    const [membersResult, meetingsResult, contributionsResult] = await Promise.all([
     fetchGroupMembers(groupId).catch(err => ({ error: err.message, data: [] })),
     fetchGroupMeetings(groupId).catch(err => ({ error: err.message, data: [] })),
     fetchGroupContributions(groupId).catch(err => ({ error: err.message, data: [] }))
   ]);
 
-  return {
-    members: Array.isArray(membersResult) ? membersResult : membersResult.data || [],
-    meetings: Array.isArray(meetingsResult) ? meetingsResult : meetingsResult.data || [],
-    contributions: Array.isArray(contributionsResult) ? contributionsResult : contributionsResult.data || [],
-    errors: {
-      members: Array.isArray(membersResult) ? null : membersResult.error,
-      meetings: Array.isArray(meetingsResult) ? null : meetingsResult.error,
-      contributions: Array.isArray(contributionsResult) ? null : contributionsResult.error
-    }
-  };
+    return {
+      members: Array.isArray(membersResult) ? membersResult : membersResult.data || [],
+      meetings: Array.isArray(meetingsResult) ? meetingsResult : meetingsResult.data || [],
+      contributions: Array.isArray(contributionsResult) ? contributionsResult : contributionsResult.data || [],
+      errors: {
+        members: Array.isArray(membersResult) ? null : membersResult.error,
+        meetings: Array.isArray(meetingsResult) ? null : meetingsResult.error,
+        contributions: Array.isArray(contributionsResult) ? null : contributionsResult.error
+      }
+    };
+  });
 }
 
 /**
  * Search groups by name
  */
 export async function searchGroups(institutionId: string, searchTerm: string) {
-  const { data, error } = await supabase
+  const key = `searchGroups:${institutionId}:${searchTerm}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
     .from('groups')
     .select('*')
     .eq('institution_id', institutionId)
@@ -304,9 +321,10 @@ export async function searchGroups(institutionId: string, searchTerm: string) {
     .order('created_at', { ascending: false })
     .limit(50);
 
-  if (error) {
-    throw new Error(`Failed to search groups: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to search groups: ${error.message}`);
+    }
 
-  return data as SupabaseGroup[];
+    return data as SupabaseGroup[];
+  });
 }

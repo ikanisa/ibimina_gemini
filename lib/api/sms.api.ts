@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../supabase';
+import { deduplicateRequest } from '../utils/requestDeduplication';
 import type { SupabaseSmsMessage } from '../../types';
 
 export interface CreateSmsParams {
@@ -70,17 +71,20 @@ export async function fetchSmsMessages(institutionId: string, filters?: {
  * Fetch a single SMS message by ID
  */
 export async function fetchSmsMessageById(smsId: string) {
-  const { data, error } = await supabase
+  const key = `fetchSmsMessageById:${smsId}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
     .from('sms_messages')
     .select('*')
     .eq('id', smsId)
     .single();
 
-  if (error) {
-    throw new Error(`Failed to fetch SMS message: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch SMS message: ${error.message}`);
+    }
 
-  return data as SupabaseSmsMessage;
+    return data as SupabaseSmsMessage;
+  });
 }
 
 /**
@@ -139,7 +143,9 @@ export async function linkSmsToTransaction(smsId: string, transactionId: string)
  * Search SMS messages by sender or body content
  */
 export async function searchSmsMessages(institutionId: string, searchTerm: string) {
-  const { data, error } = await supabase
+  const key = `searchSmsMessages:${institutionId}:${searchTerm}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
     .from('sms_messages')
     .select('*')
     .eq('institution_id', institutionId)

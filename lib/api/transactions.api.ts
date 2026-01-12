@@ -98,7 +98,9 @@ export async function fetchPaymentLedger(institutionId: string, filters?: {
   limit?: number;
   offset?: number;
 }) {
-  let query = supabase
+  const key = `fetchPaymentLedger:${institutionId}:${JSON.stringify(filters || {})}`;
+  return deduplicateRequest(key, async () => {
+    let query = supabase
     .from('payment_ledger')
     .select('*')
     .eq('institution_id', institutionId);
@@ -116,13 +118,14 @@ export async function fetchPaymentLedger(institutionId: string, filters?: {
     query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
   }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    throw new Error(`Failed to fetch payment ledger: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch payment ledger: ${error.message}`);
+    }
 
-  return data;
+    return data;
+  });
 }
 
 /**

@@ -83,18 +83,21 @@ export async function getGroupReports(
   groupId: string,
   limit: number = 10
 ): Promise<GroupReport[]> {
-  const { data, error } = await supabase
+  const key = `getGroupReports:${groupId}:${limit}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
     .from('group_reports')
     .select('*')
     .eq('group_id', groupId)
     .order('generated_at', { ascending: false })
     .limit(limit);
 
-  if (error) {
-    throw new Error(`Failed to fetch reports: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch reports: ${error.message}`);
+    }
 
-  return (data || []) as GroupReport[];
+    return (data || []) as GroupReport[];
+  });
 }
 
 /**
@@ -111,23 +114,26 @@ export async function getMemberContributionsSummary(
   period_count: number;
   overall_count: number;
 }> {
-  const { data, error } = await supabase.rpc('get_member_contributions_summary', {
+  const key = `getMemberContributionsSummary:${memberId}:${groupId}:${periodStart || ''}:${periodEnd || ''}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase.rpc('get_member_contributions_summary', {
     p_member_id: memberId,
     p_group_id: groupId,
     p_period_start: periodStart || null,
     p_period_end: periodEnd || null,
   });
 
-  if (error) {
-    throw new Error(`Failed to get contributions summary: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to get contributions summary: ${error.message}`);
+    }
 
-  return data as {
-    period_total: number;
-    overall_total: number;
-    period_count: number;
-    overall_count: number;
-  };
+    return data as {
+      period_total: number;
+      overall_total: number;
+      period_count: number;
+      overall_count: number;
+    };
+  });
 }
 
 /**
@@ -149,28 +155,31 @@ export async function getGroupContributionsSummary(
     overall_total: number;
   }>;
 }> {
-  const { data, error } = await supabase.rpc('get_group_contributions_summary', {
+  const key = `getGroupContributionsSummary:${groupId}:${periodStart || ''}:${periodEnd || ''}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase.rpc('get_group_contributions_summary', {
     p_group_id: groupId,
     p_period_start: periodStart || null,
     p_period_end: periodEnd || null,
   });
 
-  if (error) {
-    throw new Error(`Failed to get group summary: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to get group summary: ${error.message}`);
+    }
 
-  return data as {
-    period_total: number;
-    overall_total: number;
-    member_count: number;
-    member_contributions: Array<{
-      member_id: string;
-      member_name: string;
-      phone: string;
+    return data as {
       period_total: number;
       overall_total: number;
-    }>;
-  };
+      member_count: number;
+      member_contributions: Array<{
+        member_id: string;
+        member_name: string;
+        phone: string;
+        period_total: number;
+        overall_total: number;
+      }>;
+    };
+  });
 }
 
 /**
@@ -182,18 +191,21 @@ export async function getGroupLeaders(groupId: string): Promise<Array<{
   phone: string;
   role: string;
 }>> {
-  const { data, error } = await supabase.rpc('get_group_leaders', {
+  const key = `getGroupLeaders:${groupId}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase.rpc('get_group_leaders', {
     p_group_id: groupId,
   });
 
-  if (error) {
-    throw new Error(`Failed to get group leaders: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to get group leaders: ${error.message}`);
+    }
 
-  return (data || []) as Array<{
-    member_id: string;
-    member_name: string;
-    phone: string;
-    role: string;
-  }>;
+    return (data || []) as Array<{
+      member_id: string;
+      member_name: string;
+      phone: string;
+      role: string;
+    }>;
+  });
 }

@@ -73,7 +73,9 @@ export async function fetchMembers(institutionId: string, options: PaginationOpt
 export async function fetchMembersWithGroups(institutionId: string, options: PaginationOptions = {}) {
   const { limit, offset = 0 } = options;
   
-  let query = supabase
+  const key = `fetchMembersWithGroups:${institutionId}:${limit || 'all'}:${offset}`;
+  return deduplicateRequest(key, async () => {
+    let query = supabase
     .from('members')
     .select('*')
     .eq('institution_id', institutionId)
@@ -118,27 +120,31 @@ export async function fetchMembersWithGroups(institutionId: string, options: Pag
     }
   });
 
-  return (members || []).map((member) => ({
-    ...member,
-    groups: groupsByMember.get(member.id) || []
-  })) as MemberWithGroups[];
+    return (members || []).map((member) => ({
+      ...member,
+      groups: groupsByMember.get(member.id) || []
+    })) as MemberWithGroups[];
+  });
 }
 
 /**
  * Fetch a single member by ID
  */
 export async function fetchMemberById(memberId: string) {
-  const { data, error } = await supabase
-    .from('members')
-    .select('*')
-    .eq('id', memberId)
-    .single();
+  const key = `fetchMemberById:${memberId}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', memberId)
+      .single();
 
-  if (error) {
-    throw new Error(`Failed to fetch member: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch member: ${error.message}`);
+    }
 
-  return data as SupabaseMember;
+    return data as SupabaseMember;
+  });
 }
 
 /**
@@ -244,17 +250,20 @@ export async function removeMemberFromGroup(groupId: string, memberId: string) {
  * Search members by name or phone
  */
 export async function searchMembers(institutionId: string, searchTerm: string) {
-  const { data, error } = await supabase
-    .from('members')
-    .select('*')
-    .eq('institution_id', institutionId)
-    .or(`full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  const key = `searchMembers:${institutionId}:${searchTerm}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('institution_id', institutionId)
+      .or(`full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-  if (error) {
-    throw new Error(`Failed to search members: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to search members: ${error.message}`);
+    }
 
-  return data as SupabaseMember[];
+    return data as SupabaseMember[];
+  });
 }
