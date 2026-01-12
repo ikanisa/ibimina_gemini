@@ -57,20 +57,6 @@ if (import.meta.env.PROD) {
   });
 }
 
-// Report Core Web Vitals in production
-if (import.meta.env.PROD) {
-  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB }) => {
-    const sendToAnalytics = (metric: { name: string; value: number; id: string }) => {
-      // Log to console for debugging (replace with analytics service)
-      console.log(`[Web Vital] ${metric.name}: ${Math.round(metric.value)}`, metric.id);
-
-      // TODO: Send to Cloudflare Analytics or similar
-      // Example: navigator.sendBeacon('/api/vitals', JSON.stringify(metric));
-    };
-
-    onCLS(sendToAnalytics);
-    onFCP(sendToAnalytics);
-    onLCP(sendToAnalytics);
-    onTTFB(sendToAnalytics);
-  });
-}
+// Initialize Web Vitals tracking
+import { initWebVitals } from './lib/monitoring/webVitals';
+initWebVitals();
