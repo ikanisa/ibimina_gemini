@@ -1,6 +1,7 @@
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { clearAllAppCachesAndReload } from '../lib/pwa';
+import { captureError } from '../lib/sentry';
 
 // ============================================================================
 // ERROR BOUNDARY COMPONENT
@@ -16,6 +17,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  errorType: 'network' | 'auth' | 'render' | 'unknown';
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
@@ -24,18 +26,38 @@ class ErrorBoundary extends React.Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
+      errorType: 'unknown'
     };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error };
+    // Categorize error type
+    let errorType: State['errorType'] = 'unknown';
+    const message = error.message.toLowerCase();
+
+    if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
+      errorType = 'network';
+    } else if (message.includes('auth') || message.includes('token') || message.includes('unauthorized')) {
+      errorType = 'auth';
+    } else {
+      errorType = 'render';
+    }
+
+    return { hasError: true, error, errorType };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
+
     // Log error to console in development
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Send to Sentry in production
+    captureError(error, {
+      componentStack: errorInfo.componentStack,
+      errorType: this.state.errorType,
+    });
   }
 
   handleReset = (): void => {
@@ -59,11 +81,11 @@ class ErrorBoundary extends React.Component<Props, State> {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
               <AlertTriangle className="text-red-600" size={32} />
             </div>
-            
+
             <h1 className="text-2xl font-bold text-slate-900 mb-2">
               Something went wrong
             </h1>
-            
+
             <p className="text-slate-600 mb-6">
               An unexpected error occurred. Please try refreshing the page or contact support if the problem persists.
             </p>
@@ -89,7 +111,7 @@ class ErrorBoundary extends React.Component<Props, State> {
                 <RefreshCw size={18} />
                 Try Again
               </button>
-              
+
               <button
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"

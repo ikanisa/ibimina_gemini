@@ -98,3 +98,42 @@ export const transitions = {
   normal: '200ms',
   slow: '300ms',
 } as const;
+
+export const easing = {
+  easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+  easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
+  easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+} as const;
+
+export const zIndex = {
+  dropdown: 10,
+  sticky: 20,
+  modal: 30,
+  overlay: 40,
+  toast: 50,
+} as const;
+
+export const breakpoints = {
+  sm: '640px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1280px',
+  '2xl': '1536px',
+} as const;
+
+// Consolidated design tokens export
+export const tokens = {
+  colors,
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+  transitions,
+  easing,
+  zIndex,
+  breakpoints,
+} as const;
+
+export default tokens;
+

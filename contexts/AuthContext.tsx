@@ -183,7 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         console.error('[Auth] Initialization error:', err);
         if (isMounted) {
-          const errorMessage = err.name === 'TimeoutError' 
+          const errorMessage = err.name === 'TimeoutError'
             ? 'Connection timeout. Please check your network connection.'
             : (err.message || 'Failed to initialize authentication');
           setInitError(errorMessage);
@@ -244,10 +244,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!isSupabaseConfigured) {
       return;
     }
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
+
+    try {
+      // Sign out with 'global' scope to invalidate all sessions/refresh tokens
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) {
+        console.error('Error signing out:', error);
+      }
+    } catch (err) {
+      console.error('Sign out exception:', err);
     }
+
+    // Clear all auth-related items from storage
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Also clear session storage
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth'))) {
+          sessionStorage.removeItem(key);
+        }
+      }
+    } catch (storageErr) {
+      console.error('Error clearing storage:', storageErr);
+    }
+
     resetAuthState();
   };
 

@@ -20,15 +20,15 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onComplete }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
 
-    // Password strength indicators
-    const hasMinLength = password.length >= 8;
+    // Password strength indicators - updated to 12 char minimum per security audit
+    const hasMinLength = password.length >= 12;
     const hasUppercase = /[A-Z]/.test(password);
     const hasLowercase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const passwordsMatch = password === confirmPassword && password.length > 0;
 
-    const isPasswordStrong = hasMinLength && hasUppercase && hasLowercase && hasNumber;
+    const isPasswordStrong = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -123,7 +123,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onComplete }) => {
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center ${hasMinLength ? 'bg-green-100' : 'bg-slate-100'}`}>
                                 {hasMinLength && <CheckCircle size={12} />}
                             </div>
-                            At least 8 characters
+                            At least 12 characters
                         </div>
                         <div className={`flex items-center gap-2 ${hasUppercase && hasLowercase ? 'text-green-600' : 'text-slate-400'}`}>
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center ${hasUppercase && hasLowercase ? 'bg-green-100' : 'bg-slate-100'}`}>
@@ -136,6 +136,12 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onComplete }) => {
                                 {hasNumber && <CheckCircle size={12} />}
                             </div>
                             At least one number
+                        </div>
+                        <div className={`flex items-center gap-2 ${hasSpecial ? 'text-green-600' : 'text-slate-400'}`}>
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center ${hasSpecial ? 'bg-green-100' : 'bg-slate-100'}`}>
+                                {hasSpecial && <CheckCircle size={12} />}
+                            </div>
+                            At least one special character (!@#$%^&*)
                         </div>
                     </div>
 

@@ -5,4 +5,5 @@
 export * from './phoneValidation';
 export * from './memberValidation';
 export * from './groupValidation';
+export * from './schemas';
 
