@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Loader2, FileText } from 'lucide-react';
 import { Badge } from '../ui';
+import { useIsMobile } from '../../hooks/useResponsive';
 
 interface LedgerRow {
   id: string;
@@ -36,6 +37,7 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
   emptyMessage = 'No transactions found'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current || !hasMore || loadingMore || !onLoadMore) return;
@@ -109,7 +111,7 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
       >
         {/* Desktop Table */}
         {!isMobile && (
-          <table className="w-full text-left"
+          <table className="w-full text-left">
           <thead className="bg-slate-50 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Date</th>
@@ -162,9 +164,11 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
             ))}
           </tbody>
         </table>
+        )}
 
         {/* Mobile Cards */}
-        <div className="md:hidden p-4 space-y-3">
+        {isMobile && (
+          <div className="p-4 space-y-3">
           {rows.map((row) => (
             <div key={row.id} className="bg-slate-50 rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
@@ -189,6 +193,7 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
             </div>
           ))}
         </div>
+        )}
 
         {/* Loading more indicator */}
         {loadingMore && (
