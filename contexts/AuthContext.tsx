@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { StaffRole, SupabaseProfile, UserRole } from '../types';
 import { withTimeout } from '../lib/utils/timeout';
+import { deduplicateRequest } from '../lib/utils/requestDeduplication';
 
 interface AuthContextType {
   user: User | null;
@@ -64,6 +65,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [role, setRole] = useState<StaffRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
+  const applyingUserRef = useRef<boolean>(false);
+  const currentUserIdRef = useRef<string | null>(null);
 
   const resetAuthState = () => {
     setUser(null);
@@ -73,61 +76,79 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const fetchProfile = async (nextUser: User): Promise<SupabaseProfile | null> => {
-    try {
-      const profileQuery = supabase
-        .from('profiles')
-        .select('user_id, institution_id, role, email, full_name, branch, avatar_url, status, last_login_at')
-        .eq('user_id', nextUser.id)
-        .maybeSingle();
+    // Use deduplication to prevent multiple simultaneous requests for the same user
+    const key = `fetchProfile:${nextUser.id}`;
+    return deduplicateRequest(key, async () => {
+      try {
+        const profileQuery = supabase
+          .from('profiles')
+          .select('user_id, institution_id, role, email, full_name, branch, avatar_url, status, last_login_at')
+          .eq('user_id', nextUser.id)
+          .maybeSingle();
 
-      const result = await withTimeout(
-        Promise.resolve(profileQuery),
-        15000, // 15 second timeout
-        'Profile fetch timeout'
-      );
-      const { data, error } = result;
+        const result = await withTimeout(
+          Promise.resolve(profileQuery),
+          10000, // Reduced to 10 second timeout
+          'Profile fetch timeout'
+        );
+        const { data, error } = result;
 
-      if (error) {
-        console.error('Error loading profile:', error);
+        if (error) {
+          console.error('Error loading profile:', error);
+          return null;
+        }
+
+        return (data as SupabaseProfile | null) ?? null;
+      } catch (err) {
+        console.error('Profile fetch failed:', err);
         return null;
       }
-
-      return (data as SupabaseProfile | null) ?? null;
-    } catch (err) {
-      console.error('Profile fetch failed:', err);
-      return null;
-    }
+    });
   };
 
   const applyUser = async (nextUser: User | null) => {
-    setUser(nextUser);
-    if (!nextUser) {
-      resetAuthState();
+    // Prevent duplicate calls for the same user
+    const userId = nextUser?.id || null;
+    if (applyingUserRef.current && currentUserIdRef.current === userId) {
+      console.log('[Auth] Already applying user, skipping duplicate call');
       return;
     }
 
-    // Fetch profile with timeout
-    const nextProfile = await fetchProfile(nextUser);
-    setProfile(nextProfile);
-    setInstitutionId(nextProfile?.institution_id ?? extractInstitutionId(nextUser));
-    setRole(nextProfile ? normalizeStaffRole(nextProfile.role) : extractRole(nextUser));
+    applyingUserRef.current = true;
+    currentUserIdRef.current = userId;
 
-    // Update last login asynchronously (don't block on this)
-    if (nextProfile) {
-      const lastLoginValue = new Date().toISOString();
-      // Fire and forget - don't wait for this
-      supabase
-        .from('profiles')
-        .update({ last_login_at: lastLoginValue })
-        .eq('user_id', nextUser.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error updating last login:', error);
-          }
-        })
-        .catch((err) => {
-          console.error('Error updating last login:', err);
-        });
+    try {
+      setUser(nextUser);
+      if (!nextUser) {
+        resetAuthState();
+        return;
+      }
+
+      // Fetch profile with timeout and deduplication
+      const nextProfile = await fetchProfile(nextUser);
+      setProfile(nextProfile);
+      setInstitutionId(nextProfile?.institution_id ?? extractInstitutionId(nextUser));
+      setRole(nextProfile ? normalizeStaffRole(nextProfile.role) : extractRole(nextUser));
+
+      // Update last login asynchronously (don't block on this)
+      if (nextProfile) {
+        const lastLoginValue = new Date().toISOString();
+        // Fire and forget - don't wait for this
+        supabase
+          .from('profiles')
+          .update({ last_login_at: lastLoginValue })
+          .eq('user_id', nextUser.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error updating last login:', error);
+            }
+          })
+          .catch((err) => {
+            console.error('Error updating last login:', err);
+          });
+      }
+    } finally {
+      applyingUserRef.current = false;
     }
   };
 
@@ -201,26 +222,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initSession();
 
-    // Set up listener for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // For auth state changes, we generally want to show loading
-      // but strictly for the transition period with a timeout
-      if (isMounted) setLoading(true);
-
-      try {
-        await withTimeout(
-          applyUser(session?.user ?? null),
-          10000, // 10 second timeout for auth state changes
-          'Auth state change timeout'
-        );
-      } catch (err) {
-        console.error('Auth state change error:', err);
-        if (isMounted && err instanceof Error) {
-          setInitError(err.message);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+    // Set up listener for auth changes with debouncing
+    let authChangeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Clear any pending auth change
+      if (authChangeTimeout) {
+        clearTimeout(authChangeTimeout);
       }
+
+      // Debounce rapid auth state changes (e.g., token refresh)
+      authChangeTimeout = setTimeout(async () => {
+        if (!isMounted) return;
+
+        // For auth state changes, we generally want to show loading
+        // but strictly for the transition period with a timeout
+        setLoading(true);
+
+        try {
+          await withTimeout(
+            applyUser(session?.user ?? null),
+            8000, // Reduced to 8 second timeout for auth state changes
+            'Auth state change timeout'
+          );
+        } catch (err) {
+          console.error('Auth state change error:', err);
+          if (isMounted && err instanceof Error) {
+            setInitError(err.message);
+          }
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      }, event === 'TOKEN_REFRESHED' ? 100 : 0); // Small delay for token refresh, immediate for other events
     });
 
     return () => {
@@ -228,7 +262,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (initTimeout) {
         clearTimeout(initTimeout);
       }
+      if (authChangeTimeout) {
+        clearTimeout(authChangeTimeout);
+      }
       subscription.unsubscribe();
+      applyingUserRef.current = false;
+      currentUserIdRef.current = null;
     };
   }, []);
 

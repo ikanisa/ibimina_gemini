@@ -53,17 +53,20 @@ export async function fetchStaff(institutionId?: string) {
  * Fetch a single staff member by user ID
  */
 export async function fetchStaffById(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
+  const key = `fetchStaffById:${userId}`;
+  return deduplicateRequest(key, async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
 
-  if (error) {
-    throw new Error(`Failed to fetch staff: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to fetch staff: ${error.message}`);
+    }
 
-  return data as SupabaseProfile;
+    return data as SupabaseProfile;
+  });
 }
 
 /**
