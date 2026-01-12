@@ -6,26 +6,18 @@ const corsHeaders = {
 };
 
 // Map UI-friendly role names to database enum values
+// Only 'Admin' and 'Staff' are supported
 const mapRoleToEnum = (role: string | null): string => {
-  if (!role) return 'INSTITUTION_STAFF';
-  switch (role) {
-    case 'Super Admin':
-    case 'PLATFORM_ADMIN':
-      return 'PLATFORM_ADMIN';
-    case 'Branch Manager':
-    case 'INSTITUTION_ADMIN':
-      return 'INSTITUTION_ADMIN';
-    case 'Teller':
-    case 'INSTITUTION_TREASURER':
-      return 'INSTITUTION_TREASURER';
-    case 'Auditor':
-    case 'INSTITUTION_AUDITOR':
-      return 'INSTITUTION_AUDITOR';
-    case 'Loan Officer':
-    case 'INSTITUTION_STAFF':
-    default:
-      return 'INSTITUTION_STAFF';
+  if (!role) return 'STAFF';
+  const roleUpper = role.toUpperCase();
+  
+  // Map to new simplified roles
+  if (roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN' || roleUpper === 'SUPER ADMIN' || roleUpper === 'BRANCH MANAGER') {
+    return 'ADMIN';
   }
+  
+  // Default to STAFF for all other roles
+  return 'STAFF';
 };
 
 Deno.serve(async (req) => {
@@ -38,10 +30,9 @@ Deno.serve(async (req) => {
     const email = String(body.email ?? '').trim().toLowerCase();
     const fullName = String(body.full_name ?? '').trim();
     const role = mapRoleToEnum(body.role ?? null);
-    const branch = String(body.branch ?? '').trim();
     const institutionId = body.institution_id ?? null;
-    const onboardingMethod = body.onboarding_method ?? 'invite';
-    const password = body.password ?? null;
+    const onboardingMethod = body.onboarding_method ?? 'password';
+    const password = body.password ?? 'Sacco+'; // Default password
     const invitedBy = body.invited_by ?? null; // User ID of the inviter
 
     if (!email) {
@@ -51,8 +42,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!institutionId && role !== 'PLATFORM_ADMIN') {
-      return new Response(JSON.stringify({ error: 'Institution ID is required for non-platform staff.' }), {
+    if (!institutionId && role !== 'ADMIN') {
+      return new Response(JSON.stringify({ error: 'Institution ID is required.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -104,7 +95,6 @@ Deno.serve(async (req) => {
           user_metadata: {
             full_name: fullName,
             role,
-            branch,
             institution_id: institutionId
           }
         })
@@ -112,7 +102,6 @@ Deno.serve(async (req) => {
           data: {
             full_name: fullName,
             role,
-            branch,
             institution_id: institutionId
           }
         });
@@ -146,7 +135,6 @@ Deno.serve(async (req) => {
         role,
         email,
         full_name: fullName,
-        branch,
         is_active: true,
         status: 'ACTIVE'
       })

@@ -24,19 +24,18 @@ export function useRoleAccess(): RoleAccess {
   return useMemo(() => {
     const roleUpper = role?.toUpperCase() || '';
     
-    const isPlatformAdmin = roleUpper === 'SUPER ADMIN' || roleUpper === 'PLATFORM_ADMIN';
-    const isInstitutionAdmin = isPlatformAdmin || roleUpper === 'BRANCH MANAGER' || roleUpper === 'INSTITUTION_ADMIN';
-    const isStaff = isInstitutionAdmin || roleUpper === 'INSTITUTION_STAFF' || roleUpper === 'TREASURER';
-    const isAuditor = roleUpper === 'INSTITUTION_AUDITOR' || roleUpper === 'AUDITOR';
+    // Simplified role system: Admin and Staff only
+    const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN';
+    const isStaff = roleUpper === 'STAFF' || roleUpper === 'INSTITUTION_STAFF' || roleUpper === 'INSTITUTION_TREASURER' || roleUpper === 'INSTITUTION_AUDITOR';
 
     return {
-      isPlatformAdmin,
-      isInstitutionAdmin,
-      isStaff,
-      isAuditor,
-      canManageStaff: isInstitutionAdmin,
-      canViewAuditLog: isInstitutionAdmin || isAuditor,
-      canManageSystem: isPlatformAdmin,
+      isPlatformAdmin: isAdmin,
+      isInstitutionAdmin: isAdmin,
+      isStaff: isStaff || isAdmin, // Admin is also considered staff
+      isAuditor: isStaff, // All staff can audit
+      canManageStaff: isAdmin,
+      canViewAuditLog: isAdmin || isStaff,
+      canManageSystem: isAdmin,
     };
   }, [role]);
 }

@@ -126,7 +126,14 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
                 variant="primary"
                 size="sm"
                 leftIcon={<Plus size={16} />}
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  if (!institutionId) {
+                    alert('Please select an institution first');
+                    return;
+                  }
+                  setIsAddModalOpen(true);
+                }}
+                disabled={!institutionId}
               >
                 Add Member
               </Button>
@@ -159,18 +166,16 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
       </div>
 
       {/* Add Member Modal */}
-      {institutionId && (
-        <AddMemberModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onSuccess={() => {
-            setIsAddModalOpen(false);
-            refetch();
-          }}
-          institutionId={institutionId}
-          createMember={createMemberApi}
-        />
-      )}
+      <AddMemberModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => {
+          setIsAddModalOpen(false);
+          refetch();
+        }}
+        institutionId={institutionId || ''}
+        createMember={createMemberApi}
+      />
 
       {/* Bulk Upload Modal */}
       {isBulkUploadOpen && (

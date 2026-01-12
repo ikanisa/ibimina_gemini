@@ -300,8 +300,12 @@ const App: React.FC = () => {
     const effectiveRole = useMockData ? currentUser.role : role;
     if (!effectiveRole) return false;
 
-    // Super Admin / Platform Admin has unrestricted access to everything
-    if (effectiveRole === 'Super Admin') {
+    const roleUpper = effectiveRole.toUpperCase();
+    const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN';
+    const isStaff = roleUpper === 'STAFF' || roleUpper === 'INSTITUTION_STAFF';
+
+    // Admin has unrestricted access to everything
+    if (isAdmin) {
       return true;
     }
 
@@ -314,16 +318,16 @@ const App: React.FC = () => {
       case ViewState.TRANSACTIONS:
         return true;
 
-      // Admin-only views (Super Admin already returned true above)
+      // Admin-only views (Admin already returned true above)
       case ViewState.INSTITUTIONS:
       case ViewState.STAFF:
       case ViewState.SETTINGS:
       case ViewState.SMS_GATEWAY_DEVICES:
-        return false; // Only Super Admin
+        return false; // Only Admin
 
-      // Manager + Auditor views
+      // Staff can view reports
       case ViewState.REPORTS:
-        return ['Branch Manager', 'Auditor', 'Loan Officer'].includes(effectiveRole);
+        return isStaff || isAdmin;
 
       default:
         return false;

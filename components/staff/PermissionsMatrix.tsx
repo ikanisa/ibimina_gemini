@@ -47,11 +47,8 @@ export const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                         onChange={(e) => onRoleChange(e.target.value as StaffRole)}
                         aria-label="Select role to configure"
                     >
-                        <option value="Super Admin">Super Admin</option>
-                        <option value="Branch Manager">Branch Manager</option>
-                        <option value="Loan Officer">Loan Officer</option>
-                        <option value="Teller">Teller</option>
-                        <option value="Auditor">Auditor</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Staff">Staff</option>
                     </select>
                 </div>
                 <div className="flex-1"></div>
@@ -80,7 +77,7 @@ export const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                                 <td className="px-6 py-4 text-sm font-medium text-slate-800">{feature}</td>
                                 {PERMISSIONS.map(perm => {
                                     const isChecked = rolePermissions[`${feature}-${perm}`];
-                                    const isDisabled = selectedRole === 'Super Admin';
+                                    const isDisabled = selectedRole === 'Admin';
                                     const displayChecked = isDisabled ? true : isChecked;
 
                                     return (

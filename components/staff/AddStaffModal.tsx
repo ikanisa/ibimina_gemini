@@ -4,24 +4,24 @@
  * Modal for creating new staff members with validation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    Plus, X, User, Mail, Building, Lock, KeyRound, Loader2
+    Plus, X, User, Mail, Building, Loader2
 } from 'lucide-react';
-import { StaffRole, SupabaseProfile } from '../../types';
+import { StaffRole, SupabaseProfile, Institution } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { mapStaffRole, mapStaffStatus } from '../../lib/mappers';
 import { buildInitialsAvatar } from '../../lib/avatars';
 import { Modal } from '../ui';
+import { useAuth } from '../../contexts/AuthContext';
+import { isSuperAdmin } from '../../lib/utils/roleHelpers';
 
 interface NewStaffData {
     name: string;
     email: string;
     role: StaffRole;
-    branch: string;
+    institution_id: string;
     status: 'Active' | 'Suspended';
-    onboardingMethod: 'invite' | 'password';
-    password: string;
 }
 
 interface AddStaffModalProps {
@@ -41,14 +41,14 @@ interface AddStaffModalProps {
     useMockData: boolean;
 }
 
+const DEFAULT_PASSWORD = 'Sacco+';
+
 const initialFormData: NewStaffData = {
     name: '',
     email: '',
-    role: 'Teller',
-    branch: '',
+    role: 'Staff',
+    institution_id: '',
     status: 'Active',
-    onboardingMethod: 'invite',
-    password: ''
 };
 
 export const AddStaffModal: React.FC<AddStaffModalProps> = ({
@@ -58,21 +58,51 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     institutionId,
     useMockData
 }) => {
+    const { role: userRole, institutionId: userInstitutionId } = useAuth();
+    const isPlatformAdmin = isSuperAdmin(userRole);
+    
     const [formData, setFormData] = useState<NewStaffData>(initialFormData);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [institutions, setInstitutions] = useState<Institution[]>([]);
+    const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+
+    // Load institutions for platform admins
+    useEffect(() => {
+        if (isOpen && isPlatformAdmin) {
+            loadInstitutions();
+        } else if (isOpen && userInstitutionId) {
+            setFormData(prev => ({ ...prev, institution_id: userInstitutionId }));
+        }
+    }, [isOpen, isPlatformAdmin, userInstitutionId]);
+
+    const loadInstitutions = async () => {
+        setLoadingInstitutions(true);
+        try {
+            const { data, error } = await supabase
+                .from('institutions')
+                .select('id, name')
+                .eq('status', 'ACTIVE')
+                .order('name');
+
+            if (error) throw error;
+            if (data) {
+                setInstitutions(data);
+            }
+        } catch (err) {
+            console.error('Error loading institutions:', err);
+            setFormErrors({ submit: 'Failed to load institutions' });
+        } finally {
+            setLoadingInstitutions(false);
+        }
+    };
 
     const validateForm = () => {
         const errors: Record<string, string> = {};
         if (!formData.name.trim()) errors.name = "Full name is required";
         if (!formData.email.trim()) errors.email = "Email is required";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = "Invalid email format";
-        if (!formData.branch.trim()) errors.branch = "Branch assignment is required";
-
-        if (formData.onboardingMethod === 'password') {
-            if (!formData.password) errors.password = "Temporary password is required";
-            else if (formData.password.length < 8) errors.password = "Password must be at least 8 characters";
-        }
+        if (!formData.institution_id) errors.institution_id = "Institution is required";
 
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
@@ -108,10 +138,9 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 email: formData.email,
                 full_name: formData.name,
                 role: formData.role,
-                branch: formData.branch,
-                institution_id: institutionId,
-                onboarding_method: formData.onboardingMethod,
-                password: formData.onboardingMethod === 'password' ? formData.password : undefined
+                institution_id: formData.institution_id || institutionId,
+                onboarding_method: 'password',
+                password: DEFAULT_PASSWORD
             }
         });
 
@@ -130,7 +159,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 name,
                 email: newProfile.email || formData.email,
                 role: mapStaffRole(newProfile.role),
-                branch: newProfile.branch || formData.branch,
+                branch: newProfile.branch || '',
                 status: mapStaffStatus(newProfile.status),
                 lastLogin: newProfile.last_login_at ? new Date(newProfile.last_login_at).toLocaleString() : '—',
                 avatarUrl: newProfile.avatar_url || buildInitialsAvatar(name)
@@ -190,7 +219,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                         {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
                     </div>
 
-                    {/* Role & Branch */}
+                    {/* Role & Institution */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
@@ -201,29 +230,39 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                                 value={formData.role}
                                 onChange={e => setFormData({ ...formData, role: e.target.value as StaffRole })}
                             >
-                                <option value="Teller">Teller</option>
-                                <option value="Loan Officer">Loan Officer</option>
-                                <option value="Branch Manager">Branch Manager</option>
-                                <option value="Super Admin">Super Admin</option>
-                                <option value="Auditor">Auditor</option>
+                                <option value="Staff">Staff</option>
+                                <option value="Admin">Admin</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
-                                Branch <span className="text-red-500">*</span>
+                                Institution <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input
-                                    type="text"
-                                    className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.branch ? 'border-red-300 bg-red-50' : 'border-slate-200'
-                                        }`}
-                                    placeholder="Assign Branch"
-                                    value={formData.branch}
-                                    onChange={e => setFormData({ ...formData, branch: e.target.value })}
-                                />
+                                {isPlatformAdmin ? (
+                                    <select
+                                        className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.institution_id ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                            }`}
+                                        value={formData.institution_id}
+                                        onChange={e => setFormData({ ...formData, institution_id: e.target.value })}
+                                        disabled={loadingInstitutions}
+                                    >
+                                        <option value="">Select Institution</option>
+                                        {institutions.map(inst => (
+                                            <option key={inst.id} value={inst.id}>{inst.name}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm cursor-not-allowed"
+                                        value={userInstitutionId ? 'Your Institution' : 'No Institution'}
+                                        disabled
+                                    />
+                                )}
                             </div>
-                            {formErrors.branch && <p className="text-red-500 text-xs mt-1">{formErrors.branch}</p>}
+                            {formErrors.institution_id && <p className="text-red-500 text-xs mt-1">{formErrors.institution_id}</p>}
                         </div>
                     </div>
 
@@ -254,61 +293,16 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Onboarding Method */}
+                    {/* Password Info */}
                     <div className="pt-4 border-t border-slate-100">
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-3">
-                            Onboarding Method
-                        </label>
-
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, onboardingMethod: 'invite' })}
-                                className={`p-3 border rounded-lg text-left transition-all ${formData.onboardingMethod === 'invite'
-                                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 mb-1">
-                                    <Mail size={16} /> Send Invitation
-                                </div>
-                                <p className="text-xs text-slate-500">Email link to set password</p>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, onboardingMethod: 'password' })}
-                                className={`p-3 border rounded-lg text-left transition-all ${formData.onboardingMethod === 'password'
-                                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 mb-1">
-                                    <Lock size={16} /> Set Password
-                                </div>
-                                <p className="text-xs text-slate-500">Manually create password</p>
-                            </button>
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-xs text-blue-700">
+                                <strong>Default Password:</strong> {DEFAULT_PASSWORD}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1">
+                                Staff will be required to change their password on first login.
+                            </p>
                         </div>
-
-                        {formData.onboardingMethod === 'password' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
-                                    Temporary Password <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative">
-                                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input
-                                        type="password"
-                                        className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.password ? 'border-red-300 bg-red-50' : 'border-slate-200'
-                                            }`}
-                                        placeholder="Enter temporary password"
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                    />
-                                </div>
-                                {formErrors.password && <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>}
-                            </div>
-                        )}
                     </div>
                 </div>
 

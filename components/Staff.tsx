@@ -56,7 +56,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState<StaffRole>('Branch Manager');
+  const [selectedRole, setSelectedRole] = useState<StaffRole>('Admin');
   
   // Add Staff Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -64,7 +64,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const [newStaffData, setNewStaffData] = useState({
     name: '',
     email: '',
-    role: 'Teller' as StaffRole,
+    role: 'Staff' as StaffRole,
     branch: '',
     status: 'Active' as 'Active' | 'Suspended',
     onboardingMethod: 'invite', // 'invite' | 'password'
@@ -187,7 +187,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
           setNewStaffData({
               name: '',
               email: '',
-              role: 'Teller',
+              role: 'Staff',
               branch: '',
               status: 'Active',
               onboardingMethod: 'invite',
@@ -274,9 +274,9 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
       
       // Mock Parsed Data
       const mockParsed: ParsedCandidate[] = [
-        { id: 'tmp-1', name: 'Robert Niza', email: 'robert.n@saccoplus.rw', role: 'Loan Officer', branch: 'Kigali Main', confidence: 98 },
-        { id: 'tmp-2', name: 'Claire Uwimana', email: 'claire.u@saccoplus.rw', role: 'Teller', branch: 'Musanze Branch', confidence: 95 },
-        { id: 'tmp-3', name: 'Peter S.', email: 'peter.s@gmail.com', role: 'Auditor', branch: 'Headquarters', confidence: 82 }, // Intentionally imperfect
+        { id: 'tmp-1', name: 'Robert Niza', email: 'robert.n@saccoplus.rw', role: 'Staff', branch: 'Kigali Main', confidence: 98 },
+        { id: 'tmp-2', name: 'Claire Uwimana', email: 'claire.u@saccoplus.rw', role: 'Staff', branch: 'Musanze Branch', confidence: 95 },
+        { id: 'tmp-3', name: 'Peter S.', email: 'peter.s@gmail.com', role: 'Admin', branch: 'Headquarters', confidence: 82 }, // Intentionally imperfect
       ];
       
       setParsedCandidates(mockParsed);
@@ -392,9 +392,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-1.5 text-sm text-slate-700 bg-slate-100 w-fit px-2 py-1 rounded">
-                       {staff.role === 'Super Admin' && <KeyRound size={12} className="text-purple-600" />}
-                       {staff.role === 'Branch Manager' && <UserCog size={12} className="text-blue-600" />}
-                       {staff.role === 'Auditor' && <Shield size={12} className="text-amber-600" />}
+                       {staff.role === 'Admin' && <KeyRound size={12} className="text-purple-600" />}
+                       {staff.role === 'Staff' && <UserCog size={12} className="text-blue-600" />}
                        {staff.role}
                     </div>
                   </td>
@@ -409,7 +408,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{staff.lastLogin}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right flex items-center justify-end gap-2">
-                    {useMockData && currentUser.role === 'Super Admin' && staff.id !== currentUser.id && (
+                    {useMockData && currentUser.role === 'Admin' && staff.id !== currentUser.id && (
                       <button 
                         onClick={() => onImpersonate(staff)}
                         className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded flex items-center gap-1"
@@ -443,11 +442,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value as StaffRole)}
                >
-                 <option value="Super Admin">Super Admin</option>
-                 <option value="Branch Manager">Branch Manager</option>
-                 <option value="Loan Officer">Loan Officer</option>
-                 <option value="Teller">Teller</option>
-                 <option value="Auditor">Auditor</option>
+                 <option value="Admin">Admin</option>
+                 <option value="Staff">Staff</option>
                </select>
             </div>
             <div className="flex-1"></div>
@@ -474,7 +470,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                     <td className="px-6 py-4 text-sm font-medium text-slate-800">{feature}</td>
                     {permissions.map(perm => {
                       const isChecked = rolePermissions[`${feature}-${perm}`];
-                      const isDisabled = selectedRole === 'Super Admin'; 
+                      const isDisabled = selectedRole === 'Admin'; 
                       const displayChecked = isDisabled ? true : isChecked;
 
                       return (
@@ -572,11 +568,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                             value={newStaffData.role}
                             onChange={e => setNewStaffData({...newStaffData, role: e.target.value as StaffRole})}
                         >
-                            <option value="Teller">Teller</option>
-                            <option value="Loan Officer">Loan Officer</option>
-                            <option value="Branch Manager">Branch Manager</option>
-                            <option value="Super Admin">Super Admin</option>
-                            <option value="Auditor">Auditor</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Admin">Admin</option>
                         </select>
                     </div>
                     <div>
@@ -833,10 +826,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                                 onChange={(e) => updateCandidate(candidate.id, 'role', e.target.value)}
                                 className="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-1 py-1 outline-none text-sm"
                               >
-                                <option>Teller</option>
-                                <option>Loan Officer</option>
-                                <option>Branch Manager</option>
-                                <option>Auditor</option>
+                                <option>Staff</option>
+                                <option>Admin</option>
                               </select>
                             </td>
                             <td className="p-2">

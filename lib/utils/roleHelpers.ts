@@ -6,27 +6,25 @@
 import type { StaffRole } from '../../types';
 
 /**
- * Check if a role is Super Admin (platform admin)
- * Handles both normalized 'Super Admin' and database 'PLATFORM_ADMIN' values
+ * Check if a role is Admin
+ * Handles both 'Admin' and legacy database values
  */
 export function isSuperAdmin(role: StaffRole | null | undefined): boolean {
   if (!role) return false;
   const roleUpper = role.toUpperCase();
-  return roleUpper === 'SUPER ADMIN' || roleUpper === 'PLATFORM_ADMIN';
+  return roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN';
 }
 
 /**
- * Check if a role is Branch Manager (institution admin)
+ * Check if a role is Admin (alias for isSuperAdmin for backward compatibility)
  */
 export function isBranchManager(role: StaffRole | null | undefined): boolean {
-  if (!role) return false;
-  const roleUpper = role.toUpperCase();
-  return roleUpper === 'BRANCH MANAGER' || roleUpper === 'INSTITUTION_ADMIN';
+  return isSuperAdmin(role);
 }
 
 /**
- * Check if a role has admin privileges (Super Admin or Branch Manager)
+ * Check if a role has admin privileges
  */
 export function isAdmin(role: StaffRole | null | undefined): boolean {
-  return isSuperAdmin(role) || isBranchManager(role);
+  return isSuperAdmin(role);
 }

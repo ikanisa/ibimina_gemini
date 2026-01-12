@@ -2,7 +2,7 @@
 // SUPABASE AUTH TYPES
 // ============================================================================
 
-export type UserRole = 'PLATFORM_ADMIN' | 'INSTITUTION_ADMIN' | 'INSTITUTION_STAFF' | 'INSTITUTION_TREASURER' | 'INSTITUTION_AUDITOR';
+export type UserRole = 'ADMIN' | 'STAFF';
 export type InstitutionType = 'BANK' | 'MFI' | 'SACCO';
 export type GroupStatus = 'ACTIVE' | 'PAUSED' | 'CLOSED';
 export type ContributionStatus = 'RECORDED' | 'RECONCILED' | 'FLAGGED';
@@ -248,7 +248,7 @@ export enum ViewState {
 export type Status = 'Active' | 'Pending' | 'Suspended' | 'Closed';
 export type TransactionStatus = 'Completed' | 'Pending' | 'Failed' | 'Reversed';
 export type KycStatus = 'Verified' | 'Pending' | 'Rejected';
-export type StaffRole = 'Super Admin' | 'Branch Manager' | 'Loan Officer' | 'Teller' | 'Auditor';
+export type StaffRole = 'Admin' | 'Staff';
 // LoanStatus removed - system does not administer loans
 
 export interface Group {

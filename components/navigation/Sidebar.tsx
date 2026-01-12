@@ -46,7 +46,8 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
   const RoleSwitcher = () => {
     if (!useMockData) return null;
     if (isImpersonating) return null;
-    if (originalUser.role !== 'Super Admin') return null;
+    const roleUpper = originalUser.role?.toUpperCase() || '';
+    if (roleUpper !== 'ADMIN' && roleUpper !== 'PLATFORM_ADMIN' && roleUpper !== 'INSTITUTION_ADMIN') return null;
 
     return (
       <div className="px-4 py-3 mt-auto border-t border-slate-800">
@@ -79,15 +80,9 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
               >
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    staff.role === 'Super Admin'
+                    staff.role === 'Admin' || staff.role?.toUpperCase() === 'ADMIN'
                       ? 'bg-purple-500'
-                      : staff.role === 'Branch Manager'
-                      ? 'bg-blue-500'
-                      : staff.role === 'Teller'
-                      ? 'bg-green-500'
-                      : staff.role === 'Loan Officer'
-                      ? 'bg-orange-500'
-                      : 'bg-indigo-500'
+                      : 'bg-blue-500'
                   }`}
                 ></div>
                 {staff.role}

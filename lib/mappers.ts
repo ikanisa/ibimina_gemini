@@ -154,16 +154,15 @@ export const mapStaffStatus = (status?: string | null): StaffMember['status'] =>
 
 export const mapStaffRole = (role?: string | null): StaffRole => {
   switch (role) {
+    case 'ADMIN':
     case 'PLATFORM_ADMIN':
-      return 'Super Admin';
     case 'INSTITUTION_ADMIN':
-      return 'Branch Manager';
-    case 'INSTITUTION_TREASURER':
-      return 'Teller';
-    case 'INSTITUTION_AUDITOR':
-      return 'Auditor';
+      return 'Admin';
+    case 'STAFF':
     case 'INSTITUTION_STAFF':
+    case 'INSTITUTION_TREASURER':
+    case 'INSTITUTION_AUDITOR':
     default:
-      return 'Loan Officer';
+      return 'Staff';
   }
 };

@@ -365,7 +365,14 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
             variant="primary"
             size="sm"
             leftIcon={<Plus size={16} />}
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              if (!institutionId) {
+                alert('Please select an institution first');
+                return;
+              }
+              setIsCreateModalOpen(true);
+            }}
+            disabled={!institutionId}
           >
             New Group
           </Button>
@@ -441,18 +448,16 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
       </Section>
 
       {/* Create Group Modal */}
-      {institutionId && (
-        <CreateGroupModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={() => {
-            setIsCreateModalOpen(false);
-            refetch();
-          }}
-          institutionId={institutionId}
-          createGroup={createGroupApi}
-        />
-      )}
+      <CreateGroupModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          refetch();
+        }}
+        institutionId={institutionId || ''}
+        createGroup={createGroupApi}
+      />
 
       {/* Bulk Upload Modal */}
       {isBulkUploadOpen && (
