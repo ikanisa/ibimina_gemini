@@ -85,7 +85,7 @@ const mapUserToStaffMember = (
     id: user.id,
     name,
     email,
-    role: role ?? 'Teller',
+    role: role ?? 'Staff',
     branch,
     status,
     lastLogin,
@@ -262,7 +262,7 @@ const App: React.FC = () => {
     }
     // SECURITY: If user is logged in but has no profile/institution and is NOT a platform admin, they need provisioning
     // This ensures only invited staff (with profiles) can access the portal
-    const isPlatformAdmin = role === 'Super Admin';
+    const isPlatformAdmin = role === 'Admin' || role?.toUpperCase() === 'ADMIN';
     const hasValidAccess = useMockData || isPlatformAdmin || (institutionId && profile);
     
     if (!hasValidAccess && !useMockData) {

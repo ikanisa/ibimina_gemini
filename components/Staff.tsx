@@ -240,7 +240,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     setNewStaffData({
         name: '',
         email: '',
-        role: 'Teller',
+        role: 'Staff',
         branch: '',
         status: 'Active',
         onboardingMethod: 'invite',

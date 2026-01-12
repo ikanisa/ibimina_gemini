@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, ErrorDisplay, SimpleInput, SimpleSelect } from '../ui';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { isSuperAdmin } from '../../lib/utils/roleHelpers';
 import type { SmsGatewayDevice, Institution, EditDeviceData } from './types';
 
 interface EditDeviceModalProps {

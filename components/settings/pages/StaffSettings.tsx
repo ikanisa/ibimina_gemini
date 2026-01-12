@@ -29,7 +29,7 @@ export const StaffSettings: React.FC = () => {
   const [showDrawer, setShowDrawer] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const isPlatformAdmin = currentUserRole === 'Super Admin';
+  const isPlatformAdmin = currentUserRole === 'Admin' || currentUserRole?.toUpperCase() === 'ADMIN';
   
   // Form state
   const [newStaff, setNewStaff] = useState({

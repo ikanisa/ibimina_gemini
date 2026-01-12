@@ -81,7 +81,7 @@ export const AuditLogSettings: React.FC<AuditLogSettingsProps> = ({ onNavigate }
   // Selected event for detail drawer
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   
-  const isPlatformAdmin = role === 'Super Admin';
+  const isPlatformAdmin = role === 'Admin' || role?.toUpperCase() === 'ADMIN';
   
   // Filters
   const [filters, setFilters] = useState({

@@ -122,7 +122,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     name: formData.name,
                     email: formData.email,
                     role: formData.role,
-                    branch: formData.branch,
+                    branch: '', // Branch field removed
                     status: formData.status,
                     lastLogin: '—',
                     avatarUrl: buildInitialsAvatar(formData.name)

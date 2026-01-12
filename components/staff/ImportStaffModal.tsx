@@ -62,9 +62,9 @@ export const ImportStaffModal: React.FC<ImportStaffModalProps> = ({
             setProcessingStatus('Finalizing data mapping...');
 
             const mockParsed: ParsedCandidate[] = [
-                { id: 'tmp-1', name: 'Robert Niza', email: 'robert.n@saccoplus.rw', role: 'Loan Officer', branch: 'Kigali Main', confidence: 98 },
-                { id: 'tmp-2', name: 'Claire Uwimana', email: 'claire.u@saccoplus.rw', role: 'Teller', branch: 'Musanze Branch', confidence: 95 },
-                { id: 'tmp-3', name: 'Peter S.', email: 'peter.s@gmail.com', role: 'Auditor', branch: 'Headquarters', confidence: 82 },
+                { id: 'tmp-1', name: 'Robert Niza', email: 'robert.n@saccoplus.rw', role: 'Staff', branch: 'Kigali Main', confidence: 98 },
+                { id: 'tmp-2', name: 'Claire Uwimana', email: 'claire.u@saccoplus.rw', role: 'Staff', branch: 'Musanze Branch', confidence: 95 },
+                { id: 'tmp-3', name: 'Peter S.', email: 'peter.s@gmail.com', role: 'Admin', branch: 'Headquarters', confidence: 82 },
             ];
 
             setParsedCandidates(mockParsed);
@@ -243,10 +243,8 @@ export const ImportStaffModal: React.FC<ImportStaffModalProps> = ({
                                                         className="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-1 py-1 outline-none text-sm"
                                                         aria-label={`Role for ${candidate.name}`}
                                                     >
-                                                        <option>Teller</option>
-                                                        <option>Loan Officer</option>
-                                                        <option>Branch Manager</option>
-                                                        <option>Auditor</option>
+                                                        <option>Staff</option>
+                                                        <option>Admin</option>
                                                     </select>
                                                 </td>
                                                 <td className="p-2">
