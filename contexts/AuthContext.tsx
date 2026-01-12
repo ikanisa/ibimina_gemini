@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { StaffRole, SupabaseProfile, UserRole } from '../types';
 import { withTimeout } from '../lib/utils/timeout';
 import { deduplicateRequest } from '../lib/utils/requestDeduplication';
+import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/sentry';
 
 interface AuthContextType {
   user: User | null;
@@ -73,6 +74,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProfile(null);
     setInstitutionId(null);
     setRole(null);
+    // Clear user context in Sentry
+    clearSentryUser();
   };
 
   const fetchProfile = async (nextUser: User): Promise<SupabaseProfile | null> => {
@@ -129,6 +132,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setProfile(nextProfile);
       setInstitutionId(nextProfile?.institution_id ?? extractInstitutionId(nextUser));
       setRole(nextProfile ? normalizeStaffRole(nextProfile.role) : extractRole(nextUser));
+
+      // Set user context in Sentry for error tracking
+      if (nextProfile) {
+        setSentryUser({
+          id: nextUser.id,
+          email: nextProfile.email || nextUser.email || undefined,
+          institutionId: nextProfile.institution_id || undefined,
+        });
+      }
 
       // Update last login asynchronously (don't block on this)
       if (nextProfile) {
