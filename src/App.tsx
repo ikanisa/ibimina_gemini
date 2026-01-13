@@ -396,7 +396,7 @@ const App: React.FC = () => {
             onNavigate={setCurrentView}
             onMobileMenuClose={() => setIsMobileMenuOpen(false)}
             canAccess={canAccess}
-            originalUser={originalUser}
+            originalUser={baseUser}
             isImpersonating={isImpersonating}
             onSignOut={handleSignOut}
             isMobileMenuOpen={isMobileMenuOpen}
@@ -427,8 +427,8 @@ const App: React.FC = () => {
             {false && (
               <div
                 className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${import.meta.env.PROD
-                    ? 'bg-red-600 text-white'
-                    : 'bg-amber-100 text-amber-800'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-amber-100 text-amber-800'
                   }`}
               >
                 <span>
