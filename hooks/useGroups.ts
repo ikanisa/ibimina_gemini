@@ -10,6 +10,7 @@ import * as groupsApi from '../lib/api/groups.api';
 import { queryKeys } from '../lib/query-client';
 import type { SupabaseGroup } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 
 export interface UseGroupsOptions {
   includeMemberCounts?: boolean;
@@ -74,10 +75,19 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
 
       const limit = pageParam === 0 ? initialLimit : loadMoreLimit;
 
+      // Wrap with timeout
       if (includeMemberCounts) {
-        const result = await groupsApi.fetchGroupsWithMemberCounts(
-          institutionId, 
-          { limit, offset: pageParam }
+        const result = await withTimeout(
+          groupsApi.fetchGroupsWithMemberCounts(
+            institutionId, 
+            { limit, offset: pageParam }
+          ),
+          30000,
+          {
+            operation: 'fetchGroupsWithMemberCounts',
+            component: 'useGroups',
+            institutionId,
+          }
         );
         return {
           data: result.groups,
@@ -85,7 +95,15 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
           nextPage: result.groups.length === limit ? pageParam + result.groups.length : null,
         };
       } else {
-        const groups = await groupsApi.fetchGroups(institutionId, { limit, offset: pageParam });
+        const groups = await withTimeout(
+          groupsApi.fetchGroups(institutionId, { limit, offset: pageParam }),
+          30000,
+          {
+            operation: 'fetchGroups',
+            component: 'useGroups',
+            institutionId,
+          }
+        );
         return {
           data: groups,
           memberCounts: {},
@@ -209,12 +227,23 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
     await refetchQuery();
   };
 
+  // Handle errors consistently
+  const errorMessage = error
+    ? getUserFriendlyMessage(
+        handleError(error, {
+          operation: 'useGroups',
+          component: 'useGroups',
+          institutionId: institutionId || undefined,
+        })
+      )
+    : null;
+
   return {
     groups,
     memberCounts,
     loading: isLoading,
     loadingMore: isFetching && !isLoading,
-    error: error ? (error instanceof Error ? error.message : 'Failed to fetch groups') : null,
+    error: errorMessage,
     hasMore: hasNextPage || false,
     refetch,
     loadMore,

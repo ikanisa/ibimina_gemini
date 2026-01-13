@@ -178,7 +178,6 @@ Then edit `.env.local` and add your Supabase credentials:
 ```bash
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
-VITE_USE_MOCK_DATA=false
 ```
 
 **Where to get your Supabase credentials:**
@@ -440,7 +439,7 @@ The app uses `.env.local` for local development (git-ignored). Required variable
 
 - `VITE_SUPABASE_URL` - Your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` - Your Supabase anon/public key
-- `VITE_USE_MOCK_DATA` - Set to `false` for real Supabase connection (optional, defaults to `false`)
+- Mock data has been removed - the application now uses only real Supabase data
 
 See `.env.example` for the complete template.
 

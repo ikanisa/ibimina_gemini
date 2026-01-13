@@ -55,79 +55,17 @@ function validateHmacSignature(
 }
 
 // ============================================================================
-// ============================================================================
-// Rate Limiting (In-Memory)
-// Limits: 100 requests per minute per API key (or IP if no key)
-// Note: In production with multiple instances, use Redis or KV storage
+// Rate Limiting (Redis/Database-based)
+// Supports Upstash Redis (production) or database fallback
 // ============================================================================
 
-const RATE_LIMIT = 100 // requests per minute
-const RATE_WINDOW_MS = 60 * 1000 // 1 minute
-
-// Map of clientId -> array of request timestamps
-const rateLimitMap = new Map<string, number[]>()
-
-function checkRateLimit(clientId: string): boolean {
-  const now = Date.now()
-  const timestamps = rateLimitMap.get(clientId) || []
-
-  // Remove timestamps older than the window
-  const recentTimestamps = timestamps.filter(t => now - t < RATE_WINDOW_MS)
-
-  if (recentTimestamps.length >= RATE_LIMIT) {
-    console.warn(`Rate limit exceeded for: ${clientId}`)
-    return false // Rate limited
-  }
-
-  // Add current timestamp and update map
-  recentTimestamps.push(now)
-  rateLimitMap.set(clientId, recentTimestamps)
-
-  // Cleanup old entries periodically (every 100 requests)
-  if (Math.random() < 0.01) {
-    cleanupRateLimitMap()
-  }
-
-  return true // Allowed
-}
-
-function cleanupRateLimitMap() {
-  const now = Date.now()
-  for (const [key, timestamps] of rateLimitMap.entries()) {
-    const recent = timestamps.filter(t => now - t < RATE_WINDOW_MS)
-    if (recent.length === 0) {
-      rateLimitMap.delete(key)
-    } else {
-      rateLimitMap.set(key, recent)
-    }
-  }
-}
+import { checkRateLimit, getRateLimitHeaders } from '../_shared/rate-limit.ts'
 
 // ============================================================================
 // IP Allowlisting (Optional)
 // ============================================================================
 
-function isIPAllowed(clientIP: string | null): boolean {
-  const allowedIPs = Deno.env.get('SMS_WEBHOOK_ALLOWED_IPS')
-  
-  // If no allowlist configured, allow all (backward compatible)
-  if (!allowedIPs) {
-    return true
-  }
-  
-  // Parse comma-separated list of allowed IPs
-  const allowedIPList = allowedIPs.split(',').map(ip => ip.trim())
-  
-  // Check if client IP is in allowlist
-  if (!clientIP) {
-    return false
-  }
-  
-  // Support CIDR notation or exact IPs
-  return allowedIPList.some(allowedIP => {
-    if (allowedIP.includes('/')) {
-      // CIDR notation (simplified check - for production use a proper CIDR library)
-      const [network] = allowedIP.split('/')
+import { checkIPWhitelist, extractClientIP } from '../_shared/ip-whitelist.ts'owedIP.split('/')
       // For now, just check if IP starts with network (simplified)
       return clientIP.startsWith(network)
     } else {
@@ -151,19 +89,9 @@ Deno.serve(async (req) => {
 
   try {
     // ============================================================================
-    // Step 1: IP Allowlisting (if configured)
+    // Step 1: Extract client IP
     // ============================================================================
-    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                     req.headers.get('x-real-ip') || 
-                     null
-    
-    if (!isIPAllowed(clientIP)) {
-      console.warn(`IP not allowed: ${clientIP}`)
-      return new Response(
-        JSON.stringify({ success: false, error: 'Forbidden: IP not allowed' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const clientIP = extractClientIP(req)
 
     // ============================================================================
     // Step 2: Authentication
@@ -188,17 +116,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // ============================================================================
-    // Step 3: Rate Limiting
-    // ============================================================================
-    // Use API key as client identifier, or fall back to IP
-    const clientId = apiKey || `ip-${clientIP || 'anonymous'}`
-    if (!checkRateLimit(clientId)) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Too many requests. Please slow down.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
-      )
-    }
+    // Rate limiting will be checked after Supabase client is created
 
     // Step 2: Parse and validate request body
     let body: IngestRequest
@@ -267,6 +185,45 @@ Deno.serve(async (req) => {
       auth: { persistSession: false }
     })
 
+    // ============================================================================
+    // Step 3: Rate Limiting (Redis/Database-based)
+    // ============================================================================
+    // Use API key as client identifier, or fall back to IP
+    const clientId = apiKey || `ip-${clientIP || 'anonymous'}`
+    
+    // institutionId already retrieved above for IP whitelist check
+
+    // Check rate limit with Redis/Database backend
+    const rateLimitResult = await checkRateLimit(clientId, {
+      limit: 100, // Default: 100 requests per minute
+      windowSeconds: 60,
+      institutionId,
+      identifier: clientId,
+    }, supabase);
+
+    if (!rateLimitResult.allowed) {
+      const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Too many requests. Please slow down.',
+          rateLimit: {
+            limit: rateLimitResult.limit,
+            remaining: rateLimitResult.remaining,
+            resetAt: new Date(rateLimitResult.resetAt).toISOString(),
+          }
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            ...rateLimitHeaders,
+          } 
+        }
+      );
+    }
+
     // Step 4: Call the ingest_sms RPC function
     const { data: ingestResult, error: ingestError } = await supabase.rpc('ingest_sms', {
       p_device_identifier: device_identifier,
@@ -302,6 +259,7 @@ Deno.serve(async (req) => {
 
     // If duplicate, return early with success
     if (ingestResult.duplicate) {
+      const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
       return new Response(
         JSON.stringify({
           success: true,
@@ -309,7 +267,7 @@ Deno.serve(async (req) => {
           duplicate: true,
           message: 'SMS already ingested'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json', ...rateLimitHeaders } }
       )
     }
 
@@ -323,6 +281,7 @@ Deno.serve(async (req) => {
     if (parseError) {
       console.error('Parse RPC error:', parseError)
       // Don't fail the ingest - SMS is saved, parsing failed
+      const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
       return new Response(
         JSON.stringify({
           success: true,
@@ -330,7 +289,7 @@ Deno.serve(async (req) => {
           parse_status: 'error',
           parse_error: parseError.message
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json', ...rateLimitHeaders } }
       )
     }
 
@@ -379,6 +338,7 @@ Deno.serve(async (req) => {
 
             if (aiParseResponse.ok) {
               const aiResult = await aiParseResponse.json()
+              const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
               return new Response(
                 JSON.stringify({
                   success: true,
@@ -387,7 +347,7 @@ Deno.serve(async (req) => {
                   parse_status: aiResult.success ? 'success' : 'error',
                   parser_type: aiResult.ai_provider || 'ai_fallback'
                 }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json', ...rateLimitHeaders } }
               )
             }
           } catch (aiError) {
@@ -410,13 +370,24 @@ Deno.serve(async (req) => {
       response.transaction_id = parseResult.transaction_id
     }
 
+    // Add rate limit headers to successful response
+    const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
+    
     return new Response(
       JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json', ...rateLimitHeaders } }
     )
 
   } catch (error) {
     console.error('Ingest error:', error)
+    
+    // Log error with context (can be forwarded to Sentry)
+    const { logError } = await import('../_shared/sentry.ts');
+    logError(error, {
+      functionName: 'sms-ingest',
+      requestId: req.headers.get('x-request-id') || undefined,
+    });
+    
     return new Response(
       JSON.stringify({
         success: false,

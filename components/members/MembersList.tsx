@@ -21,7 +21,7 @@ interface MembersListProps {
   onLoadMore?: () => void;
   selectedMemberId?: string;
   onAddMember?: () => void;
-  useMockData?: boolean;
+  // useMockData removed
 }
 
 export const MembersList: React.FC<MembersListProps> = React.memo(({
@@ -34,7 +34,7 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
   onLoadMore,
   selectedMemberId,
   onAddMember,
-  useMockData = false,
+  // useMockData removed
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -48,7 +48,7 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
   // Infinite scroll handler
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || useMockData || !onLoadMore) return;
+    if (!container || !onLoadMore) return;
 
     const handleScroll = () => {
       if (!hasMore || loadingMore) return;
@@ -60,7 +60,7 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [hasMore, loadingMore, onLoadMore, useMockData]);
+  }, [hasMore, loadingMore, onLoadMore]);
 
   if (loading && members.length === 0) {
     return <LoadingSpinner size="lg" text="Loading members..." />;
@@ -70,16 +70,16 @@ export const MembersList: React.FC<MembersListProps> = React.memo(({
     return (
       <EmptyState
         icon={User}
-        title={searchTerm ? 'No members found' : useMockData ? 'No members found' : 'No members yet'}
+        title={searchTerm ? 'No members found' : 'No members yet'}
         description={
           searchTerm
             ? 'No members match your search.'
-            : useMockData
+            : false
             ? 'No members match your search.'
             : 'Add members to get started.'
         }
         action={
-          !useMockData && !searchTerm && onAddMember ? (
+          !searchTerm && onAddMember ? (
             <Button variant="primary" leftIcon={<Plus size={16} />} onClick={onAddMember}>
               Add First Member
             </Button>

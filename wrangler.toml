@@ -1,5 +1,9 @@
 # Cloudflare Pages Configuration
 # https://developers.cloudflare.com/pages/configuration/wrangler-configuration/
+#
+# This configuration is used for Cloudflare Pages deployment.
+# For local development, use: wrangler pages dev dist
+# For production deployment, use: wrangler pages deploy dist
 
 name = "ibimina-gemini"
 compatibility_date = "2024-01-01"
@@ -7,26 +11,27 @@ compatibility_flags = ["nodejs_compat"]
 
 # Build configuration
 [build]
-command = "npm run build"
+command = "npm ci && npm run build"
 cwd = "."
-# watch_dir = "src"
+# watch_dir = "src"  # Uncomment for local development
 
 [build.upload]
 dir = "dist"
 
 # Environment variables (set in Cloudflare dashboard for secrets)
+# DO NOT put sensitive values here - use Cloudflare Dashboard → Pages → Settings → Environment Variables
 [vars]
 MODE = "production"
 APP_VERSION = "1.0.0"
 
-# Development environment
+# Development environment (preview deployments)
 [env.development]
 name = "ibimina-gemini-dev"
 [env.development.vars]
 MODE = "development"
 DEBUG = "true"
 
-# Staging environment
+# Staging environment (preview deployments)
 [env.staging]
 name = "ibimina-gemini-staging"
 [env.staging.vars]
@@ -39,6 +44,7 @@ name = "ibimina-gemini"
 MODE = "production"
 
 # Custom domains (configure after initial deployment)
+# Uncomment and configure after setting up custom domain in Cloudflare Dashboard
 # [env.production.routes]
 # zone_name = "your-domain.com"
 # pattern = "app.your-domain.com"
@@ -48,7 +54,8 @@ MODE = "production"
 bucket = "./dist"
 
 # Headers are defined in public/_headers file
+# Redirects are defined in public/_redirects file
 
-# Tail workers for logging (optional)
+# Tail workers for logging (optional - for advanced logging)
 # [tail_consumers]
 # - service = "logging-service"

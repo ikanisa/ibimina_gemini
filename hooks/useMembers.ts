@@ -10,6 +10,7 @@ import * as membersApi from '../lib/api/members.api';
 import { queryKeys } from '../lib/query-client';
 import type { SupabaseMember } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 
 export interface UseMembersOptions {
   includeGroups?: boolean;
@@ -72,9 +73,27 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
       }
 
       const limit = pageParam === 0 ? initialLimit : loadMoreLimit;
+      
+      // Wrap with timeout
       const data = includeGroups
-        ? await membersApi.fetchMembersWithGroups(institutionId, { limit, offset: pageParam })
-        : await membersApi.fetchMembers(institutionId, { limit, offset: pageParam });
+        ? await withTimeout(
+            membersApi.fetchMembersWithGroups(institutionId, { limit, offset: pageParam }),
+            30000,
+            {
+              operation: 'fetchMembersWithGroups',
+              component: 'useMembers',
+              institutionId,
+            }
+          )
+        : await withTimeout(
+            membersApi.fetchMembers(institutionId, { limit, offset: pageParam }),
+            30000,
+            {
+              operation: 'fetchMembers',
+              component: 'useMembers',
+              institutionId,
+            }
+          );
 
       // fetchMembersWithGroups returns MemberWithGroups[], fetchMembers returns SupabaseMember[]
       const members = data as SupabaseMember[];
@@ -199,11 +218,22 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
     await refetchQuery();
   };
 
+  // Handle errors consistently
+  const errorMessage = error
+    ? getUserFriendlyMessage(
+        handleError(error, {
+          operation: 'useMembers',
+          component: 'useMembers',
+          institutionId: institutionId || undefined,
+        })
+      )
+    : null;
+
   return {
     members,
     loading: isLoading,
     loadingMore: isFetching && !isLoading,
-    error: error ? (error instanceof Error ? error.message : 'Failed to fetch members') : null,
+    error: errorMessage,
     hasMore: hasNextPage || false,
     refetch,
     loadMore,

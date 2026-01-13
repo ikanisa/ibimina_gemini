@@ -56,7 +56,9 @@
 # Icons - long cache (1 year)
 /icons/*
   Cache-Control: public, max-age=31536000, immutable
-  X-Content-Type-Options: nosniff# Favicon - long cache
+  X-Content-Type-Options: nosniff
+
+# Favicon - long cache
 /favicon.ico
   Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff

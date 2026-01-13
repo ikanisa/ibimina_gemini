@@ -21,7 +21,7 @@ import {
   Loader2,
   Eye
 } from 'lucide-react';
-import { MOCK_STAFF } from '../constants';
+// Mock data removed - using only real Supabase data
 import { StaffMember, StaffRole, SupabaseProfile } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -49,10 +49,9 @@ interface StaffProps {
 
 const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const [activeTab, setActiveTab] = useState<Tab>('Staff List');
-  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
   const isMobile = useIsMobile();
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(useMockData ? MOCK_STAFF : []);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,10 +80,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (useMockData) {
-      setStaffMembers(MOCK_STAFF);
-      return;
-    }
+    // Always load from Supabase
 
     const loadStaff = async () => {
       setLoading(true);
@@ -125,7 +121,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     };
 
     loadStaff();
-  }, [useMockData, institutionId]);
+  }, [institutionId]);
 
   // Filter staff with useMemo
   const filteredStaff = useMemo(() => {
@@ -178,25 +174,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
 
     setIsSubmitting(true);
 
-    if (useMockData) {
-      // Simulate API request
-      setTimeout(() => {
-          setIsSubmitting(false);
-          setIsAddModalOpen(false);
-          // Reset form
-          setNewStaffData({
-              name: '',
-              email: '',
-              role: 'Staff',
-              branch: '',
-              status: 'Active',
-              onboardingMethod: 'invite',
-              password: ''
-          });
-          alert(`Staff member ${newStaffData.name} created successfully!`);
-      }, 1500);
-      return;
-    }
+    // Always use Supabase API - mock data removed
 
     const { data, error } = await supabase.functions.invoke('staff-invite', {
       body: {
@@ -427,7 +405,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
           </table>
           {filteredStaff.length === 0 && (
             <div className="p-10 text-center text-slate-400 text-sm">
-              {useMockData ? 'No staff found.' : 'No staff data yet. Connect this module to Supabase.'}
+              No staff found.
             </div>
           )}
         </div>

@@ -86,9 +86,9 @@ const BulkGroupImport: React.FC<BulkGroupImportProps> = ({ isOpen, onClose, onSu
     setImportResult(null);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const text = event.target?.result as string;
-      const rows = parseCSV(text);
+      const rows = await parseCSV(text);
       setParsedRows(rows);
       if (rows.length > 0) {
         setCurrentStep(1);

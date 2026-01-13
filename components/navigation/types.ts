@@ -24,7 +24,7 @@ export interface SidebarProps {
   onNavigate: (view: ViewState) => void;
   onMobileMenuClose: () => void;
   canAccess: (view: ViewState) => boolean;
-  useMockData: boolean;
+  // useMockData removed - application now uses only real Supabase data
   originalUser: any;
   isImpersonating: boolean;
   onSignOut: () => void;
@@ -39,7 +39,7 @@ export interface HeaderProps {
     avatarUrl: string;
   };
   isOffline: boolean;
-  useMockData: boolean;
+  // useMockData removed - application now uses only real Supabase data
   isImpersonating: boolean;
   onNavigate: (view: ViewState) => void;
   onSignOut: () => void;

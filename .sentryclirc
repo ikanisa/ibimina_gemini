@@ -1,0 +1,10 @@
+# Sentry CLI Configuration
+# Used for uploading source maps and releases
+
+[auth]
+token=env(SENTRY_AUTH_TOKEN)
+
+[defaults]
+org=sacco-admin-portal
+project=sacco-admin-portal
+url=https://sentry.io/

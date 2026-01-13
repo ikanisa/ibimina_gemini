@@ -18,6 +18,10 @@ const ReactQueryDevtools = import.meta.env.DEV
 // Initialize Sentry error tracking (before React renders)
 initSentry();
 
+// Initialize theme (before React renders to prevent flash)
+import { initializeTheme } from './lib/theme/dark-mode';
+initializeTheme();
+
 // Clean up legacy PWA caches from earlier builds (pre-vite-plugin-pwa SW).
 clearLegacyPwaCaches().catch((err) => {
   console.warn('PWA legacy cache cleanup failed:', err);

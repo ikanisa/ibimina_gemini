@@ -17,7 +17,20 @@ export const queryClient = new QueryClient({
       gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
       
       // Retry failed requests up to 3 times
-      retry: 3,
+      retry: (failureCount, error) => {
+        // Don't retry if offline
+        if (!navigator.onLine) {
+          return false;
+        }
+        // Don't retry after 3 attempts
+        if (failureCount >= 3) return false;
+        // Retry on network errors and timeouts (check for AppError with retryable flag)
+        if (error && typeof error === 'object' && 'retryable' in error) {
+          return (error as { retryable?: boolean }).retryable === true;
+        }
+        // Default: retry on unknown errors
+        return true;
+      },
       
       // Exponential backoff for retries
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -32,8 +45,15 @@ export const queryClient = new QueryClient({
       refetchOnMount: true,
     },
     mutations: {
-      // Retry mutations once on failure
-      retry: 1,
+      // Retry mutations once on failure (only for retryable errors)
+      retry: (failureCount, error) => {
+        if (failureCount >= 1) return false;
+        // Only retry on network errors
+        if (error && typeof error === 'object' && 'retryable' in error) {
+          return (error as { retryable?: boolean }).retryable === true;
+        }
+        return false;
+      },
       
       // Retry delay for mutations
       retryDelay: 1000,

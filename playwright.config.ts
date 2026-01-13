@@ -26,7 +26,9 @@ export default defineConfig({
     /* Reporter to use */
     reporter: [
         ['html', { open: 'never' }],
-        ['list']
+        ['list'],
+        ['junit', { outputFile: 'test-results/junit.xml' }],
+        ['json', { outputFile: 'test-results/results.json' }],
     ],
 
     /* Shared settings for all the projects below */
@@ -42,6 +44,17 @@ export default defineConfig({
 
         /* Video recording */
         video: 'retain-on-failure',
+
+        /* Screenshot on failure */
+        screenshot: 'only-on-failure',
+    },
+
+    /* Visual comparison settings */
+    expect: {
+        toHaveScreenshot: {
+            maxDiffPixels: 100,
+            threshold: 0.2,
+        },
     },
 
     /* Configure projects for major browsers */

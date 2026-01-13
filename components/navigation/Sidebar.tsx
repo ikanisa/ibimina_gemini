@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { ViewState } from '../../types';
 import { NavigationItem } from './NavigationItem';
-import { MOCK_STAFF } from '../../constants';
+// Mock data removed - using only real Supabase data
 import type { SidebarProps } from './types';
 
 interface SidebarPropsWithRoleSwitch extends SidebarProps {
@@ -33,7 +33,7 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
   onNavigate,
   onMobileMenuClose,
   canAccess,
-  useMockData,
+  // useMockData removed
   originalUser,
   isImpersonating,
   onSignOut,
@@ -43,56 +43,8 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
 }) => {
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
 
-  const RoleSwitcher = () => {
-    if (!useMockData) return null;
-    if (isImpersonating) return null;
-    const roleUpper = originalUser.role?.toUpperCase() || '';
-    if (roleUpper !== 'ADMIN' && roleUpper !== 'PLATFORM_ADMIN' && roleUpper !== 'INSTITUTION_ADMIN') return null;
-
-    return (
-      <div className="px-4 py-3 mt-auto border-t border-slate-800">
-        <button
-          onClick={() => setIsRoleSwitcherOpen(!isRoleSwitcherOpen)}
-          className="w-full flex items-center justify-between text-xs text-slate-400 hover:text-white mb-2 uppercase font-bold tracking-wider"
-        >
-          <span>Admin: Switch Role</span>
-          <ChevronDown size={14} />
-        </button>
-
-        {isRoleSwitcherOpen && (
-          <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
-            {MOCK_STAFF.map((staff) => (
-              <button
-                key={staff.id}
-                onClick={() => {
-                  if (staff.id === originalUser.id) {
-                    onRoleReset?.();
-                  } else {
-                    onRoleSwitch?.(staff);
-                  }
-                  setIsRoleSwitcherOpen(false);
-                }}
-                className={`w-full text-left text-xs px-2 py-1.5 rounded flex items-center gap-2 ${
-                  currentUser.id === staff.id
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'
-                }`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    staff.role === 'Admin' || staff.role?.toUpperCase() === 'ADMIN'
-                      ? 'bg-purple-500'
-                      : 'bg-blue-500'
-                  }`}
-                ></div>
-                {staff.role}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // RoleSwitcher removed - was only for mock data
+  const RoleSwitcher = () => null;
 
   return (
     <aside

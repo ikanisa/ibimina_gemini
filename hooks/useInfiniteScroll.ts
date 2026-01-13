@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 
 interface UseInfiniteScrollOptions<T> {
   fetchFn: (offset: number, limit: number) => Promise<T[]>;
   initialLimit?: number;
   loadMoreLimit?: number;
   threshold?: number; // pixels from bottom to trigger load
+  timeout?: number; // timeout in milliseconds (default: 30s)
 }
 
 interface UseInfiniteScrollReturn<T> {
@@ -23,6 +25,7 @@ export function useInfiniteScroll<T>({
   initialLimit = 50,
   loadMoreLimit = 25,
   threshold = 200,
+  timeout = 30000,
 }: UseInfiniteScrollOptions<T>): UseInfiniteScrollReturn<T> {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,14 +37,16 @@ export function useInfiniteScroll<T>({
   const loadingRef = useRef(false);
   const fetchFnRef = useRef(fetchFn);
   const initialLimitRef = useRef(initialLimit);
+  const timeoutRef = useRef(timeout);
 
   // Keep refs updated
   useEffect(() => {
     fetchFnRef.current = fetchFn;
     initialLimitRef.current = initialLimit;
-  }, [fetchFn, initialLimit]);
+    timeoutRef.current = timeout;
+  }, [fetchFn, initialLimit, timeout]);
 
-  // Initial load
+  // Initial load with timeout and error handling
   const loadInitial = useCallback(async () => {
     if (loadingRef.current) return; // Prevent duplicate loads
     
@@ -49,19 +54,27 @@ export function useInfiniteScroll<T>({
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchFnRef.current(0, initialLimitRef.current);
+      const data = await withTimeout(
+        fetchFnRef.current(0, initialLimitRef.current),
+        timeoutRef.current,
+        { operation: 'infiniteScroll.initialLoad', component: 'useInfiniteScroll' }
+      );
       setItems(data);
       setOffset(data.length);
       setHasMore(data.length === initialLimitRef.current);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      const appError = handleError(err, {
+        operation: 'infiniteScroll.initialLoad',
+        component: 'useInfiniteScroll',
+      });
+      setError(getUserFriendlyMessage(appError));
     } finally {
       setLoading(false);
       loadingRef.current = false;
     }
   }, []); // No dependencies - using refs instead
 
-  // Load more
+  // Load more with timeout and error handling
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
     
@@ -70,12 +83,20 @@ export function useInfiniteScroll<T>({
     
     try {
       const currentOffset = offset;
-      const data = await fetchFnRef.current(currentOffset, loadMoreLimit);
+      const data = await withTimeout(
+        fetchFnRef.current(currentOffset, loadMoreLimit),
+        timeoutRef.current,
+        { operation: 'infiniteScroll.loadMore', component: 'useInfiniteScroll' }
+      );
       setItems(prev => [...prev, ...data]);
       setOffset(prev => prev + data.length);
       setHasMore(data.length === loadMoreLimit);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more');
+      const appError = handleError(err, {
+        operation: 'infiniteScroll.loadMore',
+        component: 'useInfiniteScroll',
+      });
+      setError(getUserFriendlyMessage(appError));
     } finally {
       setLoadingMore(false);
       loadingRef.current = false;

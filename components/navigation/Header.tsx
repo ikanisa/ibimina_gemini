@@ -13,7 +13,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentView,
   currentUser,
   isOffline,
-  useMockData,
+  // useMockData removed
   isImpersonating,
   onNavigate,
   onSignOut,
@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         {/* System Health Indicator */}
-        {!useMockData && (
+        {(
           <div className="relative">
             {/* SystemHealthIndicator would go here */}
           </div>

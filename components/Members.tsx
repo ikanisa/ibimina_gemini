@@ -7,7 +7,7 @@
 import React, { useState, useMemo } from 'react';
 import { Filter, Plus, Upload } from 'lucide-react';
 import { Member, ViewState } from '../types';
-import { MOCK_MEMBERS } from '../constants';
+// Mock data removed - using only real Supabase data
 import { useAuth } from '../contexts/AuthContext';
 import { useMembers } from '../hooks';
 import { transformMembers } from '../lib/transformers/memberTransformer';
@@ -25,7 +25,6 @@ interface MembersProps {
 }
 
 const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) => {
-  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId } = useAuth();
 
   // Use the new hook with infinite scroll support
@@ -40,13 +39,12 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
     loadMore,
   } = useMembers({
     includeGroups: true,
-    autoFetch: !useMockData && !membersProp,
+    autoFetch: !membersProp,
   });
 
   // Transform Supabase members to UI format
   const members = useMemo(() => {
     if (membersProp) return membersProp;
-    if (useMockData) return MOCK_MEMBERS;
     if (!supabaseMembers.length) return [];
 
     // Transform using the transformer utility

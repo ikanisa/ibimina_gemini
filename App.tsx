@@ -8,12 +8,16 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 import { Eye, WifiOff } from 'lucide-react';
-import { MOCK_MEMBERS, MOCK_STATS, MOCK_TRANSACTIONS, MOCK_STAFF } from './constants';
+// Mock data removed - using only real Supabase data
 import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { buildInitialsAvatar } from './lib/avatars';
 import { Sidebar, Header, MobileBottomNav } from './components/navigation';
 import { AnimatedPage } from './components/ui/AnimatedPage';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
+import { useSessionTimeout, SessionWarningModal } from './hooks/useSessionTimeout';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { SkipLink } from './components/ui/SkipLink';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const MinimalistDashboard = lazy(() => import('./components/MinimalistDashboard'));
@@ -33,15 +37,7 @@ const SystemHealthIndicator = lazy(() => import('./components/SystemHealthIndica
 
 // Production guard: Fail loudly if mock data is enabled in production
 // This is a critical security issue as it bypasses authentication
-if (import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-  console.error('🚨 CRITICAL SECURITY WARNING: VITE_USE_MOCK_DATA=true in production build!');
-  console.error('🚨 This bypasses authentication and allows unauthorized access.');
-  console.error('🚨 The portal should ONLY be accessible to invited staff members.');
-  
-  // In production, we should NOT use mock data - it's a security risk
-  // For now, we'll show a warning but still allow it for backwards compatibility
-  // TODO: In future versions, consider blocking access entirely if mock data is enabled in production
-}
+// This check is now handled in the App component itself
 
 const EMPTY_STATS: KpiStats = {
   totalMembers: 0,
@@ -199,13 +195,31 @@ const AccountNotProvisioned: React.FC<{ email?: string; userId: string }> = ({ e
 
 const App: React.FC = () => {
   const { user, profile, role, institutionId, loading, signOut, isConfigured, error } = useAuth();
-  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-  const demoUser = useMockData ? (MOCK_STAFF[0] ?? null) : null;
-  const baseUser = useMockData ? demoUser : (user ? mapUserToStaffMember(user, role, profile) : null);
+  
+  // Session timeout: 30 min idle, 8 hour absolute
+  const sessionTimeout = useSessionTimeout({
+    idleTimeoutMinutes: 30,
+    absoluteTimeoutHours: 8,
+    enabled: !!user, // Only enable when user is logged in
+    onTimeout: () => {
+      console.log('Session timeout triggered');
+    },
+  });
+  
+  // Production guard: Fail loudly if mock data is enabled
+  if (import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    throw new Error(
+      '🚨 CRITICAL SECURITY ERROR: VITE_USE_MOCK_DATA=true in production build!\n' +
+      'This bypasses authentication and allows unauthorized access.\n' +
+      'The portal should ONLY be accessible to invited staff members.\n' +
+      'Please remove VITE_USE_MOCK_DATA from production environment variables.'
+    );
+  }
+
+  const baseUser = user ? mapUserToStaffMember(user, role, profile) : null;
   const [viewingAsUser, setViewingAsUser] = useState<StaffMember | null>(null);
 
-  const originalUser = baseUser ?? demoUser;
-  const currentUser = viewingAsUser || originalUser;
+  const currentUser = viewingAsUser || baseUser;
   const isImpersonating = Boolean(viewingAsUser);
 
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
@@ -218,9 +232,9 @@ const App: React.FC = () => {
     await signOut();
   };
 
-  const dashboardStats = useMockData ? MOCK_STATS : EMPTY_STATS;
-  const dashboardTransactions = useMockData ? MOCK_TRANSACTIONS : [];
-  const showMinimalistDashboard = !useMockData;
+  const dashboardStats = EMPTY_STATS;
+  const dashboardTransactions: Transaction[] = [];
+  const showMinimalistDashboard = true;
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -243,52 +257,52 @@ const App: React.FC = () => {
     }
   }, [currentUser?.id]);
 
-  if (!useMockData) {
-    if (!isConfigured) {
-      return <MissingConfig />;
-    }
-    if (loading) {
-      return <LoadingScreen />;
-    }
-    if (error) {
-      return <InitError error={error} />;
-    }
-    if (!user || !baseUser) {
-      return (
-        <Suspense fallback={<LoadingScreen />}>
-          <Login />
-        </Suspense>
-      );
-    }
-    // SECURITY: If user is logged in but has no profile/institution and is NOT a platform admin, they need provisioning
-    // This ensures only invited staff (with profiles) can access the portal
-    const isPlatformAdmin = role === 'Admin' || role?.toUpperCase() === 'ADMIN';
-    const hasValidAccess = useMockData || isPlatformAdmin || (institutionId && profile);
+  // Check configuration and authentication
+  if (!isConfigured) {
+    return <MissingConfig />;
+  }
+  if (loading) {
+    return <LoadingScreen />;
+  }
+  if (error) {
+    return <InitError error={error} />;
+  }
+  if (!user || !baseUser) {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <Login />
+      </Suspense>
+    );
+  }
+  
+  // SECURITY: If user is logged in but has no profile/institution and is NOT a platform admin, they need provisioning
+  // This ensures only invited staff (with profiles) can access the portal
+  const isPlatformAdmin = role === 'Admin' || role?.toUpperCase() === 'ADMIN';
+  const hasValidAccess = isPlatformAdmin || (institutionId && profile);
+  
+  if (!hasValidAccess) {
+    // User is authenticated but doesn't have a profile - they weren't invited as staff
+    console.warn('[Security] Authenticated user without profile/institution access:', {
+      userId: user.id,
+      email: user.email,
+      hasProfile: !!profile,
+      institutionId,
+      role
+    });
     
-    if (!hasValidAccess && !useMockData) {
-      // User is authenticated but doesn't have a profile - they weren't invited as staff
-      console.warn('[Security] Authenticated user without profile/institution access:', {
-        userId: user.id,
-        email: user.email,
-        hasProfile: !!profile,
-        institutionId,
-        role
-      });
-      
-      return (
-        <div className="flex flex-col h-screen">
-          <div className="absolute top-4 right-4 z-50">
-            <button
-              onClick={() => signOut()}
-              className="flex items-center gap-2 text-slate-500 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
-            >
-              <WifiOff size={16} /> Sign Out
-            </button>
-          </div>
-          <AccountNotProvisioned email={user.email} userId={user.id} />
+    return (
+      <div className="flex flex-col h-screen">
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-2 text-slate-500 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+          >
+            <WifiOff size={16} /> Sign Out
+          </button>
         </div>
-      );
-    }
+        <AccountNotProvisioned email={user.email} userId={user.id} />
+      </div>
+    );
   }
 
   if (!currentUser) {
@@ -297,7 +311,7 @@ const App: React.FC = () => {
 
   // RBAC Permission Map
   const canAccess = (view: ViewState): boolean => {
-    const effectiveRole = useMockData ? currentUser.role : role;
+    const effectiveRole = role;
     if (!effectiveRole) return false;
 
     const roleUpper = effectiveRole.toUpperCase();
@@ -337,6 +351,8 @@ const App: React.FC = () => {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <AppBoot>
+        <SkipLink targetId="main-content" />
+        <OfflineIndicator position="top" />
         <div className="flex h-screen bg-slate-50 overflow-hidden font-inter">
           {/* Sidebar */}
           <Sidebar
@@ -345,7 +361,6 @@ const App: React.FC = () => {
             onNavigate={setCurrentView}
             onMobileMenuClose={() => setIsMobileMenuOpen(false)}
             canAccess={canAccess}
-            useMockData={useMockData}
             originalUser={originalUser}
             isImpersonating={isImpersonating}
             onSignOut={handleSignOut}
@@ -355,7 +370,7 @@ const App: React.FC = () => {
           />
 
           {/* Main Content */}
-          <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+          <main id="main-content" className="flex-1 flex flex-col h-screen overflow-hidden relative" tabIndex={-1}>
             {isImpersonating && (
               <div className="bg-orange-600 text-white px-4 py-2 text-sm flex items-center justify-between shadow-md z-50">
                 <div className="flex items-center gap-2">
@@ -374,7 +389,7 @@ const App: React.FC = () => {
             )}
 
             {/* Demo mode banner */}
-            {useMockData && (
+            {false && (
               <div
                 className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${
                   import.meta.env.PROD
@@ -395,7 +410,6 @@ const App: React.FC = () => {
               currentView={currentView}
               currentUser={currentUser}
               isOffline={isOffline}
-              useMockData={useMockData}
               isImpersonating={isImpersonating}
               onNavigate={setCurrentView}
               onSignOut={handleSignOut}
@@ -406,8 +420,9 @@ const App: React.FC = () => {
 
             {/* View Area with Page Transitions */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth pb-20 md:pb-6">
-              <Suspense fallback={<SectionLoading />}>
-                <AnimatePresence mode="wait">
+              <RouteErrorBoundary routeName="main-view">
+                <Suspense fallback={<SectionLoading />}>
+                  <AnimatePresence mode="wait">
                   {currentView === ViewState.DASHBOARD && (
                     <AnimatedPage key="dashboard" initial="fade">
                       {showMinimalistDashboard ? (
@@ -433,12 +448,12 @@ const App: React.FC = () => {
                   )}
                   {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
                     <AnimatedPage key="members" initial="slide">
-                      <Members members={useMockData ? MOCK_MEMBERS : undefined} onNavigate={setCurrentView} />
+                      <Members onNavigate={setCurrentView} />
                     </AnimatedPage>
                   )}
                   {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
                     <AnimatedPage key="transactions" initial="slide">
-                      <Transactions transactions={useMockData ? MOCK_TRANSACTIONS : undefined} onNavigate={setCurrentView} />
+                      <Transactions onNavigate={setCurrentView} />
                     </AnimatedPage>
                   )}
                   {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && (
@@ -490,6 +505,7 @@ const App: React.FC = () => {
                     )}
                 </AnimatePresence>
               </Suspense>
+              </RouteErrorBoundary>
             </div>
 
             {isMobileMenuOpen && (
@@ -499,6 +515,15 @@ const App: React.FC = () => {
               ></div>
             )}
           </main>
+
+          {/* Session Timeout Warning Modal */}
+          <SessionWarningModal
+            isOpen={sessionTimeout.isWarning}
+            remainingSeconds={sessionTimeout.remainingSeconds}
+            timeoutType={sessionTimeout.timeoutType}
+            onExtend={sessionTimeout.extendSession}
+            onLogout={sessionTimeout.logout}
+          />
 
           {/* Change Password Modal */}
           <Suspense fallback={null}>

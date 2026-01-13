@@ -13,7 +13,7 @@ import {
   Plus,
   Upload,
 } from 'lucide-react';
-import { MOCK_GROUPS, MOCK_GROUP_MEMBERS, MOCK_MEETINGS, MOCK_CONTRIBUTIONS, MOCK_TRANSACTIONS, MOCK_SMS } from '../constants';
+// Mock data removed - using only real Supabase data
 import BulkGroupUpload from './BulkGroupUpload';
 import {
   Contribution,
@@ -47,7 +47,6 @@ interface GroupsProps {
 }
 
 const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionIdProp }) => {
-  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId: authInstitutionId } = useAuth();
   const institutionId = institutionIdProp || authInstitutionId;
 
@@ -61,32 +60,31 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
     refetch,
   } = useGroups({
     includeMemberCounts: true,
-    autoFetch: !useMockData,
+    autoFetch: true,
   });
 
   // Transform Supabase groups to UI format
   const groups = useMemo(() => {
-    if (useMockData) return MOCK_GROUPS;
     if (!supabaseGroups.length) return [];
     return transformGroups(supabaseGroups, memberCounts);
-  }, [useMockData, supabaseGroups, memberCounts]);
+  }, [supabaseGroups, memberCounts]);
 
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [groupMembers, setGroupMembers] = useState<GroupMember[]>(useMockData ? MOCK_GROUP_MEMBERS : []);
-  const [groupMeetings, setGroupMeetings] = useState<Meeting[]>(useMockData ? MOCK_MEETINGS : []);
-  const [groupContributions, setGroupContributions] = useState<Contribution[]>(useMockData ? MOCK_CONTRIBUTIONS : []);
-  const [groupTransactions, setGroupTransactions] = useState<Transaction[]>(useMockData ? MOCK_TRANSACTIONS : []);
-  const [groupSms, setGroupSms] = useState<SmsMessage[]>(useMockData ? MOCK_SMS : []);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [groupMeetings, setGroupMeetings] = useState<Meeting[]>([]);
+  const [groupContributions, setGroupContributions] = useState<Contribution[]>([]);
+  const [groupTransactions, setGroupTransactions] = useState<Transaction[]>([]);
+  const [groupSms, setGroupSms] = useState<SmsMessage[]>([]);
 
   // Create Group Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   // Show skeleton while loading initial data
-  if (loading && !useMockData && groups.length === 0) {
+  if (loading && groups.length === 0) {
     return (
       <PageLayout>
         <Section>
@@ -110,15 +108,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
 
   // Load group details when a group is selected
   useEffect(() => {
-    if (useMockData) {
-      setGroupMembers(MOCK_GROUP_MEMBERS);
-      setGroupMeetings(MOCK_MEETINGS);
-      setGroupContributions(MOCK_CONTRIBUTIONS);
-      setGroupTransactions(MOCK_TRANSACTIONS);
-      setGroupSms(MOCK_SMS);
-      return;
-    }
-
     if (!selectedGroup || !institutionId) {
       setGroupMembers([]);
       setGroupMeetings([]);

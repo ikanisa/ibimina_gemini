@@ -207,7 +207,7 @@ const Reports: React.FC = () => {
     setScopeName(name);
   };
 
-  // Export CSV
+  // Export CSV using enhanced utilities
   const handleExportCsv = useCallback(async (): Promise<string> => {
     const effectiveScopeId =
       scope === 'institution' ? (isPlatformAdmin ? scopeId : institutionId) : scopeId;
@@ -238,7 +238,14 @@ const Reports: React.FC = () => {
       if (data.rows.length < batchSize) break;
     }
 
-    // Convert to CSV
+    // Convert to CSV using enhanced export utilities
+    const { arrayToCSV, downloadCSV } = await import('../lib/csv/export');
+    const csvContent = arrayToCSV(allRows);
+    const filename = `report_${scope}_${scopeName || 'all'}_${dateRange.start}_to_${dateRange.end}.csv`;
+    downloadCSV(csvContent, filename);
+    return csvContent;
+    
+    // Legacy format (kept for compatibility)
     return objectsToCsv(allRows, [
       { key: 'occurred_at', header: 'Date' },
       { key: 'amount', header: 'Amount' },

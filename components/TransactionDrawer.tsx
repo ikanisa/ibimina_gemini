@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button, Badge, SearchInput, LoadingSpinner, EmptyState } from './ui';
 import { drawerSlide, transitions } from '../lib/animations/framer-motion';
 import { useTransactions } from '../hooks/useTransactions';
+import { DragDropAllocation, DraggableTransaction } from './Transactions/DragDropAllocation';
 
 interface TransactionDetails {
   id: string;

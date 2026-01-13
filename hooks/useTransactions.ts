@@ -10,6 +10,7 @@ import * as transactionsApi from '../lib/api/transactions.api';
 import { queryKeys } from '../lib/query-client';
 import type { SupabaseTransaction } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 
 export interface UseTransactionsOptions {
   memberId?: string;
@@ -63,16 +64,25 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         return [];
       }
 
-      // Build query with all filters
-      return transactionsApi.fetchTransactions(institutionId, {
-        memberId,
-        groupId,
-        status,
-        allocationStatus: status, // Support both status and allocation_status
-        limit,
-        dateRange,
-        searchTerm,
-      });
+      // Build query with all filters - wrapped with timeout
+      const { withTimeout } = await import('../lib/errors/ErrorHandler');
+      return withTimeout(
+        transactionsApi.fetchTransactions(institutionId, {
+          memberId,
+          groupId,
+          status,
+          allocationStatus: status, // Support both status and allocation_status
+          limit,
+          dateRange,
+          searchTerm,
+        }),
+        30000, // 30 second timeout
+        {
+          operation: 'fetchTransactions',
+          component: 'useTransactions',
+          institutionId,
+        }
+      );
     },
     enabled: autoFetch && !!institutionId,
     // Keep previous data while fetching new data (smooth transitions)
@@ -83,6 +93,33 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const createMutation = useMutation({
     mutationFn: (params: transactionsApi.CreateTransactionParams) =>
       transactionsApi.createTransaction(params),
+    onMutate: async (newTransaction) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.transactions.lists() });
+
+      // Snapshot previous value
+      const previousTransactions = queryClient.getQueryData<SupabaseTransaction[]>(queryKey);
+
+      // Optimistically update cache
+      if (previousTransactions) {
+        queryClient.setQueryData<SupabaseTransaction[]>(queryKey, (old = []) => [
+          {
+            ...newTransaction,
+            id: `temp-${Date.now()}`,
+            institution_id: institutionId || '',
+            occurred_at: new Date().toISOString(),
+            allocation_status: 'unallocated',
+            status: 'PENDING',
+            type: newTransaction.type || 'DEPOSIT',
+            channel: newTransaction.channel || 'MANUAL',
+            currency: newTransaction.currency || 'RWF',
+          } as SupabaseTransaction,
+          ...old,
+        ]);
+      }
+
+      return { previousTransactions };
+    },
     onSuccess: (newTransaction) => {
       // Invalidate and refetch transactions list
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() });
@@ -186,6 +223,24 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   });
 
   const createTransaction = async (params: transactionsApi.CreateTransactionParams) => {
+    // Queue action if offline
+    if (!navigator.onLine) {
+      const { queueAction } = await import('../lib/offline/queue');
+      queueAction({
+        type: 'create',
+        resource: 'transaction',
+        payload: params,
+      });
+      // Return optimistic data
+      return {
+        ...params,
+        id: `temp-${Date.now()}`,
+        institution_id: institutionId || '',
+        occurred_at: new Date().toISOString(),
+        allocation_status: 'unallocated',
+        status: 'PENDING',
+      } as SupabaseTransaction;
+    }
     return createMutation.mutateAsync(params);
   };
 
@@ -194,6 +249,22 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   };
 
   const allocateTransaction = async (transactionId: string, memberId: string, note?: string | null) => {
+    // Queue action if offline
+    if (!navigator.onLine) {
+      const { queueAction } = await import('../lib/offline/queue');
+      queueAction({
+        type: 'allocate',
+        resource: 'transaction',
+        payload: { transaction_id: transactionId, member_id: memberId, note },
+      });
+      // Return optimistic data
+      return {
+        id: transactionId,
+        member_id: memberId,
+        allocation_status: 'allocated',
+        allocated_at: new Date().toISOString(),
+      } as any;
+    }
     return allocateMutation.mutateAsync({ transaction_id: transactionId, member_id: memberId, note });
   };
 
@@ -201,10 +272,21 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
     await refetchQuery();
   };
 
+  // Handle errors consistently
+  const errorMessage = error
+    ? getUserFriendlyMessage(
+        handleError(error, {
+          operation: 'useTransactions',
+          component: 'useTransactions',
+          institutionId: institutionId || undefined,
+        })
+      )
+    : null;
+
   return {
     transactions,
     loading: isLoading,
-    error: error ? (error instanceof Error ? error.message : 'Failed to fetch transactions') : null,
+    error: errorMessage,
     refetch,
     createTransaction,
     updateTransactionStatus,

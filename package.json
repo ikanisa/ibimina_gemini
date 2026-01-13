@@ -26,6 +26,12 @@
     "e2e:rls": "playwright test rls.spec.ts",
     "e2e:smoke": "playwright test smoke.spec.ts",
     "test:all": "npm run test && npm run e2e",
+    "a11y:audit": "node scripts/accessibility-audit.js",
+    "a11y:test": "playwright test accessibility.spec.ts",
+    "load:test": "k6 run tests/load/scenarios.js",
+    "load:quick": "k6 run --vus 100 --duration 5m tests/load/scenarios.js",
+    "load:stress": "k6 run tests/load/stress-test.js",
+    "load:edge": "k6 run tests/load/edge-function-load.js",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name=sacco",
@@ -47,6 +53,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@playwright/test": "^1.57.0",
     "@storybook/addon-a11y": "^8.6.15",
     "@storybook/addon-essentials": "^8.6.14",
@@ -63,6 +70,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.21",
+    "axe-core": "^4.11.1",
     "bundlesize": "^0.18.2",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",

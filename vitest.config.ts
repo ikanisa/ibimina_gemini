@@ -12,14 +12,30 @@ export default defineConfig({
         exclude: ['node_modules', 'dist', '.git', 'e2e'],
         coverage: {
             provider: 'v8',
-            reporter: ['text', 'json', 'html'],
+            reporter: ['text', 'json', 'html', 'lcov'],
             exclude: [
                 'node_modules/',
                 'src/test/',
                 '**/*.d.ts',
                 'vite.config.ts',
                 'vitest.config.ts',
+                '**/*.config.ts',
+                '**/*.config.js',
+                'dist/',
+                'e2e/',
+                '**/index.ts', // Barrel exports
             ],
+            include: [
+                'lib/**/*.ts',
+                'hooks/**/*.ts',
+                'components/**/*.{ts,tsx}',
+            ],
+            thresholds: {
+                lines: 80,
+                functions: 80,
+                branches: 75,
+                statements: 80,
+            },
         },
     },
     resolve: {

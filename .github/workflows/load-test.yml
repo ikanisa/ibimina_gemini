@@ -1,0 +1,69 @@
+name: Load Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_users:
+        description: 'Number of concurrent users'
+        required: false
+        default: '1000'
+      duration:
+        description: 'Test duration (e.g., 10m)'
+        required: false
+        default: '28m'
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  load-test:
+    name: Load Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run Load Tests
+        env:
+          BASE_URL: ${{ secrets.LOAD_TEST_BASE_URL || 'http://localhost:5173' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          k6 run \
+            --vus ${{ github.event.inputs.target_users || '1000' }} \
+            --duration ${{ github.event.inputs.duration || '28m' }} \
+            tests/load/scenarios.js
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: |
+            test-results/
+          retention-days: 30
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            // Read and parse k6 output if available
+            // Post comment to PR with results summary
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Load test completed. Check artifacts for detailed results.'
+            });

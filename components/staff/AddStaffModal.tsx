@@ -38,7 +38,7 @@ interface AddStaffModalProps {
         avatarUrl: string;
     }) => void;
     institutionId: string | null;
-    useMockData: boolean;
+    // useMockData removed
 }
 
 const DEFAULT_PASSWORD = 'Sacco+';
@@ -56,7 +56,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     onClose,
     onSuccess,
     institutionId,
-    useMockData
+    // useMockData removed
 }) => {
     const { role: userRole, institutionId: userInstitutionId } = useAuth();
     const isPlatformAdmin = isSuperAdmin(userRole);
@@ -114,7 +114,8 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
         setIsSubmitting(true);
 
-        if (useMockData) {
+        // Mock data removed - always use Supabase
+        if (false) {
             setTimeout(() => {
                 setIsSubmitting(false);
                 onSuccess({

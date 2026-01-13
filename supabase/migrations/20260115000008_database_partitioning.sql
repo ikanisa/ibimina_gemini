@@ -1,0 +1,303 @@
+/**
+ * Database Partitioning Migration
+ * Implements table partitioning for large tables to improve query performance
+ * 
+ * Tables to partition:
+ * - transactions (by created_at date range)
+ * - momo_sms_raw (by received_at date range)
+ * 
+ * Strategy: Range partitioning by month
+ */
+
+-- ============================================================================
+-- PARTITIONING STRATEGY
+-- ============================================================================
+-- 
+-- 1. transactions table: Partition by created_at (monthly partitions)
+-- 2. momo_sms_raw table: Partition by received_at (monthly partitions)
+--
+-- Benefits:
+-- - Faster queries on date ranges
+-- - Easier data archival
+-- - Better index performance
+-- - Reduced maintenance overhead
+--
+-- ============================================================================
+
+-- ============================================================================
+-- 1. TRANSACTIONS TABLE PARTITIONING
+-- ============================================================================
+
+-- Check if transactions table exists and get its structure
+DO $$
+BEGIN
+  -- Create partitioned table if it doesn't exist as partitioned
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_tables 
+    WHERE schemaname = 'public' 
+    AND tablename = 'transactions_partitioned'
+  ) THEN
+    -- Create new partitioned table structure
+    CREATE TABLE transactions_partitioned (
+      LIKE transactions INCLUDING ALL
+    ) PARTITION BY RANGE (created_at);
+
+    -- Create default partition for existing data
+    CREATE TABLE transactions_default PARTITION OF transactions_partitioned
+      DEFAULT;
+
+    -- Create monthly partitions for the next 12 months
+    DO $$
+    DECLARE
+      month_start DATE;
+      month_end DATE;
+      partition_name TEXT;
+    BEGIN
+      FOR i IN 0..11 LOOP
+        month_start := DATE_TRUNC('month', CURRENT_DATE + (i || ' months')::INTERVAL);
+        month_end := DATE_TRUNC('month', CURRENT_DATE + ((i + 1) || ' months')::INTERVAL);
+        partition_name := 'transactions_' || TO_CHAR(month_start, 'YYYY_MM');
+        
+        EXECUTE format(
+          'CREATE TABLE IF NOT EXISTS %I PARTITION OF transactions_partitioned
+           FOR VALUES FROM (%L) TO (%L)',
+          partition_name,
+          month_start,
+          month_end
+        );
+      END LOOP;
+    END $$;
+
+    -- Copy existing data to partitioned table
+    INSERT INTO transactions_partitioned
+    SELECT * FROM transactions;
+
+    -- Rename tables (swap)
+    ALTER TABLE transactions RENAME TO transactions_old;
+    ALTER TABLE transactions_partitioned RENAME TO transactions;
+
+    -- Update sequences and constraints
+    -- (This will be handled by the application layer)
+  END IF;
+END $$;
+
+-- ============================================================================
+-- 2. MOMO_SMS_RAW TABLE PARTITIONING
+-- ============================================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_tables 
+    WHERE schemaname = 'public' 
+    AND tablename = 'momo_sms_raw_partitioned'
+  ) THEN
+    -- Create new partitioned table structure
+    CREATE TABLE momo_sms_raw_partitioned (
+      LIKE momo_sms_raw INCLUDING ALL
+    ) PARTITION BY RANGE (received_at);
+
+    -- Create default partition for existing data
+    CREATE TABLE momo_sms_raw_default PARTITION OF momo_sms_raw_partitioned
+      DEFAULT;
+
+    -- Create monthly partitions for the next 12 months
+    DO $$
+    DECLARE
+      month_start DATE;
+      month_end DATE;
+      partition_name TEXT;
+    BEGIN
+      FOR i IN 0..11 LOOP
+        month_start := DATE_TRUNC('month', CURRENT_DATE + (i || ' months')::INTERVAL);
+        month_end := DATE_TRUNC('month', CURRENT_DATE + ((i + 1) || ' months')::INTERVAL);
+        partition_name := 'momo_sms_raw_' || TO_CHAR(month_start, 'YYYY_MM');
+        
+        EXECUTE format(
+          'CREATE TABLE IF NOT EXISTS %I PARTITION OF momo_sms_raw_partitioned
+           FOR VALUES FROM (%L) TO (%L)',
+          partition_name,
+          month_start,
+          month_end
+        );
+      END LOOP;
+    END $$;
+
+    -- Copy existing data to partitioned table
+    INSERT INTO momo_sms_raw_partitioned
+    SELECT * FROM momo_sms_raw;
+
+    -- Rename tables (swap)
+    ALTER TABLE momo_sms_raw RENAME TO momo_sms_raw_old;
+    ALTER TABLE momo_sms_raw_partitioned RENAME TO momo_sms_raw;
+
+  END IF;
+END $$;
+
+-- ============================================================================
+-- 3. PARTITION MANAGEMENT FUNCTIONS
+-- ============================================================================
+
+/**
+ * Function to create a new monthly partition
+ */
+CREATE OR REPLACE FUNCTION create_monthly_partition(
+  table_name TEXT,
+  partition_date DATE
+) RETURNS VOID AS $$
+DECLARE
+  month_start DATE;
+  month_end DATE;
+  partition_name TEXT;
+BEGIN
+  month_start := DATE_TRUNC('month', partition_date);
+  month_end := month_start + INTERVAL '1 month';
+  partition_name := table_name || '_' || TO_CHAR(month_start, 'YYYY_MM');
+  
+  -- Check if partition already exists
+  IF EXISTS (
+    SELECT 1 FROM pg_class 
+    WHERE relname = partition_name
+  ) THEN
+    RAISE NOTICE 'Partition % already exists', partition_name;
+    RETURN;
+  END IF;
+  
+  -- Create partition
+  EXECUTE format(
+    'CREATE TABLE %I PARTITION OF %I
+     FOR VALUES FROM (%L) TO (%L)',
+    partition_name,
+    table_name,
+    month_start,
+    month_end
+  );
+  
+  RAISE NOTICE 'Created partition % for %', partition_name, table_name;
+END;
+$$ LANGUAGE plpgsql;
+
+/**
+ * Function to drop old partitions (for archival)
+ */
+CREATE OR REPLACE FUNCTION drop_old_partition(
+  table_name TEXT,
+  older_than_months INTEGER DEFAULT 12
+) RETURNS VOID AS $$
+DECLARE
+  partition_record RECORD;
+  cutoff_date DATE;
+BEGIN
+  cutoff_date := DATE_TRUNC('month', CURRENT_DATE - (older_than_months || ' months')::INTERVAL);
+  
+  FOR partition_record IN
+    SELECT 
+      schemaname,
+      tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND tablename LIKE table_name || '_%'
+      AND tablename != table_name || '_default'
+      AND tablename != table_name || '_old'
+  LOOP
+    -- Extract date from partition name (format: table_name_YYYY_MM)
+    DECLARE
+      partition_date DATE;
+      date_str TEXT;
+    BEGIN
+      date_str := SUBSTRING(partition_record.tablename FROM '(\d{4}_\d{2})$');
+      IF date_str IS NOT NULL THEN
+        partition_date := TO_DATE(date_str, 'YYYY_MM');
+        
+        IF partition_date < cutoff_date THEN
+          EXECUTE format('DROP TABLE IF EXISTS %I.%I', 
+            partition_record.schemaname, 
+            partition_record.tablename
+          );
+          RAISE NOTICE 'Dropped old partition %', partition_record.tablename;
+        END IF;
+      END IF;
+    END;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+/**
+ * Function to get partition information
+ */
+CREATE OR REPLACE FUNCTION get_partition_info(
+  table_name TEXT
+) RETURNS TABLE (
+  partition_name TEXT,
+  partition_range TEXT,
+  row_count BIGINT,
+  size TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.relname::TEXT AS partition_name,
+    pg_get_expr(p.relpartbound, p.oid) AS partition_range,
+    (SELECT COUNT(*) FROM pg_class c WHERE c.relname = p.relname) AS row_count,
+    pg_size_pretty(pg_total_relation_size(p.oid)) AS size
+  FROM pg_class p
+  JOIN pg_namespace n ON p.relnamespace = n.oid
+  WHERE n.nspname = 'public'
+    AND p.relispartition = true
+    AND p.relname LIKE table_name || '_%'
+  ORDER BY p.relname;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- 4. AUTOMATED PARTITION CREATION (via trigger/function)
+-- ============================================================================
+
+/**
+ * Function to ensure partitions exist for the next N months
+ */
+CREATE OR REPLACE FUNCTION ensure_partitions_exist(
+  table_name TEXT,
+  months_ahead INTEGER DEFAULT 3
+) RETURNS VOID AS $$
+DECLARE
+  i INTEGER;
+  month_date DATE;
+BEGIN
+  FOR i IN 0..months_ahead LOOP
+    month_date := DATE_TRUNC('month', CURRENT_DATE + (i || ' months')::INTERVAL);
+    
+    IF table_name = 'transactions' THEN
+      PERFORM create_monthly_partition('transactions', month_date);
+    ELSIF table_name = 'momo_sms_raw' THEN
+      PERFORM create_monthly_partition('momo_sms_raw', month_date);
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- 5. GRANT PERMISSIONS
+-- ============================================================================
+
+-- Grant execute permissions on partition management functions
+GRANT EXECUTE ON FUNCTION create_monthly_partition(TEXT, DATE) TO authenticated;
+GRANT EXECUTE ON FUNCTION drop_old_partition(TEXT, INTEGER) TO service_role;
+GRANT EXECUTE ON FUNCTION get_partition_info(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION ensure_partitions_exist(TEXT, INTEGER) TO service_role;
+
+-- ============================================================================
+-- 6. COMMENTS
+-- ============================================================================
+
+COMMENT ON FUNCTION create_monthly_partition IS 
+  'Creates a new monthly partition for the specified table and date';
+
+COMMENT ON FUNCTION drop_old_partition IS 
+  'Drops partitions older than the specified number of months (for archival)';
+
+COMMENT ON FUNCTION get_partition_info IS 
+  'Returns information about all partitions for a given table';
+
+COMMENT ON FUNCTION ensure_partitions_exist IS 
+  'Ensures partitions exist for the next N months (call periodically)';

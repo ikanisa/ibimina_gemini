@@ -135,7 +135,10 @@ export function sanitizeFilename(filename: string): string {
  * General purpose input sanitizer
  * Trims whitespace and removes null bytes
  */
-export function sanitizeInput(input: string): string {
+export function sanitizeInput(input: string | null | undefined): string {
+    if (input == null) {
+        return '';
+    }
     return input
         .trim()
         .replace(/\0/g, '') // Remove null bytes

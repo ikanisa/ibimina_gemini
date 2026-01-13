@@ -1,6 +1,7 @@
 import { tokens } from './lib/design-tokens';
 
 export default {
+  darkMode: 'class', // Enable class-based dark mode
   content: [
     './index.html',
     './App.tsx',
@@ -17,6 +18,7 @@ export default {
         success: tokens.colors.success,
         warning: tokens.colors.warning,
         danger: tokens.colors.danger,
+        info: tokens.colors.info,
         neutral: tokens.colors.neutral,
       },
       spacing: tokens.spacing,

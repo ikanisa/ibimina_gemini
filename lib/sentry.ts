@@ -47,22 +47,93 @@ export function initSentry() {
             const error = hint.originalException;
 
             if (error instanceof Error) {
-                // Ignore network errors
-                if (error.message.includes('Network request failed')) {
+                // Ignore network errors (handled by retry logic)
+                if (
+                    error.message.includes('Network request failed') ||
+                    error.message.includes('Failed to fetch') ||
+                    error.message.includes('NetworkError')
+                ) {
                     return null;
                 }
 
                 // Ignore cancelled requests
-                if (error.message.includes('aborted')) {
+                if (
+                    error.message.includes('aborted') ||
+                    error.message.includes('cancelled')
+                ) {
+                    return null;
+                }
+
+                // Ignore timeout errors (handled by timeout logic)
+                if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+                    return null;
+                }
+
+                // Ignore Supabase auth errors (handled by app)
+                if (error.message.includes('Invalid login credentials')) {
                     return null;
                 }
             }
+
+            // Add additional context
+            if (event.contexts) {
+                event.contexts.runtime = {
+                    name: 'browser',
+                    version: navigator.userAgent,
+                };
+            }
+
+            // Add tags for better filtering
+            event.tags = {
+                ...event.tags,
+                component: event.tags?.component || 'unknown',
+                environment: import.meta.env.MODE,
+            };
 
             return event;
         },
 
         // Don't send errors in development unless explicitly testing
         enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_DEBUG === 'true',
+
+        // Source maps configuration
+        // Source maps are uploaded separately via Sentry CLI during build
+        // See: https://docs.sentry.io/platforms/javascript/sourcemaps/
+    });
+
+    // Set initial tags
+    Sentry.setTag('app', 'sacco-admin-portal');
+    Sentry.setTag('version', import.meta.env.VITE_APP_VERSION || 'development');
+}
+
+/**
+ * Capture message (for logging important events)
+ */
+export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info') {
+    Sentry.captureMessage(message, level);
+}
+
+/**
+ * Set additional context for errors
+ */
+export function setContext(key: string, context: Record<string, unknown>) {
+    Sentry.setContext(key, context);
+}
+
+/**
+ * Set tag for filtering
+ */
+export function setTag(key: string, value: string) {
+    Sentry.setTag(key, value);
+}
+
+/**
+ * Start a transaction for performance monitoring
+ */
+export function startTransaction(name: string, op: string) {
+    return Sentry.startSpan({
+        name,
+        op,
     });
 }
 

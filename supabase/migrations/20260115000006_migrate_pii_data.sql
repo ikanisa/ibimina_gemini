@@ -1,0 +1,157 @@
+-- ============================================================================
+-- PII Data Migration Script
+-- Date: 2026-01-15
+-- Purpose: Migrate existing plaintext PII to encrypted format
+-- 
+-- WARNING: This script should be run MANUALLY after:
+-- 1. Setting the encryption key in Supabase secrets
+-- 2. Verifying the encryption functions work correctly
+-- 3. Taking a backup of the database
+-- ============================================================================
+-- 
+-- This is a MANUAL migration script - do NOT run automatically.
+-- Review and execute step by step.
+-- ============================================================================
+
+-- ============================================================================
+-- STEP 1: Verify encryption key is set
+-- ============================================================================
+-- 
+-- Check that encryption key is available:
+-- SELECT public.get_encryption_key();
+-- 
+-- If it returns the default key, SET THE PRODUCTION KEY FIRST:
+-- 
+-- For Supabase hosted:
+--   Use Supabase Dashboard → Settings → Secrets
+--   Add: ENCRYPTION_KEY=your-32-byte-key-here
+-- 
+-- For local development:
+--   ALTER DATABASE postgres SET app.encryption_key = 'your-32-byte-key-here';
+-- ============================================================================
+
+-- ============================================================================
+-- STEP 2: Test encryption/decryption on sample data
+-- ============================================================================
+
+-- Test encryption function
+-- SELECT 
+--   'test@example.com' as original,
+--   public.encrypt_pii('test@example.com') as encrypted,
+--   public.decrypt_pii(public.encrypt_pii('test@example.com')) as decrypted;
+
+-- Should return: original = 'test@example.com', encrypted = base64 string, decrypted = 'test@example.com'
+
+-- ============================================================================
+-- STEP 3: Migrate members table
+-- ============================================================================
+
+-- Migrate phone numbers and names to encrypted format
+-- UPDATE public.members
+-- SET 
+--   phone_encrypted = CASE 
+--     WHEN phone IS NOT NULL AND phone != '' THEN public.encrypt_pii(phone)
+--     ELSE NULL
+--   END,
+--   full_name_encrypted = CASE
+--     WHEN full_name IS NOT NULL AND full_name != '' THEN public.encrypt_pii(full_name)
+--     ELSE NULL
+--   END,
+--   phone_hash = CASE
+--     WHEN phone IS NOT NULL AND phone != '' THEN public.compute_phone_hash(phone)
+--     ELSE NULL
+--   END
+-- WHERE phone_encrypted IS NULL 
+--   AND (phone IS NOT NULL OR full_name IS NOT NULL);
+
+-- ============================================================================
+-- STEP 4: Migrate transactions table
+-- ============================================================================
+
+-- UPDATE public.transactions
+-- SET 
+--   payer_phone_encrypted = CASE
+--     WHEN payer_phone IS NOT NULL AND payer_phone != '' THEN public.encrypt_pii(payer_phone)
+--     ELSE NULL
+--   END,
+--   payer_name_encrypted = CASE
+--     WHEN payer_name IS NOT NULL AND payer_name != '' THEN public.encrypt_pii(payer_name)
+--     ELSE NULL
+--   END,
+--   payer_phone_hash = CASE
+--     WHEN payer_phone IS NOT NULL AND payer_phone != '' THEN public.compute_phone_hash(payer_phone)
+--     ELSE NULL
+--   END
+-- WHERE payer_phone_encrypted IS NULL
+--   AND (payer_phone IS NOT NULL OR payer_name IS NOT NULL);
+
+-- ============================================================================
+-- STEP 5: Verify migration
+-- ============================================================================
+
+-- Check encryption coverage
+-- SELECT 
+--   COUNT(*) as total_members,
+--   COUNT(phone_encrypted) as encrypted_phones,
+--   COUNT(full_name_encrypted) as encrypted_names,
+--   COUNT(phone_hash) as phone_hashes
+-- FROM public.members;
+
+-- Verify decryption works
+-- SELECT 
+--   id,
+--   phone,
+--   phone_encrypted,
+--   public.decrypt_pii(phone_encrypted) as decrypted_phone,
+--   CASE 
+--     WHEN phone = public.decrypt_pii(phone_encrypted) THEN 'MATCH'
+--     ELSE 'MISMATCH'
+--   END as verification
+-- FROM public.members
+-- WHERE phone_encrypted IS NOT NULL
+-- LIMIT 10;
+
+-- ============================================================================
+-- STEP 6: Update statistics
+-- ============================================================================
+
+-- ANALYZE public.members;
+-- ANALYZE public.transactions;
+
+-- ============================================================================
+-- STEP 7: (Optional) Drop plaintext columns after verification
+-- ============================================================================
+-- 
+-- WARNING: Only do this after:
+-- 1. Verifying all data is encrypted correctly
+-- 2. Updating all application code to use encrypted columns
+-- 3. Testing the application thoroughly
+-- 4. Taking a final backup
+-- 
+-- ALTER TABLE public.members 
+--   DROP COLUMN IF EXISTS phone,
+--   DROP COLUMN IF EXISTS full_name;
+-- 
+-- ALTER TABLE public.transactions
+--   DROP COLUMN IF EXISTS payer_phone,
+--   DROP COLUMN IF EXISTS payer_name;
+-- ============================================================================
+
+-- ============================================================================
+-- ROLLBACK SCRIPT (if needed)
+-- ============================================================================
+-- 
+-- If you need to rollback the encryption:
+-- 
+-- UPDATE public.members
+-- SET 
+--   phone = public.decrypt_pii(phone_encrypted),
+--   full_name = public.decrypt_pii(full_name_encrypted)
+-- WHERE phone_encrypted IS NOT NULL;
+-- 
+-- UPDATE public.transactions
+-- SET 
+--   payer_phone = public.decrypt_pii(payer_phone_encrypted),
+--   payer_name = public.decrypt_pii(payer_name_encrypted)
+-- WHERE payer_phone_encrypted IS NOT NULL;
+-- ============================================================================

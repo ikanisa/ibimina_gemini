@@ -3,10 +3,11 @@
  * Efficiently renders large transaction lists using @tanstack/react-virtual
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckSquare, Square } from 'lucide-react';
 import { Badge } from '../ui';
+import { DraggableTransaction } from './DragDropAllocation';
 import type { SupabaseTransaction } from '../../types';
 
 interface VirtualizedTransactionTableProps {
@@ -18,6 +19,10 @@ interface VirtualizedTransactionTableProps {
   onScroll?: () => void;
   loadingMore?: boolean;
   hasMore?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionToggle?: (transactionId: string) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
 }
 
 export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTableProps> = ({
@@ -29,6 +34,10 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
   onScroll,
   loadingMore = false,
   hasMore = false,
+  selectedIds = new Set(),
+  onSelectionToggle,
+  onSelectAll,
+  onDeselectAll,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -59,16 +68,56 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
 
   const virtualItems = virtualizer.getVirtualItems();
 
+  // Selection state
+  const allSelected = useMemo(() => {
+    return transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
+  }, [transactions, selectedIds]);
+
+  const someSelected = useMemo(() => {
+    return selectedIds.size > 0 && !allSelected;
+  }, [selectedIds, allSelected]);
+
+  const handleSelectAllClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (allSelected) {
+      onDeselectAll?.();
+    } else {
+      onSelectAll?.();
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header */}
       <div className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 grid grid-cols-12 px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-        <div className="col-span-2">Date</div>
+        {onSelectionToggle && (
+          <div className="col-span-1 flex items-center">
+            <button
+              onClick={handleSelectAllClick}
+              className="p-1 hover:bg-slate-200 rounded transition-colors"
+              title={allSelected ? 'Deselect all' : 'Select all'}
+            >
+              {allSelected ? (
+                <CheckSquare size={18} className="text-blue-600" />
+              ) : someSelected ? (
+                <div className="relative">
+                  <Square size={18} className="text-slate-400" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-2 h-2 bg-blue-600 rounded-sm" />
+                  </div>
+                </div>
+              ) : (
+                <Square size={18} className="text-slate-400" />
+              )}
+            </button>
+          </div>
+        )}
+        <div className={onSelectionToggle ? "col-span-2" : "col-span-2"}>Date</div>
         <div className="col-span-2">Amount</div>
         <div className="col-span-2">Payer</div>
         <div className="col-span-2">Ref</div>
-        <div className="col-span-2">Status</div>
-        <div className="col-span-2">Allocated To</div>
+        <div className="col-span-1">Status</div>
+        <div className="col-span-1">Allocated To</div>
       </div>
 
       {/* Virtualized Body */}
@@ -82,21 +131,46 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
         >
           {virtualItems.map((virtualItem) => {
             const tx = transactions[virtualItem.index];
+            const isSelected = selectedIds.has(tx.id);
+            const isUnallocated = tx.allocation_status === 'unallocated';
             return (
-              <div
+              <DraggableTransaction
                 key={tx.id}
+                transactionId={tx.id}
+                amount={tx.amount}
+                currency={tx.currency || 'RWF'}
+                className="absolute"
                 style={{
-                  position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
                   height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
-                onClick={() => onRowClick(tx.id)}
-                className="grid grid-cols-12 px-4 py-3 items-center border-b border-slate-100 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
               >
-                <div className="col-span-2 whitespace-nowrap">
+                <div
+                  onClick={() => onRowClick(tx.id)}
+                  className={`grid grid-cols-12 px-4 py-3 items-center border-b transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                      : 'border-slate-100 hover:bg-slate-50 active:bg-slate-100'
+                  } ${isUnallocated ? 'opacity-100' : 'opacity-90'}`}
+                >
+                {onSelectionToggle && (
+                  <div className="col-span-1 flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onSelectionToggle(tx.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
+                )}
+                <div className={onSelectionToggle ? "col-span-2 whitespace-nowrap" : "col-span-2 whitespace-nowrap"}>
                   <div className="text-sm text-slate-900 font-medium">{formatDate(tx.occurred_at)}</div>
                   <div className="text-xs text-slate-400">{formatTime(tx.occurred_at)}</div>
                 </div>
@@ -119,10 +193,10 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
                     {tx.momo_ref || tx.reference || '—'}
                   </div>
                 </div>
-                <div className="col-span-2 whitespace-nowrap">
+                <div className="col-span-1 whitespace-nowrap">
                   {getStatusBadge(tx.allocation_status)}
                 </div>
-                <div className="col-span-2 whitespace-nowrap">
+                <div className="col-span-1 whitespace-nowrap">
                   {tx.member_id ? (
                     <div>
                       <div className="text-sm text-slate-900">{tx.members?.full_name || '—'}</div>
@@ -134,7 +208,8 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
                     <span className="text-sm text-slate-400">—</span>
                   )}
                 </div>
-              </div>
+                </div>
+              </DraggableTransaction>
             );
           })}
         </div>

@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { Transaction, ViewState } from '../types';
-import { Download, Filter, ExternalLink, FileText, Loader2, Calendar, X } from 'lucide-react';
+import { Download, Filter, ExternalLink, FileText, Loader2, Calendar, X, Radio } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '../lib/mappers';
 import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge } from './ui';
 import { TransactionsSkeleton } from './ui/PageSkeletons';
 import { VirtualizedTransactionTable } from './Transactions/VirtualizedTransactionTable';
+import { BulkActions } from './Transactions/BulkActions';
+import { DraggableTransaction } from './Transactions/DragDropAllocation';
+import { useRealtimeTransactions } from '../hooks/useRealtime';
 import { isSuperAdmin } from '../lib/utils/roleHelpers';
 import { deduplicateRequest } from '../lib/utils/requestDeduplication';
 import { useIsMobile } from '../hooks/useResponsive';
@@ -44,7 +47,6 @@ const INITIAL_LOAD = 50;
 const LOAD_MORE = 25;
 
 const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsProp, onNavigate }) => {
-  const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
   const { institutionId, role } = useAuth();
   const isMobile = useIsMobile();
   const isPlatformAdmin = isSuperAdmin(role);
@@ -57,6 +59,9 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
   const [offset, setOffset] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  
+  // Selection state for bulk actions
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -141,7 +146,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
   // Initial load and filter change
   useEffect(() => {
     if (transactionsProp !== undefined) return;
-    if (useMockData) return;
+    // Always load transactions from Supabase
     if (!isPlatformAdmin && !institutionId) {
       setTransactions([]);
       return;
@@ -149,11 +154,11 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
 
     setOffset(0);
     loadTransactions(0, INITIAL_LOAD, false);
-  }, [transactionsProp, useMockData, isPlatformAdmin, institutionId, statusFilter, dateRange, loadTransactions]);
+  }, [transactionsProp, isPlatformAdmin, institutionId, statusFilter, dateRange, loadTransactions]);
 
   // Debounced search
   useEffect(() => {
-    if (transactionsProp !== undefined || useMockData || (!isPlatformAdmin && !institutionId)) return;
+    if (transactionsProp !== undefined || (!isPlatformAdmin && !institutionId)) return;
 
     const timer = setTimeout(() => {
       setOffset(0);
@@ -161,7 +166,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, transactionsProp, useMockData, isPlatformAdmin, institutionId, loadTransactions]);
+  }, [searchTerm, transactionsProp, isPlatformAdmin, institutionId, loadTransactions]);
 
   // Load more function
   const loadMore = useCallback(() => {
@@ -196,7 +201,98 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
     // Reload transactions to reflect allocation
     setOffset(0);
     loadTransactions(0, INITIAL_LOAD, false);
+    // Clear selection after bulk action
+    setSelectedTransactionIds(new Set());
   };
+
+  // Real-time updates
+  const { isConnected: isRealtimeConnected } = useRealtimeTransactions({
+    institutionId: isPlatformAdmin ? undefined : institutionId || undefined,
+    onInsert: (newTransaction) => {
+      // Only add if it matches current filters
+      const txDate = new Date(newTransaction.occurred_at);
+      const startDate = new Date(`${dateRange.start}T00:00:00`);
+      const endDate = new Date(`${dateRange.end}T23:59:59`);
+      
+      const matchesDateRange = txDate >= startDate && txDate <= endDate;
+      const matchesStatus = statusFilter === 'all' || newTransaction.allocation_status === statusFilter;
+      const matchesSearch = !searchTerm || 
+        newTransaction.payer_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        newTransaction.momo_ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        newTransaction.payer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (matchesDateRange && matchesStatus && matchesSearch) {
+        setTransactions(prev => {
+          // Check if transaction already exists (avoid duplicates)
+          if (prev.some(tx => tx.id === newTransaction.id)) {
+            return prev;
+          }
+          // Insert at the beginning (most recent first)
+          return [newTransaction, ...prev];
+        });
+      }
+    },
+    onUpdate: (updatedTransaction) => {
+      setTransactions(prev => {
+        const index = prev.findIndex(tx => tx.id === updatedTransaction.id);
+        if (index === -1) return prev;
+        
+        // Check if updated transaction still matches filters
+        const txDate = new Date(updatedTransaction.occurred_at);
+        const startDate = new Date(`${dateRange.start}T00:00:00`);
+        const endDate = new Date(`${dateRange.end}T23:59:59`);
+        
+        const matchesDateRange = txDate >= startDate && txDate <= endDate;
+        const matchesStatus = statusFilter === 'all' || updatedTransaction.allocation_status === statusFilter;
+        const matchesSearch = !searchTerm || 
+          updatedTransaction.payer_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          updatedTransaction.momo_ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          updatedTransaction.payer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        if (matchesDateRange && matchesStatus && matchesSearch) {
+          // Update in place
+          const updated = [...prev];
+          updated[index] = updatedTransaction;
+          return updated;
+        } else {
+          // Remove if no longer matches filters
+          return prev.filter(tx => tx.id !== updatedTransaction.id);
+        }
+      });
+    },
+    onDelete: (deletedTransaction) => {
+      setTransactions(prev => prev.filter(tx => tx.id !== deletedTransaction.id));
+      setSelectedTransactionIds(prev => {
+        const next = new Set(prev);
+        next.delete(deletedTransaction.id);
+        return next;
+      });
+    },
+    enabled: !transactionsProp && (isPlatformAdmin || !!institutionId),
+  });
+
+  // Handle selection toggle
+  const handleSelectionToggle = useCallback((transactionId: string) => {
+    setSelectedTransactionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(transactionId)) {
+        next.delete(transactionId);
+      } else {
+        next.add(transactionId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Handle select all
+  const handleSelectAll = useCallback(() => {
+    setSelectedTransactionIds(new Set(transactions.map(tx => tx.id)));
+  }, [transactions]);
+
+  // Handle deselect all
+  const handleDeselectAll = useCallback(() => {
+    setSelectedTransactionIds(new Set());
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -242,7 +338,15 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
         {/* Title row */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-800">Transactions Ledger</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-slate-800">Transactions Ledger</h2>
+              {isRealtimeConnected && (
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+                  <Radio size={10} className="fill-current" />
+                  Live
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500">{transactions.length} transactions loaded</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
@@ -261,7 +365,26 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
             >
               Filters
             </Button>
-            <Button variant="secondary" size="sm" leftIcon={<Download size={16} />}>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              leftIcon={<Download size={16} />}
+              onClick={async () => {
+                try {
+                  const { exportTransactions } = await import('../lib/csv/export');
+                  exportTransactions(transactions.map(tx => ({
+                    ...tx,
+                    members: undefined,
+                    groups: undefined,
+                  })), {
+                    filename: `transactions_${dateRange.start}_to_${dateRange.end}.csv`,
+                  });
+                } catch (err) {
+                  console.error('Export failed:', err);
+                  setError('Failed to export transactions');
+                }
+              }}
+            >
               Export
             </Button>
           </div>
@@ -321,9 +444,27 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
         )}
       </div>
 
+      {/* Bulk Actions */}
+      {selectedTransactionIds.size > 0 && (
+        <div className="px-4 py-3 border-b border-slate-100">
+          <BulkActions
+            selectedIds={selectedTransactionIds}
+            onSelectionChange={setSelectedTransactionIds}
+            onBulkActionComplete={handleAllocationSuccess}
+            totalCount={transactions.length}
+          />
+        </div>
+      )}
+
       {/* Table with infinite scroll */}
       {loading && transactions.length === 0 ? (
-        <TransactionsSkeleton />
+        <div className="flex-1 overflow-hidden">
+          {!isMobile ? (
+            <TransactionSkeleton count={10} variant="table" />
+          ) : (
+            <TransactionSkeleton count={5} variant="card" />
+          )}
+        </div>
       ) : (
         <div ref={containerRef} className="flex-1 overflow-hidden flex flex-col">
           {/* Desktop Table with Virtualization */}
@@ -338,6 +479,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
               onScroll={loadMore}
               loadingMore={loadingMore}
               hasMore={hasMore}
+              selectedIds={selectedTransactionIds}
+              onSelectionToggle={handleSelectionToggle}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
             />
           </div>
           )}
@@ -348,9 +493,27 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
             {transactions.map((tx) => (
               <div
                 key={tx.id}
-                onClick={() => handleRowClick(tx.id)}
-                className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
+                className={`bg-white border rounded-xl p-4 hover:shadow-md transition-all ${
+                  selectedTransactionIds.has(tx.id)
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 cursor-pointer'
+                }`}
               >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedTransactionIds.has(tx.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleSelectionToggle(tx.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                  />
+                  <div
+                    onClick={() => handleRowClick(tx.id)}
+                    className="flex-1"
+                  >
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <div className="text-lg font-bold text-green-600">
@@ -375,6 +538,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                     Allocated to: {tx.members?.full_name}
                   </div>
                 )}
+                  </div>
+                </div>
               </div>
             ))}
 
