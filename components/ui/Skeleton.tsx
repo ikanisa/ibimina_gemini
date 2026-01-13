@@ -21,8 +21,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height,
   animation = 'pulse'
 }) => {
-  const baseClasses = 'bg-slate-200';
-  
+  const baseClasses = 'bg-slate-200 dark:bg-neutral-700';
+
   const variantClasses = {
     text: 'h-4 rounded',
     circular: 'rounded-full',
@@ -68,7 +68,7 @@ export const TableRowSkeleton: React.FC<{ columns?: number }> = ({ columns = 5 }
  */
 export const CardSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4 animate-in fade-in">
+    <div className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 p-6 space-y-4 animate-in fade-in">
       <Skeleton variant="text" width="60%" height={24} />
       <Skeleton variant="text" width="100%" height={16} />
       <Skeleton variant="text" width="80%" height={16} />
@@ -85,7 +85,7 @@ export const CardSkeleton: React.FC = () => {
  */
 export const ListItemSkeleton: React.FC = () => {
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-slate-100 animate-in fade-in">
+    <div className="flex items-center gap-4 p-4 border-b border-slate-100 dark:border-neutral-700 animate-in fade-in">
       <Skeleton variant="circular" width={48} height={48} />
       <div className="flex-1 space-y-2">
         <Skeleton variant="text" width="40%" height={16} />
@@ -101,7 +101,7 @@ export const ListItemSkeleton: React.FC = () => {
  */
 export const StatsCardSkeleton: React.FC = () => {
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-in fade-in">
+    <div className="bg-white dark:bg-neutral-800 p-6 rounded-xl border border-slate-200 dark:border-neutral-700 shadow-sm animate-in fade-in">
       <div className="flex justify-between items-start mb-4">
         <Skeleton variant="rounded" width={48} height={48} />
         <Skeleton variant="text" width={60} height={16} />

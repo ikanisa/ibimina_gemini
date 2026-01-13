@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   DollarSign,
   CheckCircle,
@@ -21,7 +22,7 @@ import {
   InstitutionSwitcher
 } from './dashboard/index';
 import { DashboardSkeleton } from './ui/PageSkeletons';
-import { DashboardSkeleton } from './ui/PageSkeletons';
+
 
 // API response structure matching the RPC function
 interface DashboardData {
@@ -154,10 +155,10 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
   // Navigation handlers - map action paths to ViewState
   const handleNavigate = (path: string) => {
     if (!onNavigate) return;
-    
+
     // Handle paths with query params
     const basePath = path.split('?')[0];
-    
+
     switch (basePath) {
       case '/allocation-queue':
       case '/reconciliation':
@@ -225,13 +226,18 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
     sms_sources_total_count: data.health.sms_sources_offline_count > 0 ? data.health.sms_sources_offline_count : 1,
     overall_status: (
       !data.health.momo_primary_code_present || data.health.sms_sources_offline_count > 0
-        ? 'warning' 
+        ? 'warning'
         : 'healthy'
     ) as 'healthy' | 'warning' | 'critical'
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="space-y-6"
+    >
       {/* Header with Institution Switcher */}
       <div className="flex items-center justify-between">
         <div>
@@ -347,7 +353,7 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
           onViewAll={handleViewAuditLog}
         />
       </div>
-    </div>
+    </motion.div>
   );
 };
 

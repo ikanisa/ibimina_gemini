@@ -115,3 +115,19 @@ export function useIsTouch(): boolean {
   const { isTouch } = useResponsive();
   return isTouch;
 }
+
+/**
+ * Hook for tablet or larger screen detection
+ */
+export function useIsTabletOrLarger(): boolean {
+  const { isMobile } = useResponsive();
+  return !isMobile;
+}
+
+/**
+ * Hook for desktop detection
+ */
+export function useIsDesktop(): boolean {
+  const { isDesktop } = useResponsive();
+  return isDesktop;
+}

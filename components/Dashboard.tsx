@@ -1,5 +1,6 @@
 
 import React, { memo, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   Users,
   Wallet,
@@ -93,7 +94,12 @@ const Dashboard: React.FC<DashboardProps> = memo(({ stats, recentTransactions, o
   ], []);
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="space-y-6"
+    >
       {/* KPI Strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -228,7 +234,7 @@ const Dashboard: React.FC<DashboardProps> = memo(({ stats, recentTransactions, o
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 });
 

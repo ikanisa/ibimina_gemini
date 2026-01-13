@@ -208,3 +208,9 @@ export function getUserFriendlyMessage(error: unknown): string {
 
   return 'An unexpected error occurred. Please try again.';
 }
+
+/**
+ * Alias for getUserFriendlyMessage for backward compatibility
+ */
+export const getUserFriendlyError = getUserFriendlyMessage;
+

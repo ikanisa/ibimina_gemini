@@ -133,40 +133,40 @@ export const Modal: React.FC<ModalProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
-            className={`relative bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
+            className={`relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
             tabIndex={-1}
             variants={modalContent}
             transition={transitions.spring}
           >
-        {/* Header */}
-        {(title || showCloseButton) && (
-          <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-            {title && (
-              <h2
-                id={titleId}
-                className="text-lg font-bold text-slate-900"
-              >
-                {title}
-              </h2>
+            {/* Header */}
+            {(title || showCloseButton) && (
+              <div className="p-6 border-b border-slate-200 dark:border-neutral-700 flex justify-between items-center">
+                {title && (
+                  <h2
+                    id={titleId}
+                    className="text-lg font-bold text-slate-900 dark:text-neutral-100"
+                  >
+                    {title}
+                  </h2>
+                )}
+                {showCloseButton && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label="Close modal"
+                  >
+                    <X size={20} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
             )}
-            {showCloseButton && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Close modal"
-              >
-                <X size={20} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        )}
 
-        {/* Body */}
-        <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
-          {children}
-        </div>
+            {/* Body */}
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              {children}
+            </div>
           </motion.div>
         </motion.div>
       )}

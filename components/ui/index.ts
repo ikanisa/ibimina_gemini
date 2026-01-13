@@ -12,6 +12,7 @@ export * from './Badge';
 export * from './Input';
 export * from './SearchInput';
 export * from './Skeleton';
+export * from './ShimmerSkeleton';
 export * from './PageSkeletons';
 export * from './SkipLink';
 export * from './Card';
@@ -21,5 +22,6 @@ export * from './SimpleForm';
 export * from './SimpleInput';
 export * from './SimpleSelect';
 export * from './Breadcrumbs';
+export * from './ThemeToggle';
 export * from '../WizardProgress';
 
