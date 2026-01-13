@@ -36,25 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_groups_institution_status
 CREATE INDEX IF NOT EXISTS idx_groups_name_search 
   ON groups(group_name);
 
--- Contributions indexes
-CREATE INDEX IF NOT EXISTS idx_contributions_member_date 
-  ON contributions(member_id, date DESC);
 
-CREATE INDEX IF NOT EXISTS idx_contributions_group_date 
-  ON contributions(group_id, date DESC);
-
-CREATE INDEX IF NOT EXISTS idx_contributions_status 
-  ON contributions(status);
-
--- SMS messages indexes
-CREATE INDEX IF NOT EXISTS idx_sms_messages_institution_date 
-  ON sms_messages(institution_id, timestamp DESC);
-
-CREATE INDEX IF NOT EXISTS idx_sms_messages_parsed 
-  ON sms_messages(is_parsed);
-
-CREATE INDEX IF NOT EXISTS idx_sms_messages_sender 
-  ON sms_messages(sender);
 
 -- Profiles indexes
 CREATE INDEX IF NOT EXISTS idx_profiles_institution_role 
@@ -121,15 +103,7 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
--- Ensure contribution amounts are positive
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_contribution_amount_positive') THEN
-    ALTER TABLE contributions ADD CONSTRAINT chk_contribution_amount_positive CHECK (amount > 0);
-  END IF;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+
 
 -- ============================================================================
 -- Comment on indexes

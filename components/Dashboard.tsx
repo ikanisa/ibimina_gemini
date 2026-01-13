@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import {
   Users,
   Wallet,
@@ -24,7 +24,7 @@ interface DashboardProps {
   onNavigate: (view: ViewState) => void;
 }
 
-const StatCard: React.FC<{ title: string; value: string; subtext?: string; icon: React.ReactNode; trend?: 'up' | 'down' | 'neutral'; alert?: boolean }> = ({ title, value, subtext, icon, trend, alert }) => (
+const StatCard = memo<{ title: string; value: string; subtext?: string; icon: React.ReactNode; trend?: 'up' | 'down' | 'neutral'; alert?: boolean }>(({ title, value, subtext, icon, trend, alert }) => (
   <div className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md transition-shadow ${alert ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200'}`}>
     <div className="flex justify-between items-start mb-4">
       <div className={`p-2 rounded-lg ${alert ? 'bg-amber-100 text-amber-600' : 'bg-slate-50 text-slate-600'}`}>{icon}</div>
@@ -37,9 +37,9 @@ const StatCard: React.FC<{ title: string; value: string; subtext?: string; icon:
       {subtext && <p className="text-slate-400 text-xs mt-1">{subtext}</p>}
     </div>
   </div>
-);
+));
 
-const QuickAction: React.FC<{ icon: React.ReactNode; label: string; color: string; onClick: () => void }> = ({ icon, label, color, onClick }) => (
+const QuickAction = memo<{ icon: React.ReactNode; label: string; color: string; onClick: () => void }>(({ icon, label, color, onClick }) => (
   <button
     onClick={onClick}
     className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
@@ -49,13 +49,13 @@ const QuickAction: React.FC<{ icon: React.ReactNode; label: string; color: strin
     </div>
     <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900">{label}</span>
   </button>
-);
+));
 
-const ActivityFeedItem: React.FC<{ transaction: Transaction }> = ({ transaction }) => (
+const ActivityFeedItem = memo<{ transaction: Transaction }>(({ transaction }) => (
   <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors px-2 rounded-lg">
     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${transaction.type === 'Deposit' || transaction.type === 'Group Contribution' ? 'bg-green-100 text-green-600' :
-        transaction.type === 'Loan Repayment' ? 'bg-blue-100 text-blue-600' :
-          'bg-slate-100 text-slate-600'
+      transaction.type === 'Loan Repayment' ? 'bg-blue-100 text-blue-600' :
+        'bg-slate-100 text-slate-600'
       }`}>
       {transaction.type === 'Deposit' || transaction.type === 'Group Contribution' ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}
     </div>
@@ -78,10 +78,11 @@ const ActivityFeedItem: React.FC<{ transaction: Transaction }> = ({ transaction 
       </span>
     </div>
   </div>
-);
+));
 
-const Dashboard: React.FC<DashboardProps> = ({ stats, recentTransactions, onNavigate }) => {
-  const chartData = [
+const Dashboard: React.FC<DashboardProps> = memo(({ stats, recentTransactions, onNavigate }) => {
+  // Memoize chart data to prevent recreation on every render
+  const chartData = useMemo(() => [
     { name: 'Mon', deposits: 4000, withdrawals: 2400 },
     { name: 'Tue', deposits: 3000, withdrawals: 1398 },
     { name: 'Wed', deposits: 2000, withdrawals: 800 },
@@ -89,7 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, recentTransactions, onNavi
     { name: 'Fri', deposits: 1890, withdrawals: 800 },
     { name: 'Sat', deposits: 2390, withdrawals: 1800 },
     { name: 'Sun', deposits: 3490, withdrawals: 1300 },
-  ];
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -229,6 +230,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, recentTransactions, onNavi
       )}
     </div>
   );
-};
+});
 
 export default Dashboard;

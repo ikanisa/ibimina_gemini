@@ -3,7 +3,7 @@
  * Filter controls for reports (scope, date range, status)
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Building2, Briefcase, User, Calendar } from 'lucide-react';
 import { SearchInput, Button } from '../ui';
 import { ReportScope, StatusFilter, GroupOption, MemberOption } from './types';
@@ -27,7 +27,7 @@ interface ReportFiltersProps {
   isPlatformAdmin: boolean;
 }
 
-export const ReportFilters: React.FC<ReportFiltersProps> = ({
+export const ReportFilters = memo<ReportFiltersProps>(({
   scope,
   onScopeChange,
   scopeId,
@@ -51,33 +51,30 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => onScopeChange('institution')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            scope === 'institution'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${scope === 'institution'
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
         >
           <Building2 size={16} />
           Institution
         </button>
         <button
           onClick={() => onScopeChange('group')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            scope === 'group'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${scope === 'group'
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
         >
           <Briefcase size={16} />
           Group
         </button>
         <button
           onClick={() => onScopeChange('member')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            scope === 'member'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${scope === 'member'
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
         >
           <User size={16} />
           Member
@@ -130,11 +127,10 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
                   <button
                     key={itemId}
                     onClick={() => onScopeIdChange(itemId, itemName)}
-                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      isSelected
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-300'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isSelected
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-300'
+                      }`}
                   >
                     {itemName}
                     {itemCode && <span className="ml-1 text-xs opacity-70">({itemCode})</span>}
@@ -240,4 +236,4 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
       )}
     </div>
   );
-};
+});

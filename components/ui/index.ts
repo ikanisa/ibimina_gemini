@@ -9,6 +9,7 @@ export * from './EmptyState';
 export * from './Button';
 export * from './FormField';
 export * from './Badge';
+export * from './Input';
 export * from './SearchInput';
 export * from './Skeleton';
 export * from './PageSkeletons';

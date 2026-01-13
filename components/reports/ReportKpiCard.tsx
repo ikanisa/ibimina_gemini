@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface ReportKpiCardProps {
@@ -10,7 +10,7 @@ interface ReportKpiCardProps {
   variant?: 'default' | 'success' | 'warning' | 'danger';
 }
 
-export const ReportKpiCard: React.FC<ReportKpiCardProps> = ({
+export const ReportKpiCard = memo<ReportKpiCardProps>(({
   label,
   value,
   subValue,
@@ -51,11 +51,10 @@ export const ReportKpiCard: React.FC<ReportKpiCardProps> = ({
             <div className="text-slate-400">{icon}</div>
           )}
           {trend && (
-            <div className={`flex items-center gap-1 text-xs font-medium ${
-              trend === 'up' ? 'text-emerald-600' :
+            <div className={`flex items-center gap-1 text-xs font-medium ${trend === 'up' ? 'text-emerald-600' :
               trend === 'down' ? 'text-red-600' :
-              'text-slate-400'
-            }`}>
+                'text-slate-400'
+              }`}>
               {trend === 'up' && <TrendingUp size={14} />}
               {trend === 'down' && <TrendingDown size={14} />}
               {trend === 'neutral' && <Minus size={14} />}
@@ -65,5 +64,5 @@ export const ReportKpiCard: React.FC<ReportKpiCardProps> = ({
       </div>
     </div>
   );
-};
+});
 

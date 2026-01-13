@@ -271,3 +271,52 @@ export async function allocateTransaction(params: AllocateTransactionParams) {
   });
 }
 
+/**
+ * Batch allocate multiple transactions to a member
+ * This is more efficient than allocating one at a time
+ */
+export async function allocateTransactionsBatch(
+  transactionIds: string[],
+  memberId: string,
+  groupId?: string,
+  allocatedBy?: string
+) {
+  const updates = {
+    member_id: memberId,
+    group_id: groupId,
+    allocation_status: 'allocated',
+    allocated_at: new Date().toISOString(),
+    allocated_by: allocatedBy,
+  };
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(updates)
+    .in('id', transactionIds)
+    .select();
+
+  if (error) {
+    throw new Error(`Failed to batch allocate transactions: ${error.message}`);
+  }
+
+  return data as SupabaseTransaction[];
+}
+
+/**
+ * Get transaction by ID with related data
+ */
+export async function getTransactionById(id: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      member:members(id, full_name, phone),
+      group:groups(id, name),
+      allocated_by_user:profiles(id, full_name)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}

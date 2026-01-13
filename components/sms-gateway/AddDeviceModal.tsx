@@ -118,9 +118,8 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
         return;
       }
 
-      // Show device key to user (only once)
-      // In a real implementation, you might want to show this in a success message
-      console.log('Device key (show this to user once):', deviceKey);
+      // Device key is returned in response - handled by parent component
+      // Note: In production, display the key to user in a secure modal/toast
 
       // Reset form and close modal
       setNewDeviceData({

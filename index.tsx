@@ -1,26 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { QueryClientProvider } from '@tanstack/react-query';
 import { initSentry } from './lib/sentry';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
-import { queryClient } from './lib/query-client';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { clearLegacyPwaCaches } from './lib/pwa';
 import './index.css';
 
-// React Query DevTools - lazy load only in development
-const ReactQueryDevtools = import.meta.env.DEV
-  ? React.lazy(() => import('@tanstack/react-query-devtools').then((mod) => ({ default: mod.ReactQueryDevtools })))
-  : null;
-
 // Initialize Sentry error tracking (before React renders)
 initSentry();
-
-// Initialize theme (before React renders to prevent flash)
-import { initializeTheme } from './lib/theme/dark-mode';
-initializeTheme();
 
 // Clean up legacy PWA caches from earlier builds (pre-vite-plugin-pwa SW).
 clearLegacyPwaCaches().catch((err) => {
@@ -36,17 +26,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
         <AuthProvider>
           <App />
         </AuthProvider>
-        {/* React Query DevTools - only in development */}
-        {ReactQueryDevtools && (
-          <React.Suspense fallback={null}>
-            <ReactQueryDevtools initialIsOpen={false} />
-          </React.Suspense>
-        )}
-      </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
@@ -61,6 +45,20 @@ if (import.meta.env.PROD) {
   });
 }
 
-// Initialize Web Vitals tracking
-import { initWebVitals } from './lib/monitoring/webVitals';
-initWebVitals();
+// Report Core Web Vitals in production
+if (import.meta.env.PROD) {
+  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB }) => {
+    const sendToAnalytics = (metric: { name: string; value: number; id: string }) => {
+      // Log to console for debugging (replace with analytics service)
+      console.log(`[Web Vital] ${metric.name}: ${Math.round(metric.value)}`, metric.id);
+
+      // TODO: Send to Cloudflare Analytics or similar
+      // Example: navigator.sendBeacon('/api/vitals', JSON.stringify(metric));
+    };
+
+    onCLS(sendToAnalytics);
+    onFCP(sendToAnalytics);
+    onLCP(sendToAnalytics);
+    onTTFB(sendToAnalytics);
+  });
+}

@@ -7,7 +7,7 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
-        setupFiles: './src/test/setup.ts',
+        setupFiles: ['./src/test/setup.ts'],
         include: ['**/*.{test,spec}.{ts,tsx}'],
         exclude: ['node_modules', 'dist', '.git', 'e2e'],
         coverage: {
@@ -17,23 +17,16 @@ export default defineConfig({
                 'node_modules/',
                 'src/test/',
                 '**/*.d.ts',
-                'vite.config.ts',
-                'vitest.config.ts',
-                '**/*.config.ts',
-                '**/*.config.js',
-                'dist/',
-                'e2e/',
-                '**/index.ts', // Barrel exports
-            ],
-            include: [
-                'lib/**/*.ts',
-                'hooks/**/*.ts',
-                'components/**/*.{ts,tsx}',
+                '**/*.config.*',
+                '**/mockData/**',
+                '**/__mocks__/**',
+                '**/types.ts',
+                '**/constants.ts',
             ],
             thresholds: {
                 lines: 80,
                 functions: 80,
-                branches: 75,
+                branches: 80,
                 statements: 80,
             },
         },

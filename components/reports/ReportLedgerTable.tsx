@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { Loader2, FileText } from 'lucide-react';
 import { Badge } from '../ui';
 import { useIsMobile } from '../../hooks/useResponsive';
@@ -27,7 +27,7 @@ interface ReportLedgerTableProps {
   emptyMessage?: string;
 }
 
-export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
+export const ReportLedgerTable = memo<ReportLedgerTableProps>(({
   rows,
   loading = false,
   loadingMore = false,
@@ -41,7 +41,7 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current || !hasMore || loadingMore || !onLoadMore) return;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     if (scrollHeight - scrollTop - clientHeight < 200) {
       onLoadMore();
@@ -51,7 +51,7 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    
+
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
@@ -105,7 +105,7 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div 
+      <div
         ref={containerRef}
         className="max-h-[500px] overflow-y-auto"
       >
@@ -214,5 +214,5 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
       </div>
     </div>
   );
-};
+});
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 interface BreakdownRow {
@@ -19,7 +19,7 @@ interface BreakdownTableProps {
   currency?: string;
 }
 
-export const BreakdownTable: React.FC<BreakdownTableProps> = ({
+export const BreakdownTable = memo<BreakdownTableProps>(({
   title,
   rows,
   onRowClick,
@@ -55,7 +55,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.map((row) => (
-              <tr 
+              <tr
                 key={row.id}
                 onClick={() => onRowClick?.(row.id)}
                 className={onRowClick ? 'hover:bg-slate-50 cursor-pointer transition-colors' : ''}
@@ -95,5 +95,5 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
       </div>
     </div>
   );
-};
+});
 

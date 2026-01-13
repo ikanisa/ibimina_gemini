@@ -3,7 +3,7 @@
  * Displays KPI cards based on report scope
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Wallet, UserCheck, AlertCircle, Briefcase, Users, Calendar, TrendingUp, FileText } from 'lucide-react';
 import { ReportKpiCard } from './ReportKpiCard';
 import { ReportScope } from './types';
@@ -13,7 +13,7 @@ interface ReportKPIsProps {
   kpis: Record<string, number | string | null>;
 }
 
-export const ReportKPIs: React.FC<ReportKPIsProps> = ({ scope, kpis }) => {
+export const ReportKPIs = memo<ReportKPIsProps>(({ scope, kpis }) => {
   if (scope === 'member') {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -114,4 +114,4 @@ export const ReportKPIs: React.FC<ReportKPIsProps> = ({ scope, kpis }) => {
       />
     </div>
   );
-};
+});

@@ -8,52 +8,69 @@
 -- ============================================================================
 
 -- Ensure transaction references valid member
-ALTER TABLE transactions
-ADD CONSTRAINT IF NOT EXISTS fk_transactions_member
-FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE RESTRICT;
+-- Ensure transaction references valid member
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_transactions_member') THEN
+    ALTER TABLE transactions ADD CONSTRAINT fk_transactions_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE RESTRICT;
+  END IF;
+END $$;
 
 -- Ensure transaction assigned to valid staff
-ALTER TABLE transactions
-ADD CONSTRAINT IF NOT EXISTS fk_transactions_created_by
-FOREIGN KEY (created_by) REFERENCES profiles(user_id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_transactions_created_by') THEN
+    ALTER TABLE transactions ADD CONSTRAINT fk_transactions_created_by FOREIGN KEY (created_by) REFERENCES profiles(user_id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 -- Ensure group belongs to institution
-ALTER TABLE groups
-ADD CONSTRAINT IF NOT EXISTS fk_groups_institution
-FOREIGN KEY (institution_id) REFERENCES institutions(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_groups_institution') THEN
+    ALTER TABLE groups ADD CONSTRAINT fk_groups_institution FOREIGN KEY (institution_id) REFERENCES institutions(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- Ensure member belongs to institution
-ALTER TABLE members
-ADD CONSTRAINT IF NOT EXISTS fk_members_institution
-FOREIGN KEY (institution_id) REFERENCES institutions(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_members_institution') THEN
+    ALTER TABLE members ADD CONSTRAINT fk_members_institution FOREIGN KEY (institution_id) REFERENCES institutions(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- Ensure profile belongs to institution
-ALTER TABLE profiles
-ADD CONSTRAINT IF NOT EXISTS fk_profiles_institution
-FOREIGN KEY (institution_id) REFERENCES institutions(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_profiles_institution') THEN
+    ALTER TABLE profiles ADD CONSTRAINT fk_profiles_institution FOREIGN KEY (institution_id) REFERENCES institutions(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- Ensure group membership references valid member and group
-ALTER TABLE group_members
-ADD CONSTRAINT IF NOT EXISTS fk_group_members_member
-FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_group_members_member') THEN
+    ALTER TABLE group_members ADD CONSTRAINT fk_group_members_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
-ALTER TABLE group_members
-ADD CONSTRAINT IF NOT EXISTS fk_group_members_group
-FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_group_members_group') THEN
+    ALTER TABLE group_members ADD CONSTRAINT fk_group_members_group FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
--- Ensure contribution records reference valid group and member
-ALTER TABLE contributions
-ADD CONSTRAINT IF NOT EXISTS fk_contributions_group
-FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
-
-ALTER TABLE contributions
-ADD CONSTRAINT IF NOT EXISTS fk_contributions_member
-FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE;
 
 -- Audit logs reference valid user
-ALTER TABLE audit_logs
-ADD CONSTRAINT IF NOT EXISTS fk_audit_logs_user
-FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_audit_logs_user') THEN
+    ALTER TABLE audit_logs ADD CONSTRAINT fk_audit_logs_user FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 
 -- ============================================================================
@@ -190,10 +207,8 @@ SELECT
   t.amount,
   t.type,
   t.status,
-  t.description,
   t.reference,
   t.created_at,
-  t.updated_at,
   t.member_id,
   m.full_name AS member_name,
   m.phone AS member_phone,
@@ -210,19 +225,16 @@ LEFT JOIN institutions i ON t.institution_id = i.id;
 CREATE OR REPLACE VIEW v_groups_with_stats AS
 SELECT 
   g.id,
-  g.name,
-  g.type,
-  g.contribution_amount,
-  g.frequency,
+  g.group_name as name,
   g.status,
   g.created_at,
   g.institution_id,
   COUNT(DISTINCT gm.member_id) AS member_count,
-  COALESCE(SUM(c.amount), 0) AS total_contributions,
-  MAX(c.created_at) AS last_contribution_at
+  COALESCE(SUM(t.amount), 0) AS total_contributions,
+  MAX(t.created_at) AS last_contribution_at
 FROM groups g
 LEFT JOIN group_members gm ON g.id = gm.group_id
-LEFT JOIN contributions c ON g.id = c.group_id
+LEFT JOIN transactions t ON g.id = t.group_id AND t.type = 'CONTRIBUTION'
 GROUP BY g.id;
 
 
@@ -237,7 +249,7 @@ SELECT
   COUNT(DISTINCT m.id) AS total_members,
   COUNT(DISTINCT CASE WHEN m.status = 'active' THEN m.id END) AS active_members,
   COUNT(DISTINCT g.id) AS total_groups,
-  COALESCE(SUM(m.balance), 0) AS total_savings,
+  0 AS total_savings,
   COALESCE(SUM(CASE WHEN t.type = 'deposit' AND t.created_at > NOW() - INTERVAL '1 day' 
                     THEN t.amount ELSE 0 END), 0) AS daily_deposits,
   COUNT(DISTINCT CASE WHEN t.created_at > NOW() - INTERVAL '1 day' 

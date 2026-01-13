@@ -2,176 +2,139 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base styles */
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f8fafc;
+  font-family: var(--font-sans);
+  background-color: #f9fafb;
+  color: #111827;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Dark mode base styles */
 .dark body {
-  background-color: #0f172a;
-  color: #f1f5f9;
+  background-color: #111827;
+  color: #f9fafb;
 }
 
-/* Custom scrollbar for tables */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f3f4f6;
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #1f2937;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d1d5db;
   border-radius: 3px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #4b5563;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9ca3af;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #6b7280;
 }
 
-/* ============================================================================
-   ACCESSIBILITY: Focus Styles
-   ============================================================================ */
+/* Loading skeleton shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
 
-/* Visible focus indicators for keyboard navigation (WCAG 2.4.7) */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f3f4f6 0%,
+    #e5e7eb 50%,
+    #f3f4f6 100%
+  );
+  background-size: 2000px 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    #374151 0%,
+    #4b5563 50%,
+    #374151 100%
+  );
+  background-size: 2000px 100%;
+}
+
+/* Focus visible styles */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-/* Remove default outline for mouse users */
-*:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Enhanced focus for interactive elements */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-[role="button"]:focus-visible,
-[role="link"]:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-}
-
-/* Focus styles for form inputs */
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Skip link styles (visually hidden until focused) */
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: #3b82f6;
-  color: white;
-  padding: 8px 16px;
-  text-decoration: none;
-  z-index: 100;
-  border-radius: 4px;
-}
-
-.skip-link:focus {
-  top: 0;
-}
-
-/* Screen reader only content */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.sr-only:focus,
-.sr-only:active {
-  position: static;
-  width: auto;
-  height: auto;
-  padding: inherit;
-  margin: inherit;
-  overflow: visible;
-  clip: auto;
-  white-space: normal;
-}
-
-/* ============================================================================
-   MOBILE OPTIMIZATIONS
-   ============================================================================ */
-
-/* Prevent text size adjustment on iOS */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* Safe area insets for notched devices */
-:root {
-  --safe-area-inset-top: env(safe-area-inset-top, 0px);
-  --safe-area-inset-right: env(safe-area-inset-right, 0px);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-inset-left: env(safe-area-inset-left, 0px);
-}
-
-/* Minimum touch target size (44x44px) */
-button,
-a,
-[role="button"],
-[role="link"],
-input[type="button"],
-input[type="submit"],
-input[type="reset"] {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* Improve tap highlight on mobile */
-* {
-  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
-}
-
-/* Smooth scrolling on mobile */
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
 }
 
-/* Prevent pull-to-refresh on mobile (when needed) */
-body {
-  overscroll-behavior-y: contain;
+/* Selection colors */
+::selection {
+  background-color: #3b82f6;
+  color: white;
 }
 
-/* Optimize font rendering on mobile */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.dark ::selection {
+  background-color: #60a5fa;
+  color: #111827;
+}
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Form element focus */
+input:focus,
+select:focus,
+textarea:focus {
+  --tw-ring-color: rgb(59 130 246 / 0.2);
+}
+
+/* Mobile tap highlight */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
 }

@@ -3,6 +3,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { compression } from 'vite-plugin-compression2';
 
 export default defineConfig(({ mode }) => {
   // Load .env files for local development
@@ -149,11 +150,18 @@ export default defineConfig(({ mode }) => {
           type: 'module'
         }
       }),
+      // Brotli compression for production
+      compression({
+        algorithm: 'brotliCompress',
+        exclude: [/\.(br)$/, /\.(gz)$/],
+        threshold: 1024, // Only compress files > 1KB
+      }),
       // Bundle analyzer (development only)
       visualizer({
         filename: 'dist/stats.html',
         open: false,
-        gzipSize: true
+        gzipSize: true,
+        brotliSize: true,
       })
     ],
     // Explicitly define env vars for Cloudflare Pages compatibility
@@ -173,7 +181,8 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'vendor-react': ['react', 'react-dom'],
             'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-ui': ['lucide-react', 'recharts']
+            'vendor-ui': ['lucide-react'],
+            'vendor-charts': ['recharts'],
           }
         }
       },
@@ -182,13 +191,20 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: mode === 'production',
-          drop_debugger: true
-        }
+          drop_console: true,
+          drop_debugger: true,
+          pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        },
+        format: {
+          comments: false,
+        },
       },
 
       // Chunk size warnings
-      chunkSizeWarningLimit: 500
+      chunkSizeWarningLimit: 1000,
+
+      // Disable sourcemaps in production for smaller bundles
+      sourcemap: false,
     },
     resolve: {
       alias: {

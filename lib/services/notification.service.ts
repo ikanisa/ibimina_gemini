@@ -92,12 +92,12 @@ class NotificationService {
     phone: string,
     message: string
   ): Promise<{ success: boolean; externalId?: string; error?: string }> {
-    // TODO: Implement SMS sending
-    // This would integrate with your SMS provider (e.g., Twilio, AWS SNS, etc.)
-    console.log('SMS sending not yet implemented');
+    // SMS sending is handled via the SMS Gateway Android app which forwards MoMo messages.
+    // Direct SMS sending from the web app is not implemented - use WhatsApp channel instead.
+    // Integration with SMS providers (Twilio, AWS SNS) can be added if needed.
     return {
       success: false,
-      error: 'SMS sending not yet implemented',
+      error: 'SMS channel not available - use WhatsApp',
     };
   }
 

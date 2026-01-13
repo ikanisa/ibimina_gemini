@@ -33,8 +33,23 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Unit Tests
-        run: npm run test -- --run
+      - name: Unit Tests with Coverage
+        run: npm run test:coverage
+
+      - name: Check Coverage Thresholds
+        run: |
+          COVERAGE=$(npm run test:coverage 2>&1 | grep -oP '(?<=All files)[^|]+\|[^|]+\|[^|]+\|[^|]+' | head -1 | tr '|' '\n' | grep -oP '[0-9.]+' | head -1 || echo "0")
+          echo "Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Coverage below 80% threshold"
+          fi
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
 
       - name: Build
         run: npm run build

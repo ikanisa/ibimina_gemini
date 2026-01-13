@@ -1,7 +1,7 @@
-import { tokens } from './lib/design-tokens';
+import { tailwindExtension } from './src/lib/design-system';
 
+/** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class', // Enable class-based dark mode
   content: [
     './index.html',
     './App.tsx',
@@ -9,48 +9,31 @@ export default {
     './components/**/*.{ts,tsx}',
     './contexts/**/*.{ts,tsx}',
     './lib/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
     './public/**/*.html'
   ],
+  darkMode: 'class',
   theme: {
     extend: {
-      colors: {
-        primary: tokens.colors.primary,
-        success: tokens.colors.success,
-        warning: tokens.colors.warning,
-        danger: tokens.colors.danger,
-        info: tokens.colors.info,
-        neutral: tokens.colors.neutral,
-      },
-      spacing: tokens.spacing,
-      borderRadius: tokens.borderRadius,
+      ...tailwindExtension,
       fontFamily: {
-        sans: tokens.typography.fontFamily.sans,
-        mono: tokens.typography.fontFamily.mono,
-        inter: ['Inter', 'sans-serif']
-      },
-      fontSize: tokens.typography.fontSize,
-      fontWeight: tokens.typography.fontWeight,
-      lineHeight: tokens.typography.lineHeight,
-      boxShadow: tokens.shadows,
-      transitionDuration: tokens.transitions,
-      transitionTimingFunction: tokens.easing,
-      zIndex: tokens.zIndex,
-      screens: {
-        ...tokens.breakpoints,
-        'xs': '475px',
-        'touch': { 'raw': '(hover: none) and (pointer: coarse)' }
+        inter: ['Inter', 'sans-serif'],
+        ...tailwindExtension.fontFamily,
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'fade-out': 'fadeOut 0.3s ease-in-out',
+        'fade-in': 'fadeIn 0.25s ease-out',
+        'fade-out': 'fadeOut 0.25s ease-in',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
         'slide-in-right': 'slideInRight 0.3s ease-out',
         'slide-in-left': 'slideInLeft 0.3s ease-out',
         'slide-in-top': 'slideInTop 0.3s ease-out',
         'slide-in-bottom': 'slideInBottom 0.3s ease-out',
-        'zoom-in': 'zoomIn 0.3s ease-out',
-        'zoom-out': 'zoomOut 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'scale-out': 'scaleOut 0.2s ease-out',
+        'zoom-in': 'zoomIn 0.3s ease-out',
+        'zoom-out': 'zoomOut 0.3s ease-out',
+        'shimmer': 'shimmer 2s linear infinite',
       },
       keyframes: {
         fadeIn: {
@@ -60,6 +43,14 @@ export default {
         fadeOut: {
           '0%': { opacity: '1' },
           '100%': { opacity: '0' }
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
         },
         slideInRight: {
           '0%': { transform: 'translateX(100%)', opacity: '0' },
@@ -92,14 +83,24 @@ export default {
         scaleOut: {
           '0%': { transform: 'scale(1)', opacity: '1' },
           '100%': { transform: 'scale(0.9)', opacity: '0' }
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' }
         }
       },
       transitionDuration: {
-        ...tokens.transitions,
         '2000': '2000ms',
         '3000': '3000ms'
+      },
+      screens: {
+        'xs': '475px',
+        'touch': { 'raw': '(hover: none) and (pointer: coarse)' }
       }
     }
   },
-  plugins: []
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+  ]
 };

@@ -49,21 +49,21 @@ describe('Button', () => {
         render(<Button>Primary</Button>);
 
         const button = screen.getByRole('button');
-        expect(button.className).toContain('bg-blue');
+        expect(button.className).toContain('bg-primary');
     });
 
     it('should apply secondary variant styles', () => {
         render(<Button variant="secondary">Secondary</Button>);
 
         const button = screen.getByRole('button');
-        expect(button.className).toContain('bg-slate');
+        expect(button.className).toContain('bg-neutral');
     });
 
     it('should apply danger variant styles', () => {
         render(<Button variant="danger">Danger</Button>);
 
         const button = screen.getByRole('button');
-        expect(button.className).toContain('bg-red');
+        expect(button.className).toContain('bg-error');
     });
 
     it('should apply outline variant with border', () => {

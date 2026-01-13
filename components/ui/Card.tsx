@@ -1,12 +1,10 @@
 /**
  * Card Component
- * Consistent card container with optional header and content sections
+ * Consistent card container with dark mode and hover effects
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils/cn';
-import { cardHover, transitions } from '../../lib/animations/framer-motion';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -30,31 +28,36 @@ export const Card: React.FC<CardProps> = React.memo(({
   hover = false,
   onClick,
 }) => {
-  const MotionDiv = hover || onClick ? motion.div : 'div';
-  const motionProps = hover || onClick ? {
-    variants: cardHover,
-    initial: 'initial',
-    whileHover: 'hover',
-    whileTap: 'tap',
-    transition: transitions.normal,
-  } : {};
-
   return (
-    <MotionDiv
+    <div
       className={cn(
-        'bg-white rounded-lg border border-slate-200',
+        // Base styles
+        'bg-white dark:bg-neutral-800',
+        'rounded-xl border',
+        'border-neutral-200 dark:border-neutral-700',
+        'shadow-sm',
         paddingClasses[padding],
-        hover && 'hover:border-slate-300 transition-colors cursor-pointer',
+        // Hover effects
+        hover && 'transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-neutral-300 dark:hover:border-neutral-600',
         onClick && 'cursor-pointer',
         className
       )}
       onClick={onClick}
-      {...motionProps}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
     >
       {children}
-    </MotionDiv>
+    </div>
   );
 });
+
+Card.displayName = 'Card';
 
 export interface CardHeaderProps {
   children: React.ReactNode;
@@ -65,7 +68,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
   children,
   className,
 }) => (
-  <div className={cn('mb-4 pb-4 border-b border-slate-100', className)}>
+  <div className={cn('mb-4 pb-4 border-b border-neutral-100 dark:border-neutral-700', className)}>
     {children}
   </div>
 );
@@ -79,7 +82,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
   children,
   className,
 }) => (
-  <h3 className={cn('text-lg font-semibold text-slate-900', className)}>
+  <h3 className={cn('text-lg font-semibold text-neutral-900 dark:text-neutral-100', className)}>
     {children}
   </h3>
 );
@@ -93,5 +96,5 @@ export const CardContent: React.FC<CardContentProps> = ({
   children,
   className,
 }) => (
-  <div className={className}>{children}</div>
+  <div className={cn('text-neutral-700 dark:text-neutral-300', className)}>{children}</div>
 );
