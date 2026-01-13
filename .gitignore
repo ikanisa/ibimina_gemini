@@ -31,3 +31,8 @@ dist-ssr
 # Cloudflare
 .wrangler
 .dev.vars
+
+# Testing
+test-results
+playwright-report
+blob-report

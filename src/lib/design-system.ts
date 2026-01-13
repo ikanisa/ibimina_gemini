@@ -124,13 +124,14 @@ export const DESIGN_TOKENS = {
     borderRadius: {
         none: '0',
         sm: '0.125rem', // 2px
-        DEFAULT: '0.25rem', // 4px
-        md: '0.375rem', // 6px
-        lg: '0.5rem', // 8px
-        xl: '0.75rem', // 12px
-        '2xl': '1rem', // 16px
-        '3xl': '1.5rem', // 24px
+        DEFAULT: '0.5rem', // 8px
+        md: '0.625rem', // 10px
+        lg: '0.75rem', // 12px
+        xl: '1rem', // 16px
+        '2xl': '1.5rem', // 24px
+        '3xl': '2rem', // 32px
         full: '9999px',
+        card: '0.75rem', // 12px (Explicit alias)
     },
 
     shadows: {

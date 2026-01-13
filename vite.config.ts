@@ -181,8 +181,9 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'vendor-react': ['react', 'react-dom'],
             'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-ui': ['lucide-react'],
+            'vendor-ui': ['lucide-react', 'framer-motion', 'clsx', 'tailwind-merge', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
             'vendor-charts': ['recharts'],
+            'vendor-utils': ['zod'],
           }
         }
       },
@@ -208,7 +209,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       }
     },
     // Optimize dependencies

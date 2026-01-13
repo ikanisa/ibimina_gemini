@@ -50,7 +50,7 @@ If you cannot extract a valid amount, return: {"error": "Unable to parse SMS", "
 // Parse SMS using OpenAI
 async function parseWithOpenAI(smsText: string, apiKey: string): Promise<ParsedSMS> {
   const prompt = SMS_PARSE_PROMPT.replace('{SMS_TEXT}', smsText)
-  
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -60,9 +60,9 @@ async function parseWithOpenAI(smsText: string, apiKey: string): Promise<ParsedS
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { 
-          role: 'system', 
-          content: 'You are a precise data extraction assistant. Extract transaction details from Mobile Money SMS messages. Always return valid JSON.' 
+        {
+          role: 'system',
+          content: 'You are a precise data extraction assistant. Extract transaction details from Mobile Money SMS messages. Always return valid JSON.'
         },
         { role: 'user', content: prompt }
       ],
@@ -79,12 +79,12 @@ async function parseWithOpenAI(smsText: string, apiKey: string): Promise<ParsedS
 
   const data = await response.json()
   const textContent = data.choices?.[0]?.message?.content || '{}'
-  
+
   const jsonMatch = textContent.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     throw new Error('No JSON found in OpenAI response')
   }
-  
+
   return JSON.parse(jsonMatch[0])
 }
 
@@ -136,24 +136,24 @@ const rateLimitMap = new Map<string, number[]>()
 function checkRateLimit(clientId: string): boolean {
   const now = Date.now()
   const timestamps = rateLimitMap.get(clientId) || []
-  
+
   // Filter timestamps within the rate limit window
   const recentTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW)
-  
+
   if (recentTimestamps.length >= RATE_LIMIT) {
     console.warn(`Rate limit exceeded for: ${clientId}`)
     return false // Rate limited
   }
-  
+
   // Add current timestamp
   recentTimestamps.push(now)
   rateLimitMap.set(clientId, recentTimestamps)
-  
+
   // Cleanup old entries periodically
   if (Math.random() < 0.1) { // 10% chance to cleanup
     cleanupRateLimitMap()
   }
-  
+
   return true
 }
 
@@ -175,20 +175,20 @@ function cleanupRateLimitMap() {
 
 function isIPAllowed(clientIP: string | null): boolean {
   const allowedIPs = Deno.env.get('SMS_WEBHOOK_ALLOWED_IPS')
-  
+
   // If no allowlist configured, allow all (backward compatible)
   if (!allowedIPs) {
     return true
   }
-  
+
   // Parse comma-separated list of allowed IPs
   const allowedIPList = allowedIPs.split(',').map(ip => ip.trim())
-  
+
   // Check if client IP is in allowlist
   if (!clientIP) {
     return false
   }
-  
+
   // Support CIDR notation or exact IPs
   return allowedIPList.some(allowedIP => {
     if (allowedIP.includes('/')) {
@@ -213,9 +213,9 @@ Deno.serve(async (req) => {
     // ============================================================================
     // Step 1: Get client information for rate limiting and IP allowlisting
     // ============================================================================
-    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                     req.headers.get('x-real-ip') || 
-                     null
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      null
     const authHeader = req.headers.get('Authorization')
 
     // ============================================================================
@@ -234,21 +234,21 @@ Deno.serve(async (req) => {
     // ============================================================================
     // Use IP or auth token as client identifier
     const clientId = authHeader ? `auth-${authHeader.substring(0, 20)}` : `ip-${clientIP || 'unknown'}`
-    
+
     if (!checkRateLimit(clientId)) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Too many requests. Please slow down.',
-          retryAfter: 60 
+          retryAfter: 60
         }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
             'Content-Type': 'application/json',
             'Retry-After': '60'
-          } 
+          }
         }
       )
     }
@@ -341,7 +341,7 @@ Deno.serve(async (req) => {
         console.log(`[${sms_id}] OpenAI parse successful`)
       } catch (openaiError) {
         console.error(`[${sms_id}] OpenAI failed:`, (openaiError as Error).message)
-        
+
         // Log failed OpenAI attempt
         await supabaseClient.from('sms_parse_attempts').insert({
           sms_id,
@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
           duration_ms: Date.now() - startTime
         })
         attemptNo++
-        
+
         // Fallback to Gemini
         if (GEMINI_API_KEY) {
           console.log(`[${sms_id}] Falling back to Gemini...`)
@@ -403,7 +403,7 @@ Deno.serve(async (req) => {
     // Validate required fields
     if (!parsed.amount || parsed.amount <= 0) {
       const errorMsg = 'Invalid amount extracted from SMS'
-      
+
       await supabaseClient
         .from('momo_sms_raw')
         .update({
@@ -544,6 +544,15 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Parse error:', error)
+
+    // Log error with context standardized
+    const { logError } = await import('../_shared/sentry.ts');
+    logError(error, {
+      functionName: 'parse-momo-sms',
+      institutionId: effective_institution_id,
+      requestId: req.headers.get('x-request-id') || undefined,
+    });
+
     return new Response(
       JSON.stringify({ success: false, error: (error as Error).message }),
       {

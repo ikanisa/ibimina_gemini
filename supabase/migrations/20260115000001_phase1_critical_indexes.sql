@@ -10,6 +10,63 @@
 -- ============================================================================
 
 -- ============================================================================
+-- PRE-FLIGHT: Ensure Schema Integrity (Fix for potential drift)
+-- ============================================================================
+
+-- Ensure sms_gateway_devices exists (key dependency)
+create table if not exists public.sms_gateway_devices (
+  id uuid primary key default gen_random_uuid(),
+  institution_id uuid not null references public.institutions(id) on delete restrict,
+  device_name text not null,
+  momo_code text not null,
+  status text not null default 'active',
+  device_key_hash text not null,
+  last_sms_received_at timestamptz null,
+  created_at timestamptz not null default now(),
+  created_by uuid null references auth.users(id),
+  constraint sms_gateway_devices_unique_momo_code unique (momo_code)
+);
+
+-- Ensure momo_sms_raw has necessary columns
+do $$
+begin
+  -- device_id
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'device_id') then
+    alter table public.momo_sms_raw add column device_id uuid references public.sms_gateway_devices(id) on delete restrict;
+  end if;
+  
+  -- momo_code
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'momo_code') then
+    alter table public.momo_sms_raw add column momo_code text;
+  end if;
+  
+  -- sender
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'sender') then
+    alter table public.momo_sms_raw add column sender text;
+  end if;
+
+   -- body
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'body') then
+    alter table public.momo_sms_raw add column body text;
+  end if;
+
+  -- meta
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'meta') then
+    alter table public.momo_sms_raw add column meta jsonb default '{}'::jsonb;
+  end if;
+
+   -- ingested_at (needed for triggers/indexes)
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'ingested_at') then
+    alter table public.momo_sms_raw add column ingested_at timestamptz default now();
+  end if;
+
+   -- parse_status
+  if not exists (select 1 from information_schema.columns where table_name = 'momo_sms_raw' and column_name = 'parse_status') then
+    alter table public.momo_sms_raw add column parse_status text default 'pending';
+  end if;
+end $$;
+
+-- ============================================================================
 -- TRANSACTIONS TABLE - Critical Indexes
 -- ============================================================================
 
@@ -84,11 +141,7 @@ CREATE INDEX IF NOT EXISTS idx_momo_sms_raw_momo_code
   ON momo_sms_raw(momo_code) 
   WHERE momo_code IS NOT NULL;
 
--- 6. Hash index (for deduplication - should be unique)
--- Used in: SMS deduplication checks
--- Note: This should already exist as UNIQUE constraint, but adding index for performance
-CREATE INDEX IF NOT EXISTS idx_momo_sms_raw_hash 
-  ON momo_sms_raw(hash);
+
 
 -- ============================================================================
 -- MEMBERS TABLE - Critical Indexes
@@ -102,15 +155,21 @@ CREATE INDEX IF NOT EXISTS idx_members_group_id
 
 -- 2. Phone number index (for member lookup by phone)
 -- Used in: Auto-allocation matching, member search by phone
--- Note: Column name may be 'phone' or 'phone_number' - check schema
-CREATE INDEX IF NOT EXISTS idx_members_phone_number 
-  ON members(phone_number) 
-  WHERE phone_number IS NOT NULL;
+-- Note: Check if column is 'phone' or 'phone_number' and index accordingly
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'members' AND column_name = 'phone_number') THEN
+    CREATE INDEX IF NOT EXISTS idx_members_phone_number 
+      ON members(phone_number) 
+      WHERE phone_number IS NOT NULL;
+  END IF;
 
--- Alternative if column is named 'phone'
-CREATE INDEX IF NOT EXISTS idx_members_phone 
-  ON members(phone) 
-  WHERE phone IS NOT NULL;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'members' AND column_name = 'phone') THEN
+    CREATE INDEX IF NOT EXISTS idx_members_phone 
+      ON members(phone) 
+      WHERE phone IS NOT NULL;
+  END IF;
+END $$;
 
 -- 3. Institution ID index
 -- Used in: All member queries filtered by institution
@@ -162,32 +221,46 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_entity_type
 -- TRANSACTION_ALLOCATIONS TABLE - Critical Indexes
 -- ============================================================================
 
--- 1. Transaction ID index (for finding allocations by transaction)
--- Used in: Finding allocation history for a transaction
-CREATE INDEX IF NOT EXISTS idx_transaction_allocations_transaction_id 
-  ON transaction_allocations(transaction_id);
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transaction_allocations') THEN
+    -- 1. Transaction ID index (for finding allocations by transaction)
+    -- Used in: Finding allocation history for a transaction
+    CREATE INDEX IF NOT EXISTS idx_transaction_allocations_transaction_id 
+      ON transaction_allocations(transaction_id);
 
--- 2. Member ID index (for finding allocations by member)
--- Used in: Finding all allocations for a member
-CREATE INDEX IF NOT EXISTS idx_transaction_allocations_member_id 
-  ON transaction_allocations(member_id);
+    -- 2. Member ID index (for finding allocations by member)
+    -- Used in: Finding all allocations for a member
+    CREATE INDEX IF NOT EXISTS idx_transaction_allocations_member_id 
+      ON transaction_allocations(member_id);
 
--- 3. Allocated at index (for date-based queries)
--- Used in: Allocation history sorted by date
-CREATE INDEX IF NOT EXISTS idx_transaction_allocations_allocated_at 
-  ON transaction_allocations(allocated_at DESC);
+    -- 3. Allocated at index (for date-based queries)
+    -- Used in: Allocation history sorted by date
+    CREATE INDEX IF NOT EXISTS idx_transaction_allocations_allocated_at 
+      ON transaction_allocations(allocated_at DESC);
+  END IF;
+END $$;
 
 -- ============================================================================
 -- ANALYZE TABLES
 -- Update statistics for query planner to use indexes effectively
 -- ============================================================================
 
-ANALYZE transactions;
-ANALYZE momo_sms_raw;
-ANALYZE members;
-ANALYZE groups;
-ANALYZE audit_log;
-ANALYZE transaction_allocations;
+DO $$
+BEGIN
+  EXECUTE 'ANALYZE transactions';
+  EXECUTE 'ANALYZE momo_sms_raw';
+  EXECUTE 'ANALYZE members';
+  EXECUTE 'ANALYZE groups';
+  
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'audit_log') THEN
+    EXECUTE 'ANALYZE audit_log';
+  END IF;
+
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transaction_allocations') THEN
+    EXECUTE 'ANALYZE transaction_allocations';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- VERIFICATION QUERIES (for manual testing)

@@ -3,6 +3,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { loginAs } from './utils';
 
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
 
