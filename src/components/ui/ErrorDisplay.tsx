@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { AlertCircle, X } from 'lucide-react';
-import { getUserFriendlyError } from '../../lib/errors';
+import { getUserFriendlyMessage } from '@/lib/errors/ErrorHandler';
 
 export interface ErrorDisplayProps {
   error: unknown;
@@ -19,7 +19,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   className = '',
   variant = 'default'
 }) => {
-  const message = getUserFriendlyError(error);
+  const message = getUserFriendlyMessage(error);
 
   if (variant === 'inline') {
     return (

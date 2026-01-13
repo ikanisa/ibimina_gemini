@@ -1,202 +1,105 @@
-/**
- * Custom hook for paginated transaction data management with React Query
- * 
- * Provides infinite scrolling capabilities for the transactions list
- * Uses React Query's useInfiniteQuery for efficient caching and fetching
- */
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { handleError } from '@/lib/errors/ErrorHandler';
 
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as transactionsApi from '../lib/api/transactions.api';
-import { queryKeys } from '../lib/query-client';
-import type { SupabaseTransaction } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import { handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
-
-import { isSuperAdmin } from '../lib/utils/roleHelpers';
-
-export interface UseTransactionsPaginatedOptions {
-    memberId?: string;
-    groupId?: string;
-    status?: string; // payment status: COMPLETED, PENDING, etc.
-    allocationStatus?: string; // allocated vs unallocated
-    limit?: number;
-    autoFetch?: boolean;
-    dateRange?: { start: string; end: string };
-    searchTerm?: string;
+interface Transaction {
+    id: string;
+    amount: number;
+    occurred_at: string;
+    member_id?: string;
+    group_id?: string;
+    allocation_status: 'unallocated' | 'allocated' | 'flagged';
+    // ... other transaction fields
 }
 
-export interface UseTransactionsPaginatedReturn {
-    transactions: Array<SupabaseTransaction & { members?: { full_name?: string | null } }>;
+interface UseTransactionsPaginatedOptions {
+    pageSize?: number;
+    institutionId?: string;
+    status?: string;
+}
+
+interface UseTransactionsPaginatedReturn {
+    transactions: Transaction[];
     loading: boolean;
-    loadingMore: boolean;
     error: string | null;
     hasMore: boolean;
-    refetch: () => Promise<void>;
     loadMore: () => Promise<void>;
-    createTransaction: (params: transactionsApi.CreateTransactionParams) => Promise<SupabaseTransaction>;
-    updateTransactionStatus: (id: string, status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED') => Promise<SupabaseTransaction>;
-    allocateTransaction: (transactionId: string, memberId: string, note?: string | null) => Promise<any>;
-    // Additional React Query features
-    isFetching: boolean;
-    isRefetching: boolean;
+    refresh: () => Promise<void>;
 }
 
-const DEFAULT_LIMIT = 50;
+export function useTransactionsPaginated(
+    options: UseTransactionsPaginatedOptions = {}
+): UseTransactionsPaginatedReturn {
+    const { pageSize = 50, institutionId, status } = options;
 
-export function useTransactionsPaginated(options: UseTransactionsPaginatedOptions = {}): UseTransactionsPaginatedReturn {
-    const { institutionId, role } = useAuth();
-    const isPlatformAdmin = isSuperAdmin(role);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(0);
 
-    const {
-        memberId,
-        groupId,
-        status,
-        allocationStatus,
-        limit = DEFAULT_LIMIT,
-        autoFetch = true,
-        dateRange,
-        searchTerm
-    } = options;
-    const queryClient = useQueryClient();
+    const fetchTransactions = useCallback(async (pageNum: number, append = false) => {
+        try {
+            setLoading(true);
+            setError(null);
 
-    // Build query key based on filters
-    const queryKey = queryKeys.transactions.list({
-        institutionId: institutionId || (isPlatformAdmin ? 'global' : ''),
-        memberId,
-        groupId,
-        status,
-        allocationStatus,
-        dateRange,
-        searchTerm,
-        paginated: true
-    });
+            let query = supabase
+                .from('transactions')
+                .select('*')
+                .order('occurred_at', { ascending: false })
+                .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
 
-    // Fetch transactions using Infinite Query
-    const {
-        data,
-        isLoading,
-        isFetching,
-        isRefetching,
-        error,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-        refetch: refetchQuery,
-    } = useInfiniteQuery({
-        queryKey,
-        queryFn: async ({ pageParam = 0 }) => {
-            // Allow if institutionId exists OR user is super admin
-            if (!institutionId && !isPlatformAdmin) {
-                return { data: [], nextPage: null };
+            if (institutionId) {
+                query = query.eq('institution_id', institutionId);
             }
 
-            // Build query with all filters - wrapped with timeout
-            const { withTimeout } = await import('../lib/errors/ErrorHandler');
-            const transactions = await withTimeout(
-                transactionsApi.fetchTransactions(institutionId, {
-                    memberId,
-                    groupId,
-                    status,
-                    allocationStatus,
-                    limit,
-                    offset: pageParam,
-                    dateRange,
-                    searchTerm,
-                }),
-                30000, // 30 second timeout
-                {
-                    operation: 'fetchTransactionsPaginated',
-                    component: 'useTransactionsPaginated',
-                    institutionId: institutionId || 'global',
-                }
-            );
+            if (status) {
+                query = query.eq('allocation_status', status);
+            }
 
-            return {
-                data: transactions,
-                // If we got fewer items than the limit, we've reached the end
-                nextPage: transactions.length < limit ? null : pageParam + limit,
-            };
-        },
-        getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: autoFetch && (!!institutionId || isPlatformAdmin),
-        initialPageParam: 0,
-        // Keep previous data while fetching new data (smooth transitions)
-        placeholderData: (previousData) => previousData,
-        staleTime: 1000 * 30, // 30 seconds
-    });
+            const { data, error: fetchError } = await query;
 
-    // Flatten pages into single array
-    const transactions = data?.pages.flatMap(page => page.data) || [];
+            if (fetchError) {
+                const appError = handleError(fetchError, 'useTransactionsPaginated');
+                setError(appError.message);
+                return;
+            }
 
-    // Create transaction mutation with optimistic update (copied logic from useTransactions for consistency)
-    const createMutation = useMutation({
-        mutationFn: (params: transactionsApi.CreateTransactionParams) =>
-            transactionsApi.createTransaction(params),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() });
-        },
-    });
-
-    const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }: { id: string; status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED' }) =>
-            transactionsApi.updateTransactionStatus(id, status),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() });
-        },
-    });
-
-    const allocateMutation = useMutation({
-        mutationFn: (params: transactionsApi.AllocateTransactionParams) =>
-            transactionsApi.allocateTransaction(params),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() });
-        },
-    });
-
-    const createTransaction = async (params: transactionsApi.CreateTransactionParams) => {
-        return createMutation.mutateAsync(params);
-    };
-
-    const updateTransactionStatus = async (id: string, status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED') => {
-        return updateStatusMutation.mutateAsync({ id, status });
-    };
-
-    const allocateTransaction = async (transactionId: string, memberId: string, note?: string | null) => {
-        return allocateMutation.mutateAsync({ transaction_id: transactionId, member_id: memberId, note });
-    };
-
-    const loadMore = async () => {
-        if (hasNextPage && !isFetchingNextPage) {
-            await fetchNextPage();
+            if (data) {
+                setTransactions(prev => append ? [...prev, ...data] : data);
+                setHasMore(data.length === pageSize);
+            }
+        } catch (err) {
+            const appError = handleError(err, 'useTransactionsPaginated');
+            setError(appError.message);
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [pageSize, institutionId, status]);
 
-    const refetch = async () => {
-        await refetchQuery();
-    };
+    const loadMore = useCallback(async () => {
+        if (!loading && hasMore) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            await fetchTransactions(nextPage, true);
+        }
+    }, [loading, hasMore, page, fetchTransactions]);
 
-    const errorMessage = error
-        ? getUserFriendlyMessage(
-            handleError(error, {
-                operation: 'useTransactionsPaginated',
-                component: 'useTransactionsPaginated',
-                institutionId: institutionId || undefined,
-            })
-        )
-        : null;
+    const refresh = useCallback(async () => {
+        setPage(0);
+        await fetchTransactions(0, false);
+    }, [fetchTransactions]);
+
+    useEffect(() => {
+        fetchTransactions(0);
+    }, [fetchTransactions]);
 
     return {
         transactions,
-        loading: isLoading,
-        loadingMore: isFetchingNextPage,
-        error: errorMessage,
-        hasMore: !!hasNextPage,
-        refetch,
+        loading,
+        error,
+        hasMore,
         loadMore,
-        createTransaction,
-        updateTransactionStatus,
-        allocateTransaction,
-        isFetching,
-        isRefetching,
+        refresh,
     };
 }

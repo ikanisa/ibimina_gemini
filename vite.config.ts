@@ -1,3 +1,4 @@
+
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -19,39 +20,13 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'icons/icon-*.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'SACCO+ Admin Portal',
-          short_name: 'SACCO+',
-          description: 'Multi-tenant group savings and loans management platform',
-          theme_color: '#2563eb',
-          background_color: '#ffffff',
-          display: 'standalone',
+          name: 'Ibimina - SACCO+ Admin',
+          short_name: 'Ibimina',
+          description: 'Group savings and loans management for SACCOs and MFIs',
+          theme_color: '#ffffff',
           icons: [
-            {
-              src: 'icons/icon-72.png',
-              sizes: '72x72',
-              type: 'image/png',
-              purpose: 'any maskable'
-            },
-            {
-              src: 'icons/icon-96.png',
-              sizes: '96x96',
-              type: 'image/png',
-              purpose: 'any maskable'
-            },
-            {
-              src: 'icons/icon-128.png',
-              sizes: '128x128',
-              type: 'image/png',
-              purpose: 'any maskable'
-            },
-            {
-              src: 'icons/icon-144.png',
-              sizes: '144x144',
-              type: 'image/png',
-              purpose: 'any maskable'
-            },
             {
               src: 'icons/icon-152.png',
               sizes: '152x152',

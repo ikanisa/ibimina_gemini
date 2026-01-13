@@ -32,14 +32,14 @@ export const Card: React.FC<CardProps> = React.memo(({
     <div
       className={cn(
         // Base styles
-        'bg-white dark:bg-neutral-800',
-        'rounded-xl border',
-        'border-neutral-200 dark:border-neutral-700',
+        'bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md',
+        'rounded-lg border', // 12px radius as per design system lg
+        'border-neutral-200/50 dark:border-neutral-700/50',
         'shadow-sm',
         paddingClasses[padding],
         // Hover effects
-        hover && 'transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-neutral-300 dark:hover:border-neutral-600',
-        onClick && 'cursor-pointer',
+        hover && 'transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary-500/20 dark:hover:border-primary-500/20',
+        onClick && 'cursor-pointer active:scale-[0.99]',
         className
       )}
       onClick={onClick}
