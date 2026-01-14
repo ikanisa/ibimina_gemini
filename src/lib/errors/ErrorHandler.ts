@@ -151,6 +151,13 @@ export function getUserFriendlyMessage(errorOrMessage: unknown): string {
   return 'An unexpected error occurred';
 }
 
+/**
+ * Alias for getUserFriendlyMessage (for backward compatibility)
+ */
+export function getUserFriendlyError(error: unknown): string {
+  return getUserFriendlyMessage(error);
+}
+
 // Helper for timeout
 export async function withTimeout<T>(
   promise: Promise<T>,
