@@ -8,16 +8,46 @@ const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA as string | undefined;
 
 const useMockData = USE_MOCK_DATA === 'true';
 
-// Log for debugging (will show in browser console during development only)
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  console.debug('[Supabase Config]', {
-    url: SUPABASE_URL ? `${SUPABASE_URL.substring(0, 30)}...` : 'NOT SET',
+// Validate that env vars are real values, not placeholders
+const isValidUrl = SUPABASE_URL &&
+  SUPABASE_URL.startsWith('https://') &&
+  SUPABASE_URL.includes('.supabase.co') &&
+  !SUPABASE_URL.includes('your-project') &&
+  !SUPABASE_URL.includes('placeholder');
+
+const isValidKey = SUPABASE_ANON_KEY &&
+  SUPABASE_ANON_KEY.length > 100 && // JWT tokens are typically 200+ chars
+  !SUPABASE_ANON_KEY.includes('your-') &&
+  !SUPABASE_ANON_KEY.includes('placeholder');
+
+// Log for debugging (will show in browser console)
+if (typeof window !== 'undefined') {
+  const logLevel = import.meta.env.DEV ? 'debug' : 'info';
+  const logFn = logLevel === 'debug' ? console.debug : console.info;
+
+  logFn('[Supabase Config]', {
+    url: SUPABASE_URL ? `${SUPABASE_URL.substring(0, 35)}...` : 'NOT SET',
+    urlValid: isValidUrl,
     keySet: !!SUPABASE_ANON_KEY,
-    mockMode: useMockData
+    keyValid: isValidKey,
+    keyLength: SUPABASE_ANON_KEY?.length || 0,
+    mockMode: useMockData,
+    mode: import.meta.env.MODE,
   });
+
+  // Warn loudly if configuration is invalid
+  if (!isValidUrl || !isValidKey) {
+    console.warn(
+      '%c[Supabase] Configuration Issue Detected',
+      'background: #ff6b6b; color: white; padding: 2px 6px; border-radius: 3px;',
+      '\n\nURL:', SUPABASE_URL || 'NOT SET',
+      '\nKey Length:', SUPABASE_ANON_KEY?.length || 0,
+      '\n\nCheck .env.local file or Cloudflare Pages environment variables.'
+    );
+  }
 }
 
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY) || useMockData;
+export const isSupabaseConfigured = (isValidUrl && isValidKey) || useMockData;
 
 export const supabase = createClient(
   SUPABASE_URL || 'https://placeholder.supabase.co',

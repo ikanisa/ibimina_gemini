@@ -156,22 +156,66 @@ const SectionLoading: React.FC = () => {
   );
 };
 
-const MissingConfig: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">Supabase configuration required</h1>
-      <p className="text-sm text-slate-600">
-        Set <span className="font-mono">VITE_SUPABASE_URL</span> and{' '}
-        <span className="font-mono">VITE_SUPABASE_ANON_KEY</span> in{' '}
-        <span className="font-mono">.env.local</span> to continue.
-      </p>
-      <div className="text-left text-xs bg-slate-100 border border-slate-200 rounded-lg p-3 font-mono text-slate-600">
-        VITE_SUPABASE_URL=https://your-project.supabase.co<br />
-        VITE_SUPABASE_ANON_KEY=your-anon-key
+const MissingConfig: React.FC = () => {
+  const handleClearAndReload = () => {
+    // Clear caches and reload
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => caches.delete(key));
+      });
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.reload();
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+        <h1 className="text-2xl font-bold text-slate-900">Supabase configuration required</h1>
+        <p className="text-sm text-slate-600">
+          Set <span className="font-mono">VITE_SUPABASE_URL</span> and{' '}
+          <span className="font-mono">VITE_SUPABASE_ANON_KEY</span> in{' '}
+          <span className="font-mono">.env.local</span> to continue.
+        </p>
+        <div className="text-left text-xs bg-slate-100 border border-slate-200 rounded-lg p-3 font-mono text-slate-600">
+          VITE_SUPABASE_URL=https://your-project.supabase.co<br />
+          VITE_SUPABASE_ANON_KEY=your-anon-key
+        </div>
+
+        {/* Diagnostic info */}
+        <div className="text-left text-xs bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+          <p className="font-medium text-amber-800">Troubleshooting:</p>
+          <ul className="list-disc list-inside text-amber-700 space-y-0.5">
+            <li>Check browser DevTools console for <code>[Supabase Config]</code> log</li>
+            <li>Restart dev server after changing .env.local</li>
+            <li>For Cloudflare: Set env vars in Pages → Settings</li>
+          </ul>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
+          >
+            Reload
+          </button>
+          <button
+            onClick={handleClearAndReload}
+            className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+          >
+            Clear Cache & Reload
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const InitError: React.FC<{ error: string }> = ({ error }) => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">

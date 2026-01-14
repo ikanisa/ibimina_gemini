@@ -8,18 +8,28 @@ import { compression } from 'vite-plugin-compression2';
 
 export default defineConfig(({ mode }) => {
   // Load .env files for local development
-  const env = loadEnv(mode, process.cwd(), '');
+  // IMPORTANT: loadEnv prefix '' loads ALL env vars, then we filter for VITE_
+  // This ensures .env.local is properly read
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
   const isProduction = mode === 'production';
 
   // Debug: Log env vars at build time (visible in Cloudflare build logs)
+  // Priority: process.env (Cloudflare) > loadEnv (.env.local)
   const supabaseUrl = process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
 
   console.log('[Vite Build] Environment:', mode);
+  console.log('[Vite Build] CWD:', process.cwd());
   console.log('[Vite Build] process.env.VITE_SUPABASE_URL:', process.env.VITE_SUPABASE_URL ? 'SET' : 'NOT SET');
   console.log('[Vite Build] loadEnv VITE_SUPABASE_URL:', env.VITE_SUPABASE_URL ? 'SET' : 'NOT SET');
   console.log('[Vite Build] Final VITE_SUPABASE_URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'EMPTY');
   console.log('[Vite Build] VITE_SUPABASE_ANON_KEY:', supabaseKey ? 'SET (' + supabaseKey.length + ' chars)' : 'NOT SET');
+
+  // Warn if env vars are missing in production build
+  if (isProduction && (!supabaseUrl || !supabaseKey)) {
+    console.error('⚠️  WARNING: Supabase env vars missing in production build!');
+    console.error('   Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Cloudflare Pages settings.');
+  }
 
   // CRITICAL: For Cloudflare Pages, we need to explicitly define these
   // because Cloudflare's build environment doesn't always pass VITE_* to process.env correctly
