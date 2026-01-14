@@ -7,6 +7,7 @@
 import { validateAndNormalizePhone } from './phoneValidation';
 
 export interface MemberValidationErrors {
+  [key: string]: string | undefined;
   full_name?: string;
   phone?: string;
   branch?: string;

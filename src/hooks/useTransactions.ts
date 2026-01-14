@@ -29,6 +29,7 @@ export interface UseTransactionsReturn {
   refetch: () => Promise<void>;
   createTransaction: (params: transactionsApi.CreateTransactionParams) => Promise<SupabaseTransaction>;
   updateTransactionStatus: (id: string, status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED') => Promise<SupabaseTransaction>;
+  allocateTransaction: (transactionId: string, memberId: string, note?: string | null) => Promise<any>;
   // Additional React Query features
   isFetching: boolean;
   isRefetching: boolean;
@@ -123,7 +124,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
     onSuccess: (newTransaction) => {
       // Invalidate and refetch transactions list
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() });
-      
+
       // Optionally update the cache optimistically
       queryClient.setQueryData<Array<SupabaseTransaction & { members?: { full_name?: string | null } }>>(
         queryKey,
@@ -186,14 +187,14 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         queryKey,
         (old) => {
           if (!old) return old;
-          return old.map((t) => 
-            t.id === transaction_id 
-              ? { 
-                  ...t, 
-                  member_id,
-                  allocation_status: 'allocated',
-                  allocated_at: new Date().toISOString(),
-                } 
+          return old.map((t) =>
+            t.id === transaction_id
+              ? {
+                ...t,
+                member_id,
+                allocation_status: 'allocated',
+                allocated_at: new Date().toISOString(),
+              }
               : t
           );
         }
@@ -216,7 +217,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
           return old.map((t) => t.id === updatedTransaction.id ? updatedTransaction : t);
         }
       );
-      
+
       // Invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() });
     },
@@ -274,13 +275,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
 
   // Handle errors consistently
   const errorMessage = error
-    ? getUserFriendlyMessage(
-        handleError(error, {
-          operation: 'useTransactions',
-          component: 'useTransactions',
-          institutionId: institutionId || undefined,
-        })
-      )
+    ? getUserFriendlyMessage(handleError(error, 'useTransactions'))
     : null;
 
   return {

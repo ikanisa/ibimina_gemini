@@ -1,7 +1,9 @@
+/// <reference types="./types/global" />
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { initSentry } from './lib/sentry';
 import { registerSW } from 'virtual:pwa-register';
+
 import App from './App';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
@@ -47,18 +49,7 @@ if (import.meta.env.PROD) {
 
 // Report Core Web Vitals in production
 if (import.meta.env.PROD) {
-  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB }) => {
-    const sendToAnalytics = (metric: { name: string; value: number; id: string }) => {
-      // Log to console for debugging (replace with analytics service)
-      // console.log(`[Web Vital] ${metric.name}: ${Math.round(metric.value)}`, metric.id);
-
-      // TODO: Send to Cloudflare Analytics or similar
-      // Example: navigator.sendBeacon('/api/vitals', JSON.stringify(metric));
-    };
-
-    onCLS(sendToAnalytics);
-    onFCP(sendToAnalytics);
-    onLCP(sendToAnalytics);
-    onTTFB(sendToAnalytics);
+  import('./lib/performance/webVitals').then(({ initWebVitals }) => {
+    initWebVitals();
   });
 }

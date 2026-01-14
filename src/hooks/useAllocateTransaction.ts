@@ -40,11 +40,7 @@ export function useAllocateTransaction() {
             queryClient.invalidateQueries({ queryKey: ['audit_log'] });
         },
         onError: (error) => {
-            handleError(error, {
-                component: 'useAllocateTransaction',
-                operation: 'allocate',
-                institutionId
-            });
+            handleError(error, 'useAllocateTransaction.allocate');
         }
     });
 
@@ -76,11 +72,7 @@ export function useAllocateTransaction() {
             queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
         },
         onError: (error) => {
-            handleError(error, {
-                component: 'useAllocateTransaction',
-                operation: 'bulkAllocate',
-                institutionId
-            });
+            handleError(error, 'useAllocateTransaction.bulkAllocate');
         }
     });
 

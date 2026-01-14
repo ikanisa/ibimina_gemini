@@ -18,8 +18,9 @@ interface AddMemberModalProps {
     full_name: string;
     phone: string;
     branch: string;
-  }) => Promise<void>;
+  }) => Promise<unknown>;
 }
+
 
 export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   isOpen,
@@ -46,7 +47,12 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     const validation = validateMemberData(newMemberData);
 
     if (!validation.isValid) {
-      setFormErrors(validation.errors);
+      // Cast to Record<string, string> filtering out undefined values
+      const errors: Record<string, string> = {};
+      Object.entries(validation.errors).forEach(([key, value]) => {
+        if (value) errors[key] = value;
+      });
+      setFormErrors(errors);
       return;
     }
 

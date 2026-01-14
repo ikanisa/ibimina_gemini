@@ -42,8 +42,8 @@ const DEFAULT_LOAD_MORE_LIMIT = 25;
 
 export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
   const { institutionId } = useAuth();
-  const { 
-    includeMemberCounts = false, 
+  const {
+    includeMemberCounts = false,
     autoFetch = true,
     initialLimit = DEFAULT_INITIAL_LIMIT,
     loadMoreLimit = DEFAULT_LOAD_MORE_LIMIT
@@ -79,15 +79,11 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
       if (includeMemberCounts) {
         const result = await withTimeout(
           groupsApi.fetchGroupsWithMemberCounts(
-            institutionId, 
+            institutionId,
             { limit, offset: pageParam }
           ),
           30000,
-          {
-            operation: 'fetchGroupsWithMemberCounts',
-            component: 'useGroups',
-            institutionId,
-          }
+          'useGroups.fetchGroupsWithMemberCounts'
         );
         return {
           data: result.groups,
@@ -98,11 +94,7 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
         const groups = await withTimeout(
           groupsApi.fetchGroups(institutionId, { limit, offset: pageParam }),
           30000,
-          {
-            operation: 'fetchGroups',
-            component: 'useGroups',
-            institutionId,
-          }
+          'useGroups.fetchGroups'
         );
         return {
           data: groups,
@@ -127,7 +119,7 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
     onSuccess: (newGroup) => {
       // Invalidate and refetch groups list
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
-      
+
       // Optionally update the cache optimistically
       queryClient.setQueryData<typeof data>(
         [...queryKey, 'infinite', includeMemberCounts],
@@ -135,8 +127,8 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page, idx) => 
-              idx === 0 
+            pages: old.pages.map((page, idx) =>
+              idx === 0
                 ? { ...page, data: [newGroup, ...page.data] }
                 : page
             ),
@@ -230,12 +222,8 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
   // Handle errors consistently
   const errorMessage = error
     ? getUserFriendlyMessage(
-        handleError(error, {
-          operation: 'useGroups',
-          component: 'useGroups',
-          institutionId: institutionId || undefined,
-        })
-      )
+      handleError(error, 'useGroups')
+    )
     : null;
 
   return {

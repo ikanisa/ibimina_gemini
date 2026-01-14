@@ -175,6 +175,57 @@ export const DESIGN_TOKENS = {
         xl: '1280px',
         '2xl': '1536px',
     },
+
+    // Glass morphism tokens (merged from src/design/tokens.ts)
+    glass: {
+        bg: {
+            light: 'rgba(255, 255, 255, 0.7)',
+            medium: 'rgba(255, 255, 255, 0.5)',
+            dark: 'rgba(255, 255, 255, 0.15)',
+            darkMode: 'rgba(30, 41, 59, 0.7)',
+            darkModeMedium: 'rgba(30, 41, 59, 0.5)',
+        },
+        border: {
+            light: 'rgba(255, 255, 255, 0.3)',
+            medium: 'rgba(255, 255, 255, 0.2)',
+            dark: 'rgba(255, 255, 255, 0.1)',
+            darkMode: 'rgba(148, 163, 184, 0.2)',
+        },
+        blur: {
+            sm: '8px',
+            md: '16px',
+            lg: '24px',
+            xl: '40px',
+        },
+        shadows: {
+            soft: '0 4px 30px rgba(0, 0, 0, 0.08)',
+            medium: '0 8px 32px rgba(0, 0, 0, 0.12)',
+            hover: '0 12px 40px rgba(0, 0, 0, 0.15)',
+            glow: '0 0 20px rgba(59, 130, 246, 0.4)',
+            glowStrong: '0 0 30px rgba(59, 130, 246, 0.6)',
+        },
+    },
+
+    // Reduced motion utilities
+    motion: {
+        reducedMotion: {
+            transform: 'none',
+            transition: 'none',
+            animation: 'none',
+        },
+        durations: {
+            instant: '0ms',
+            fast: '150ms',
+            normal: '250ms',
+            slow: '350ms',
+            slower: '500ms',
+        },
+        easings: {
+            default: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+            bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        },
+    },
 } as const;
 
 // Export Tailwind config extension
@@ -185,14 +236,22 @@ export const tailwindExtension = {
     fontSize: DESIGN_TOKENS.typography.fontSize,
     fontWeight: DESIGN_TOKENS.typography.fontWeight,
     borderRadius: DESIGN_TOKENS.borderRadius,
-    boxShadow: DESIGN_TOKENS.shadows,
+    boxShadow: {
+        ...DESIGN_TOKENS.shadows,
+        'glass-soft': DESIGN_TOKENS.glass.shadows.soft,
+        'glass-medium': DESIGN_TOKENS.glass.shadows.medium,
+        'glass-hover': DESIGN_TOKENS.glass.shadows.hover,
+        'glass-glow': DESIGN_TOKENS.glass.shadows.glow,
+    },
     transitionDuration: DESIGN_TOKENS.animation.duration,
     transitionTimingFunction: DESIGN_TOKENS.animation.easing,
     zIndex: DESIGN_TOKENS.zIndex,
+    backdropBlur: DESIGN_TOKENS.glass.blur,
 };
 
 // Re-export individual tokens for convenience
-export const { colors, spacing, typography, borderRadius, shadows, animation, zIndex, breakpoints } =
+export const { colors, spacing, typography, borderRadius, shadows, animation, zIndex, breakpoints, glass, motion } =
     DESIGN_TOKENS;
 
 export default DESIGN_TOKENS;
+

@@ -138,3 +138,37 @@ textarea:focus {
     display: none !important;
   }
 }
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Glass layer utilities */
+@layer utilities {
+  .glass-bg {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  .dark .glass-bg {
+    background: rgba(30, 41, 59, 0.7);
+  }
+  
+  .glass-border {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .glass-border {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+}
+

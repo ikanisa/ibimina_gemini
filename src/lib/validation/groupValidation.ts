@@ -53,7 +53,8 @@ export function validateGroupData(data: {
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors: errors as Record<string, string>
   };
+
 }
 

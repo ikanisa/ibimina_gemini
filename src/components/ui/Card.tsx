@@ -12,6 +12,8 @@ export interface CardProps {
   padding?: 'none' | 'sm' | 'md' | 'lg';
   hover?: boolean;
   onClick?: () => void;
+  blur?: 'sm' | 'md' | 'lg';
+  gradient?: boolean;
 }
 
 const paddingClasses = {
@@ -21,25 +23,37 @@ const paddingClasses = {
   lg: 'p-8',
 };
 
+const blurClasses = {
+  sm: 'backdrop-blur-sm',
+  md: 'backdrop-blur-md',
+  lg: 'backdrop-blur-lg',
+};
+
 export const Card: React.FC<CardProps> = React.memo(({
   children,
   className,
   padding = 'md',
   hover = false,
   onClick,
+  blur = 'md',
+  gradient = false,
 }) => {
   return (
     <div
       className={cn(
-        // Base styles
-        'bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md',
-        'rounded-lg border', // 12px radius as per design system lg
-        'border-neutral-200/50 dark:border-neutral-700/50',
+        // Base glass styles
+        'bg-white/80 dark:bg-neutral-900/80',
+        blurClasses[blur],
+        'rounded-lg',
+        // Border styling
+        gradient
+          ? 'border border-transparent bg-clip-padding shadow-glass-soft'
+          : 'border border-neutral-200/50 dark:border-neutral-700/50',
         'shadow-sm',
         paddingClasses[padding],
-        // Hover effects
-        hover && 'transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary-500/20 dark:hover:border-primary-500/20',
-        onClick && 'cursor-pointer active:scale-[0.99]',
+        // Hover effects with motion-safe
+        hover && 'motion-safe:transition-all motion-safe:duration-300 hover:shadow-glass-hover hover:-translate-y-1 hover:border-primary-500/20 dark:hover:border-primary-500/20',
+        onClick && 'cursor-pointer motion-safe:active:scale-[0.99]',
         className
       )}
       onClick={onClick}
@@ -52,6 +66,9 @@ export const Card: React.FC<CardProps> = React.memo(({
         }
       } : undefined}
     >
+      {gradient && (
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary-500/10 via-transparent to-primary-500/5 pointer-events-none" />
+      )}
       {children}
     </div>
   );
@@ -90,11 +107,13 @@ export const CardTitle: React.FC<CardTitleProps> = ({
 export interface CardContentProps {
   children: React.ReactNode;
   className?: string;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
 export const CardContent: React.FC<CardContentProps> = ({
   children,
   className,
+  padding,
 }) => (
-  <div className={cn('text-neutral-700 dark:text-neutral-300', className)}>{children}</div>
+  <div className={cn('text-neutral-700 dark:text-neutral-300', padding && paddingClasses[padding], className)}>{children}</div>
 );

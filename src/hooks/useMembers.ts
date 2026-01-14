@@ -220,14 +220,9 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
 
   // Handle errors consistently
   const errorMessage = error
-    ? getUserFriendlyMessage(
-      handleError(error, {
-        operation: 'useMembers',
-        component: 'useMembers',
-        institutionId: institutionId || undefined,
-      })
-    )
+    ? getUserFriendlyMessage(handleError(error, 'useMembers'))
     : null;
+
 
   return {
     members,

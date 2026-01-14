@@ -90,11 +90,7 @@ export const DragDropAllocation: React.FC<DragDropAllocationProps> = ({
 
         setGroups((groupsData || []) as Group[]);
       } catch (err) {
-        const appError = handleError(err, {
-          component: 'DragDropAllocation',
-          operation: 'loadData',
-          institutionId,
-        });
+        const appError = handleError(err, 'DragDropAllocation.loadData');
         setError(getUserFriendlyMessage(appError));
         captureError(err, {
           component: 'DragDropAllocation',
@@ -176,13 +172,7 @@ export const DragDropAllocation: React.FC<DragDropAllocationProps> = ({
         onAllocationComplete?.();
       }, 2000);
     } catch (err) {
-      const appError = handleError(err, {
-        component: 'DragDropAllocation',
-        operation: 'allocate',
-        transactionId: draggedTransaction,
-        targetId,
-        type,
-      });
+      const appError = handleError(err, 'DragDropAllocation.allocate');
       setError(getUserFriendlyMessage(appError));
       captureError(err, {
         component: 'DragDropAllocation',
@@ -342,6 +332,7 @@ interface DraggableTransactionProps {
   currency: string;
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export const DraggableTransaction: React.FC<DraggableTransactionProps> = ({

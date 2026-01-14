@@ -10,6 +10,13 @@ export interface AppError {
   timestamp: Date;
 }
 
+export interface ErrorContext {
+  operation: string;
+  component: string;
+  institutionId?: string;
+}
+
+
 export class ErrorHandler {
   private static instance: ErrorHandler;
 
@@ -148,7 +155,7 @@ export function getUserFriendlyMessage(errorOrMessage: unknown): string {
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
-  context?: { operation: string; component: string; institutionId?: string }
+  context?: string | { operation: string; component: string; institutionId?: string }
 ): Promise<T> {
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
@@ -156,10 +163,76 @@ export async function withTimeout<T>(
     }, timeoutMs);
   });
 
+  const contextString = typeof context === 'string'
+    ? context
+    : context?.operation || 'timeout';
+
   try {
     return await Promise.race([promise, timeoutPromise]);
   } catch (error) {
-    handleError(error, context?.operation || 'timeout');
+    handleError(error, contextString);
     throw error;
+
   }
+}
+
+// Helper for retry with exponential backoff
+export interface RetryOptions {
+  maxRetries?: number;
+  initialDelay?: number;
+  maxDelay?: number;
+  backoffMultiplier?: number;
+}
+
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    initialDelay = 1000,
+    maxDelay = 30000,
+    backoffMultiplier = 2,
+  } = options;
+
+  let lastError: Error;
+  let delay = initialDelay;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check if error is retryable (has retryable flag or is network error)
+      const isRetryable =
+        (error && typeof error === 'object' && 'retryable' in error && (error as any).retryable) ||
+        lastError.message.includes('fetch') ||
+        lastError.message.includes('network') ||
+        lastError.message.includes('timeout');
+
+      if (attempt === maxRetries || !isRetryable) {
+        throw lastError;
+      }
+
+      // Wait before next retry
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.min(delay * backoffMultiplier, maxDelay);
+    }
+  }
+
+  throw lastError!;
+}
+
+// Helper combining timeout and retry
+export async function withTimeoutAndRetry<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number,
+  retryOptions?: RetryOptions,
+  context?: { operation: string; component: string; institutionId?: string }
+): Promise<T> {
+  return withRetry(
+    () => withTimeout(fn(), timeoutMs, context),
+    retryOptions
+  );
 }

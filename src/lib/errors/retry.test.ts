@@ -4,7 +4,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { withRetry } from './retry';
-import { AppError } from './ErrorHandler';
+
+// Helper to create retryable error
+function createRetryableError(message: string): Error & { retryable: boolean } {
+  const error = new Error(message) as Error & { retryable: boolean };
+  error.retryable = true;
+  return error;
+}
 
 describe('withRetry', () => {
   beforeEach(() => {
@@ -23,9 +29,7 @@ describe('withRetry', () => {
     const fn = vi.fn().mockImplementation(() => {
       attempts++;
       if (attempts < 3) {
-        // Create a retryable error
-        const error = new AppError('Failed', 'RETRYABLE', undefined, undefined, true);
-        return Promise.reject(error);
+        return Promise.reject(createRetryableError('Failed'));
       }
       return Promise.resolve('success');
     });
@@ -33,12 +37,11 @@ describe('withRetry', () => {
     const result = await withRetry(fn, { maxRetries: 3, initialDelay: 10 });
     expect(result).toBe('success');
     expect(fn).toHaveBeenCalledTimes(3);
-  }, 10000); // Increase timeout
+  }, 10000);
 
   it('should fail after max retries', async () => {
     const fn = vi.fn().mockImplementation(() => {
-      const error = new AppError('Always fails', 'RETRYABLE', undefined, undefined, true);
-      return Promise.reject(error);
+      return Promise.reject(createRetryableError('Always fails'));
     });
     await expect(
       withRetry(fn, { maxRetries: 2, initialDelay: 10 })
@@ -48,17 +51,16 @@ describe('withRetry', () => {
 
   it('should use exponential backoff', async () => {
     const fn = vi.fn().mockImplementation(() => {
-      const error = new AppError('Failed', 'RETRYABLE', undefined, undefined, true);
-      return Promise.reject(error);
+      return Promise.reject(createRetryableError('Failed'));
     });
     const startTime = Date.now();
-    
+
     try {
       await withRetry(fn, { maxRetries: 2, initialDelay: 50 });
     } catch {
       // Expected to fail
     }
-    
+
     const elapsed = Date.now() - startTime;
     // Should have delays between retries (at least initialDelay)
     expect(elapsed).toBeGreaterThan(50);

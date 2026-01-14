@@ -176,7 +176,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-120px)]">
-      {error && <ErrorDisplay error={error} variant="banner" />}
+      {error && <ErrorDisplay error={error} variant="banner" onRetry={refetch} />}
+
 
       {/* Header with filters */}
       <div className="p-4 border-b border-slate-100 space-y-4">

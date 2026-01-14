@@ -259,7 +259,9 @@ export type Status = 'Active' | 'Pending' | 'Suspended' | 'Closed';
 export type TransactionStatus = 'Completed' | 'Pending' | 'Failed' | 'Reversed';
 export type KycStatus = 'Verified' | 'Pending' | 'Rejected';
 export type StaffRole = 'Admin' | 'Staff';
-// LoanStatus removed - system does not administer loans
+// LoanStatus kept for backward compatibility with mappers
+export type LoanStatus = 'Active' | 'Paid' | 'Defaulted';
+
 
 export interface Group {
   id: string;

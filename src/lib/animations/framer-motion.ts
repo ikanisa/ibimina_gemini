@@ -134,11 +134,11 @@ export const loadingSpin: Variants = {
 // ============================================================================
 
 export const transitions = {
-  fast: { duration: 0.15, ease: [0.4, 0, 0.2, 1] },
-  normal: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
-  slow: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-  spring: { type: 'spring', stiffness: 300, damping: 30 },
-  springGentle: { type: 'spring', stiffness: 200, damping: 25 },
+  fast: { duration: 0.15, ease: [0.4, 0, 0.2, 1] as const },
+  normal: { duration: 0.2, ease: [0.4, 0, 0.2, 1] as const },
+  slow: { duration: 0.3, ease: [0.4, 0, 0.2, 1] as const },
+  spring: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  springGentle: { type: 'spring' as const, stiffness: 200, damping: 25 },
 };
 
 // ============================================================================

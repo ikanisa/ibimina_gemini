@@ -241,285 +241,285 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
             exit="exit"
             transition={transitions.spring}
           >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Transaction Details</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <X size={20} className="text-slate-500" />
-          </button>
-        </div>
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Transaction Details</h2>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <LoadingSpinner size="lg" text="Loading details..." className="h-64" />
-          ) : transaction ? (
-            <div className="p-6 space-y-6">
-              {/* Summary Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Summary</h3>
-                
-                {/* Amount */}
-                <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-                  <div className="p-3 bg-green-100 rounded-lg text-green-600">
-                    <DollarSign size={24} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {transaction.amount.toLocaleString()} {transaction.currency || 'RWF'}
-                    </p>
-                    <p className="text-sm text-slate-500">{transaction.type} via {transaction.channel}</p>
-                  </div>
-                </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                <LoadingSpinner size="lg" text="Loading details..." className="h-64" />
+              ) : transaction ? (
+                <div className="p-6 space-y-6">
+                  {/* Summary Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Summary</h3>
 
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-start gap-2">
-                    <Calendar size={16} className="text-slate-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Date & Time</p>
-                      <p className="text-sm font-medium text-slate-900">
-                        {formatDateTime(transaction.occurred_at)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {transaction.payer_phone && (
-                    <div className="flex items-start gap-2">
-                      <Phone size={16} className="text-slate-400 mt-0.5" />
+                    {/* Amount */}
+                    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                      <div className="p-3 bg-green-100 rounded-lg text-green-600">
+                        <DollarSign size={24} />
+                      </div>
                       <div>
-                        <p className="text-xs text-slate-500">Payer Phone</p>
-                        <p className="text-sm font-medium text-slate-900 font-mono">
-                          {transaction.payer_phone}
+                        <p className="text-2xl font-bold text-slate-900">
+                          {transaction.amount.toLocaleString()} {transaction.currency || 'RWF'}
                         </p>
+                        <p className="text-sm text-slate-500">{transaction.type} via {transaction.channel}</p>
                       </div>
                     </div>
-                  )}
-                  
-                  {transaction.payer_name && (
-                    <div className="flex items-start gap-2">
-                      <User size={16} className="text-slate-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-slate-500">Payer Name</p>
-                        <p className="text-sm font-medium text-slate-900">
-                          {transaction.payer_name}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {transaction.momo_ref && (
-                    <div className="flex items-start gap-2">
-                      <Hash size={16} className="text-slate-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-slate-500">MoMo Reference</p>
-                        <p className="text-sm font-medium text-slate-900 font-mono">
-                          {transaction.momo_ref}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                {/* Status */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-500">Status:</span>
-                  <Badge variant={
-                    transaction.allocation_status === 'allocated' ? 'success' :
-                    transaction.allocation_status === 'unallocated' ? 'warning' :
-                    'danger'
-                  }>
-                    {transaction.allocation_status}
-                  </Badge>
-                  {transaction.parse_confidence !== null && (
-                    <span className="text-xs text-slate-400">
-                      ({Math.round(transaction.parse_confidence * 100)}% confidence)
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Allocation Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Allocation</h3>
-                
-                {transaction.allocation_status === 'unallocated' ? (
-                  <div className="space-y-3">
-                    {!showMemberSearch ? (
-                      <Button
-                        variant="primary"
-                        className="w-full"
-                        onClick={() => setShowMemberSearch(true)}
-                        leftIcon={<User size={16} />}
-                      >
-                        Allocate to Member
-                      </Button>
-                    ) : (
-                      <div className="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                        <SearchInput
-                          placeholder="Search by name, phone, or code"
-                          value={memberSearch}
-                          onChange={(e) => setMemberSearch(e.target.value)}
-                          onClear={() => setMemberSearch('')}
-                          leftIcon={<Search size={16} />}
-                        />
-
-                        {/* Optional note */}
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-start gap-2">
+                        <Calendar size={16} className="text-slate-400 mt-0.5" />
                         <div>
-                          <label className="text-xs text-slate-600 mb-1 block">Note (optional)</label>
-                          <input
-                            type="text"
-                            value={allocationNote}
-                            onChange={(e) => setAllocationNote(e.target.value)}
-                            placeholder="e.g., Phone mismatch verified"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
+                          <p className="text-xs text-slate-500">Date & Time</p>
+                          <p className="text-sm font-medium text-slate-900">
+                            {formatDateTime(transaction.occurred_at)}
+                          </p>
                         </div>
+                      </div>
 
-                        {loadingMembers ? (
-                          <LoadingSpinner size="sm" text="Loading members..." />
-                        ) : (
-                          <div className="max-h-60 overflow-y-auto space-y-2">
-                            {filteredMembers.map((m) => (
-                              <button
-                                key={m.id}
-                                onClick={() => handleAllocate(m.id)}
-                                disabled={allocating}
-                                className="w-full text-left p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-white transition-colors disabled:opacity-50"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-semibold text-slate-900">{m.full_name}</p>
-                                    <p className="text-sm text-slate-600 font-mono">{m.phone}</p>
-                                    {m.groups && (
-                                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                                        <MapPin size={10} />
-                                        {(m.groups as any).name}
-                                      </p>
-                                    )}
-                                  </div>
-                                  {allocating ? (
-                                    <Loader2 size={18} className="animate-spin text-blue-600" />
-                                  ) : (
-                                    <CheckCircle2 size={18} className="text-blue-600" />
-                                  )}
-                                </div>
-                              </button>
-                            ))}
-                            {filteredMembers.length === 0 && (
-                              <p className="text-sm text-slate-500 text-center py-4">
-                                No members found
-                              </p>
-                            )}
+                      {transaction.payer_phone && (
+                        <div className="flex items-start gap-2">
+                          <Phone size={16} className="text-slate-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Payer Phone</p>
+                            <p className="text-sm font-medium text-slate-900 font-mono">
+                              {transaction.payer_phone}
+                            </p>
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setShowMemberSearch(false);
-                            setMemberSearch('');
-                            setAllocationNote('');
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 size={20} className="text-green-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-green-900">Allocated</p>
-                        {member && (
-                          <p className="text-sm text-green-800 mt-1">
-                            <span className="font-medium">{member.full_name}</span>
-                            <span className="text-green-600"> ({member.phone})</span>
-                          </p>
-                        )}
-                        {group && (
-                          <p className="text-xs text-green-700 mt-0.5">
-                            Group: {group.name}
-                          </p>
-                        )}
-                        {transaction.allocated_at && (
-                          <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                            <Clock size={12} />
-                            {formatDateTime(transaction.allocated_at)}
-                            {allocatedByUser && ` by ${allocatedByUser.full_name || allocatedByUser.email}`}
-                          </p>
-                        )}
-                        {transaction.allocation_note && (
-                          <p className="text-xs text-green-700 mt-1 italic">
-                            "{transaction.allocation_note}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                      {transaction.payer_name && (
+                        <div className="flex items-start gap-2">
+                          <User size={16} className="text-slate-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Payer Name</p>
+                            <p className="text-sm font-medium text-slate-900">
+                              {transaction.payer_name}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-              {/* Source SMS Section */}
-              {sourceSms && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Source SMS</h3>
-                  <div className="p-4 bg-slate-50 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare size={16} className="text-slate-400" />
-                      <span className="text-xs text-slate-500">
-                        From: {sourceSms.sender_phone} • {formatDateTime(sourceSms.received_at)}
-                      </span>
+                      {transaction.momo_ref && (
+                        <div className="flex items-start gap-2">
+                          <Hash size={16} className="text-slate-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">MoMo Reference</p>
+                            <p className="text-sm font-medium text-slate-900 font-mono">
+                              {transaction.momo_ref}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-slate-700 font-mono bg-white p-3 rounded-lg border border-slate-200 whitespace-pre-wrap">
-                      {sourceSms.sms_text}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Badge variant={sourceSms.parse_status === 'parsed' ? 'success' : 'warning'}>
-                        {sourceSms.parse_status}
+
+                    {/* Status */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">Status:</span>
+                      <Badge variant={
+                        transaction.allocation_status === 'allocated' ? 'success' :
+                          transaction.allocation_status === 'unallocated' ? 'warning' :
+                            'danger'
+                      }>
+                        {transaction.allocation_status}
                       </Badge>
-                      {sourceSms.parse_error && (
-                        <span className="text-xs text-red-600">{sourceSms.parse_error}</span>
+                      {transaction.parse_confidence !== null && (
+                        <span className="text-xs text-slate-400">
+                          ({Math.round(transaction.parse_confidence * 100)}% confidence)
+                        </span>
                       )}
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Audit Trail Section */}
-              {allocations.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Audit Trail</h3>
-                  <div className="space-y-2">
-                    {allocations.map((a) => (
-                      <div key={a.id} className="p-3 bg-slate-50 rounded-lg text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-slate-900">Allocated</span>
-                          <span className="text-xs text-slate-500">{formatDateTime(a.allocated_at)}</span>
-                        </div>
-                        {a.notes && (
-                          <p className="text-xs text-slate-600 mt-1 italic">"{a.notes}"</p>
+                  {/* Allocation Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Allocation</h3>
+
+                    {transaction.allocation_status === 'unallocated' ? (
+                      <div className="space-y-3">
+                        {!showMemberSearch ? (
+                          <Button
+                            variant="primary"
+                            className="w-full"
+                            onClick={() => setShowMemberSearch(true)}
+                            leftIcon={<User size={16} />}
+                          >
+                            Allocate to Member
+                          </Button>
+                        ) : (
+                          <div className="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                            <SearchInput
+                              placeholder="Search by name, phone, or code"
+                              value={memberSearch}
+                              onChange={(e) => setMemberSearch(e.target.value)}
+                              onClear={() => setMemberSearch('')}
+                            />
+
+                            {/* Optional note */}
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">Note (optional)</label>
+                              <input
+                                type="text"
+                                value={allocationNote}
+                                onChange={(e) => setAllocationNote(e.target.value)}
+                                placeholder="e.g., Phone mismatch verified"
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+
+                            {loadingMembers ? (
+                              <LoadingSpinner size="sm" text="Loading members..." />
+                            ) : (
+                              <div className="max-h-60 overflow-y-auto space-y-2">
+                                {filteredMembers.map((m) => (
+                                  <button
+                                    key={m.id}
+                                    onClick={() => handleAllocate(m.id)}
+                                    disabled={allocating}
+                                    className="w-full text-left p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-white transition-colors disabled:opacity-50"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p className="font-semibold text-slate-900">{m.full_name}</p>
+                                        <p className="text-sm text-slate-600 font-mono">{m.phone}</p>
+                                        {m.group && (
+                                          <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                            <MapPin size={10} />
+                                            {m.group.name}
+                                          </p>
+                                        )}
+
+                                      </div>
+                                      {allocating ? (
+                                        <Loader2 size={18} className="animate-spin text-blue-600" />
+                                      ) : (
+                                        <CheckCircle2 size={18} className="text-blue-600" />
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+                                {filteredMembers.length === 0 && (
+                                  <p className="text-sm text-slate-500 text-center py-4">
+                                    No members found
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setShowMemberSearch(false);
+                                setMemberSearch('');
+                                setAllocationNote('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
                         )}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 size={20} className="text-green-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-semibold text-green-900">Allocated</p>
+                            {member && (
+                              <p className="text-sm text-green-800 mt-1">
+                                <span className="font-medium">{member.full_name}</span>
+                                <span className="text-green-600"> ({member.phone})</span>
+                              </p>
+                            )}
+                            {group && (
+                              <p className="text-xs text-green-700 mt-0.5">
+                                Group: {group.name}
+                              </p>
+                            )}
+                            {transaction.allocated_at && (
+                              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                                <Clock size={12} />
+                                {formatDateTime(transaction.allocated_at)}
+                                {allocatedByUser && ` by ${allocatedByUser.full_name || allocatedByUser.email}`}
+                              </p>
+                            )}
+                            {transaction.allocation_note && (
+                              <p className="text-xs text-green-700 mt-1 italic">
+                                "{transaction.allocation_note}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Source SMS Section */}
+                  {sourceSms && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Source SMS</h3>
+                      <div className="p-4 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageSquare size={16} className="text-slate-400" />
+                          <span className="text-xs text-slate-500">
+                            From: {sourceSms.sender_phone} • {formatDateTime(sourceSms.received_at)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700 font-mono bg-white p-3 rounded-lg border border-slate-200 whitespace-pre-wrap">
+                          {sourceSms.sms_text}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Badge variant={sourceSms.parse_status === 'parsed' ? 'success' : 'warning'}>
+                            {sourceSms.parse_status}
+                          </Badge>
+                          {sourceSms.parse_error && (
+                            <span className="text-xs text-red-600">{sourceSms.parse_error}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Audit Trail Section */}
+                  {allocations.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Audit Trail</h3>
+                      <div className="space-y-2">
+                        {allocations.map((a) => (
+                          <div key={a.id} className="p-3 bg-slate-50 rounded-lg text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-slate-900">Allocated</span>
+                              <span className="text-xs text-slate-500">{formatDateTime(a.allocated_at)}</span>
+                            </div>
+                            {a.notes && (
+                              <p className="text-xs text-slate-600 mt-1 italic">"{a.notes}"</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <EmptyState
+                  icon={FileText}
+                  title="Transaction not found"
+                  description="This transaction could not be loaded."
+                />
               )}
             </div>
-          ) : (
-            <EmptyState
-              icon={FileText}
-              title="Transaction not found"
-              description="This transaction could not be loaded."
-            />
-          )}
-        </div>
           </motion.div>
         </>
       )}

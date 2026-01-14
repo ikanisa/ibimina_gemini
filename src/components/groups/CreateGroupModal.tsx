@@ -21,8 +21,9 @@ interface CreateGroupModalProps {
     frequency: 'Weekly' | 'Monthly';
     cycle_label: string;
     status: string;
-  }) => Promise<void>;
+  }) => Promise<unknown>;
 }
+
 
 export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   isOpen,
@@ -51,9 +52,10 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     const validation = validateGroupData(newGroupData);
 
     if (!validation.isValid) {
-      setFormErrors(validation.errors);
+      setFormErrors(validation.errors as Record<string, string>);
       return;
     }
+
 
     setIsSubmitting(true);
     setFormErrors({});

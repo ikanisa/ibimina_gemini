@@ -413,8 +413,26 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         }
       >
         {loading && <GroupsSkeleton />}
-        {error && <ErrorDisplay error={error} variant="banner" />}
-        {!loading && !error && (
+        {error && <ErrorDisplay error={error} variant="banner" onRetry={refetch} />}
+        {!loading && !error && groups.length === 0 && (
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="mb-4 p-4 bg-slate-100 rounded-full">
+              <Briefcase size={48} className="text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">No groups yet</h3>
+            <p className="text-sm text-slate-500 max-w-md mb-4">
+              Create your first savings group to start managing contributions and meetings.
+            </p>
+            <Button
+              variant="primary"
+              leftIcon={<Plus size={16} />}
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              Create First Group
+            </Button>
+          </div>
+        )}
+        {!loading && !error && groups.length > 0 && (
           <GroupsList
             groups={groups}
             onSelectGroup={setSelectedGroup}
@@ -422,6 +440,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           />
         )}
       </Section>
+
 
       {/* Create Group Modal */}
       {institutionId && (

@@ -11,7 +11,8 @@ export interface SkeletonProps {
   variant?: 'text' | 'circular' | 'rectangular' | 'rounded';
   width?: string | number;
   height?: string | number;
-  animation?: 'pulse' | 'wave' | 'none';
+  animation?: 'pulse' | 'shimmer' | 'none';
+  glass?: boolean;
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({
@@ -19,9 +20,12 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   variant = 'rectangular',
   width,
   height,
-  animation = 'pulse'
+  animation = 'pulse',
+  glass = false
 }) => {
-  const baseClasses = 'bg-slate-200 dark:bg-neutral-700';
+  const baseClasses = glass
+    ? 'bg-white/30 dark:bg-neutral-700/30 backdrop-blur-sm'
+    : 'bg-neutral-200 dark:bg-neutral-700';
 
   const variantClasses = {
     text: 'h-4 rounded',
@@ -31,8 +35,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   };
 
   const animationClasses = {
-    pulse: 'animate-pulse',
-    wave: 'animate-pulse', // Can be enhanced with custom wave animation
+    pulse: 'motion-safe:animate-pulse',
+    shimmer: 'motion-safe:animate-shimmer bg-gradient-to-r from-neutral-200 via-neutral-100 to-neutral-200 dark:from-neutral-700 dark:via-neutral-600 dark:to-neutral-700 bg-[length:200%_100%]',
     none: ''
   };
 
@@ -42,8 +46,9 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   return (
     <div
-      className={`${baseClasses} ${variantClasses[variant]} ${animationClasses[animation]} ${className}`}
+      className={`${animation === 'shimmer' ? '' : baseClasses} ${variantClasses[variant]} ${animationClasses[animation]} ${className}`}
       style={style}
+      aria-hidden="true"
     />
   );
 };

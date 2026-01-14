@@ -6,10 +6,42 @@
  * these services for better maintainability and testability.
  */
 
-export * from './members.api';
-export * from './groups.api';
+// Export PaginationOptions from members.api only to avoid duplicate
+export type { PaginationOptions } from './members.api';
+
+// Re-export specific items from each module (excluding duplicates)
+export {
+    fetchMembers,
+    fetchMembersWithGroups,
+    fetchMemberById,
+    createMember,
+    updateMember,
+    deleteMember,
+    addMemberToGroup,
+    removeMemberFromGroup,
+    searchMembers,
+    type CreateMemberParams,
+    type UpdateMemberParams,
+    type MemberWithGroups,
+} from './members.api';
+
+export {
+    fetchGroups,
+    fetchGroupsWithMemberCounts,
+    fetchGroupById,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    fetchGroupMembers,
+    fetchGroupMeetings,
+    fetchGroupContributions,
+    fetchGroupDetails,
+    searchGroups,
+    type CreateGroupParams,
+    type UpdateGroupParams,
+} from './groups.api';
+
 export * from './transactions.api';
 export * from './sms.api';
 export * from './staff.api';
 export * from './reconciliation.api';
-

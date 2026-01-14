@@ -49,7 +49,7 @@ export function useInfiniteScroll<T>({
   // Initial load with timeout and error handling
   const loadInitial = useCallback(async () => {
     if (loadingRef.current) return; // Prevent duplicate loads
-    
+
     loadingRef.current = true;
     setLoading(true);
     setError(null);
@@ -63,10 +63,7 @@ export function useInfiniteScroll<T>({
       setOffset(data.length);
       setHasMore(data.length === initialLimitRef.current);
     } catch (err) {
-      const appError = handleError(err, {
-        operation: 'infiniteScroll.initialLoad',
-        component: 'useInfiniteScroll',
-      });
+      const appError = handleError(err, 'useInfiniteScroll.initialLoad');
       setError(getUserFriendlyMessage(appError));
     } finally {
       setLoading(false);
@@ -77,10 +74,10 @@ export function useInfiniteScroll<T>({
   // Load more with timeout and error handling
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
-    
+
     loadingRef.current = true;
     setLoadingMore(true);
-    
+
     try {
       const currentOffset = offset;
       const data = await withTimeout(
@@ -92,10 +89,7 @@ export function useInfiniteScroll<T>({
       setOffset(prev => prev + data.length);
       setHasMore(data.length === loadMoreLimit);
     } catch (err) {
-      const appError = handleError(err, {
-        operation: 'infiniteScroll.loadMore',
-        component: 'useInfiniteScroll',
-      });
+      const appError = handleError(err, 'useInfiniteScroll.loadMore');
       setError(getUserFriendlyMessage(appError));
     } finally {
       setLoadingMore(false);
@@ -124,7 +118,7 @@ export function useInfiniteScroll<T>({
 
     const handleScroll = () => {
       if (loadingRef.current || !hasMore) return;
-      
+
       const { scrollTop, scrollHeight, clientHeight } = container;
       if (scrollHeight - scrollTop - clientHeight < threshold) {
         loadMore();

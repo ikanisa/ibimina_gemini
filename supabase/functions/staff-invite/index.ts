@@ -1,68 +1,108 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+/**
+ * Supabase Edge Function: Staff Invite
+ * Creates a new staff member via Supabase Auth
+ * 
+ * RBAC: Requires ADMIN role
+ * Observability: Request ID tracing + audit logging
+ */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
-};
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { requireAdmin } from '../_shared/rbac.ts';
 
 // Map UI-friendly role names to database enum values
-// Only 'Admin' and 'Staff' are supported
 const mapRoleToEnum = (role: string | null): string => {
   if (!role) return 'STAFF';
   const roleUpper = role.toUpperCase();
-  
-  // Map to new simplified roles
+
   if (roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN' || roleUpper === 'SUPER ADMIN' || roleUpper === 'BRANCH MANAGER') {
     return 'ADMIN';
   }
-  
-  // Default to STAFF for all other roles
+
   return 'STAFF';
 };
 
+interface StaffInviteRequest {
+  email: string;
+  full_name?: string;
+  role?: string;
+  institution_id?: string;
+  onboarding_method?: 'password' | 'email';
+  password?: string;
+}
+
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  const functionName = 'staff-invite';
 
   try {
-    const body = await req.json();
+    // =========================================================================
+    // RBAC: Require authenticated ADMIN role
+    // =========================================================================
+    const rbacResult = await requireAdmin(req, functionName);
+
+    if (!rbacResult.success) {
+      return rbacResult.error!;
+    }
+
+    const { user, logger, requestId } = rbacResult;
+    logger!.info('Processing staff invite request', { invitedBy: user!.userId });
+
+    // =========================================================================
+    // Parse and validate request body
+    // =========================================================================
+    let body: StaffInviteRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse('Invalid JSON body', 400, { 'X-Request-Id': requestId! });
+    }
+
     const email = String(body.email ?? '').trim().toLowerCase();
     const fullName = String(body.full_name ?? '').trim();
     const role = mapRoleToEnum(body.role ?? null);
-    const institutionId = body.institution_id ?? null;
+    const institutionId = body.institution_id ?? user!.institutionId;
     const onboardingMethod = body.onboarding_method ?? 'password';
     const password = body.password ?? 'Sacco+'; // Default password
-    const invitedBy = body.invited_by ?? null; // User ID of the inviter
 
     if (!email) {
-      return new Response(JSON.stringify({ error: 'Email is required.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return errorResponse('Email is required', 400, { 'X-Request-Id': requestId! });
     }
 
     if (!institutionId && role !== 'ADMIN') {
-      return new Response(JSON.stringify({ error: 'Institution ID is required.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return errorResponse('Institution ID is required', 400, { 'X-Request-Id': requestId! });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(JSON.stringify({ error: 'Service role key not configured.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Platform admins can invite to any institution; others only to their own
+    if (user!.role !== 'PLATFORM_ADMIN' && institutionId !== user!.institutionId) {
+      logger!.warn('Cross-institution invite denied', {
+        userInstitution: user!.institutionId,
+        targetInstitution: institutionId
       });
+      return errorResponse('Cannot invite staff to another institution', 403, { 'X-Request-Id': requestId! });
+    }
+
+    // =========================================================================
+    // Initialize Supabase client with service role
+    // =========================================================================
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      logger!.error('Missing Supabase configuration');
+      return errorResponse('Server configuration error', 500, { 'X-Request-Id': requestId! });
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false }
     });
 
-    // Create staff_invites record first
+    // =========================================================================
+    // Create staff_invites record
+    // =========================================================================
     let inviteId: string | null = null;
     if (institutionId) {
       const { data: inviteData, error: inviteError } = await supabase
@@ -71,21 +111,22 @@ Deno.serve(async (req) => {
           email,
           institution_id: institutionId,
           role,
-          invited_by: invitedBy,
+          invited_by: user!.userId,
           status: 'pending'
         })
         .select('id')
         .single();
 
       if (inviteError && !inviteError.message.includes('duplicate')) {
-        console.error('Error creating invite record:', inviteError);
-        // Continue anyway - invite record is for audit, not blocking
+        logger!.warn('Error creating invite record', { error: inviteError.message });
       } else if (inviteData) {
         inviteId = inviteData.id;
       }
     }
 
+    // =========================================================================
     // Create user via Supabase Auth
+    // =========================================================================
     const inviteResult =
       onboardingMethod === 'password'
         ? await supabase.auth.admin.createUser({
@@ -107,30 +148,31 @@ Deno.serve(async (req) => {
         });
 
     if (inviteResult.error || !inviteResult.data.user) {
-      // Update invite status to failed if we have one
+      // Update invite status to failed
       if (inviteId) {
         await supabase
           .from('staff_invites')
-          .update({ 
+          .update({
             status: 'expired',
-            metadata: { error: inviteResult.error?.message }
+            metadata: { error: inviteResult.error?.message, request_id: requestId }
           })
           .eq('id', inviteId);
       }
-      
-      return new Response(JSON.stringify({ error: inviteResult.error?.message ?? 'Failed to invite staff.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+
+      logger!.error('Failed to create user', { error: inviteResult.error?.message });
+      return errorResponse(inviteResult.error?.message ?? 'Failed to invite staff', 400, { 'X-Request-Id': requestId! });
     }
 
-    const user = inviteResult.data.user;
+    const newUser = inviteResult.data.user;
+    logger!.info('User created', { newUserId: newUser.id, email });
 
+    // =========================================================================
     // Create/update profile
+    // =========================================================================
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .upsert({
-        user_id: user.id,
+        user_id: newUser.id,
         institution_id: institutionId,
         role,
         email,
@@ -142,54 +184,53 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError) {
-      return new Response(JSON.stringify({ error: profileError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      logger!.error('Failed to create profile', { error: profileError.message });
+      return errorResponse(profileError.message, 400, { 'X-Request-Id': requestId! });
     }
 
-    // Update invite status if password method (instant activation)
+    // Update invite status if password method
     if (inviteId && onboardingMethod === 'password') {
       await supabase
         .from('staff_invites')
-        .update({ 
+        .update({
           status: 'accepted',
-          accepted_by: user.id,
+          accepted_by: newUser.id,
           accepted_at: new Date().toISOString()
         })
         .eq('id', inviteId);
     }
 
-    // Write audit log
-    if (institutionId) {
-      await supabase
-        .from('audit_log')
-        .insert({
-          actor_user_id: invitedBy,
-          institution_id: institutionId,
-          action: 'invite_staff',
-          entity_type: 'profile',
-          entity_id: user.id,
-          metadata: {
-            email,
-            role,
-            method: onboardingMethod,
-            invite_id: inviteId
-          }
-        });
-    }
+    // =========================================================================
+    // Audit log
+    // =========================================================================
+    await supabase.from('audit_log').insert({
+      actor_user_id: user!.userId,
+      institution_id: institutionId,
+      action: 'invite_staff',
+      entity_type: 'profile',
+      entity_id: newUser.id,
+      request_id: requestId,
+      metadata: {
+        email,
+        role,
+        method: onboardingMethod,
+        invite_id: inviteId
+      }
+    });
 
-    return new Response(JSON.stringify({ 
+    logger!.info('Staff invite completed', { newUserId: newUser.id, inviteId });
+
+    return jsonResponse({
+      success: true,
       profile,
       invite_id: inviteId
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    }, 200, { 'X-Request-Id': requestId! });
+
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error('Error:', error);
+    return errorResponse(
+      error instanceof Error ? error.message : 'Unknown error',
+      500
+    );
   }
 });

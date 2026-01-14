@@ -22,10 +22,16 @@ export const Table: React.FC<TableProps> = ({ children, className }) => (
 export interface TableHeaderProps {
   children: React.ReactNode;
   className?: string;
+  glass?: boolean;
 }
 
-export const TableHeader: React.FC<TableHeaderProps> = ({ children, className }) => (
-  <thead className={cn('bg-slate-50 border-b border-slate-200', className)}>
+export const TableHeader: React.FC<TableHeaderProps> = ({ children, className, glass = false }) => (
+  <thead className={cn(
+    glass
+      ? 'bg-white/70 dark:bg-neutral-800/70 backdrop-blur-md border-b border-neutral-200/50 dark:border-neutral-700/50'
+      : 'bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700',
+    className
+  )}>
     {children}
   </thead>
 );
@@ -45,8 +51,8 @@ export const TableRow: React.FC<TableRowProps> = ({
 }) => (
   <tr
     className={cn(
-      'border-b border-slate-100',
-      hover && 'hover:bg-slate-50',
+      'border-b border-neutral-100 dark:border-neutral-700/50',
+      hover && 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50',
       onClick && 'cursor-pointer',
       className
     )}
@@ -57,14 +63,14 @@ export const TableRow: React.FC<TableRowProps> = ({
 );
 
 export interface TableHeadProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
 }
 
 export const TableHead: React.FC<TableHeadProps> = ({ children, className }) => (
   <th
     className={cn(
-      'px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider',
+      'px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider',
       className
     )}
   >
@@ -72,13 +78,14 @@ export const TableHead: React.FC<TableHeadProps> = ({ children, className }) => 
   </th>
 );
 
+
 export interface TableCellProps {
   children: React.ReactNode;
   className?: string;
 }
 
 export const TableCell: React.FC<TableCellProps> = ({ children, className }) => (
-  <td className={cn('px-4 py-3 text-sm text-slate-900', className)}>
+  <td className={cn('px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100', className)}>
     {children}
   </td>
 );

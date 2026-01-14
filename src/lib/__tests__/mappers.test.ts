@@ -206,23 +206,23 @@ describe('mapStaffStatus', () => {
 
 describe('mapStaffRole', () => {
     it('maps PLATFORM_ADMIN correctly', () => {
-        expect(mapStaffRole('PLATFORM_ADMIN')).toBe('Super Admin');
+        expect(mapStaffRole('PLATFORM_ADMIN')).toBe('Admin');
     });
 
     it('maps INSTITUTION_ADMIN correctly', () => {
-        expect(mapStaffRole('INSTITUTION_ADMIN')).toBe('Branch Manager');
+        expect(mapStaffRole('INSTITUTION_ADMIN')).toBe('Admin');
     });
 
     it('maps INSTITUTION_TREASURER correctly', () => {
-        expect(mapStaffRole('INSTITUTION_TREASURER')).toBe('Teller');
+        expect(mapStaffRole('INSTITUTION_TREASURER')).toBe('Staff');
     });
 
     it('maps INSTITUTION_AUDITOR correctly', () => {
-        expect(mapStaffRole('INSTITUTION_AUDITOR')).toBe('Auditor');
+        expect(mapStaffRole('INSTITUTION_AUDITOR')).toBe('Staff');
     });
 
     it('returns default for unknown role', () => {
-        expect(mapStaffRole('UNKNOWN')).toBe('Loan Officer');
-        expect(mapStaffRole(null)).toBe('Loan Officer');
+        expect(mapStaffRole('UNKNOWN')).toBe('Staff');
+        expect(mapStaffRole(null)).toBe('Staff');
     });
 });

@@ -119,21 +119,21 @@ export const Modal: React.FC<ModalProps> = ({
           animate="animate"
           exit="exit"
         >
-          {/* Overlay */}
+          {/* Overlay - increased blur */}
           <motion.div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             aria-hidden="true"
             variants={modalBackdrop}
             transition={transitions.normal}
           />
 
-          {/* Modal Content */}
+          {/* Modal Content - glass styling */}
           <motion.div
             ref={modalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
-            className={`relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
+            className={`relative bg-white/95 dark:bg-neutral-800/95 backdrop-blur-lg rounded-xl shadow-glass-medium w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden border border-white/20 dark:border-neutral-700/50`}
             onClick={(e) => e.stopPropagation()}
             tabIndex={-1}
             variants={modalContent}
@@ -141,11 +141,11 @@ export const Modal: React.FC<ModalProps> = ({
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="p-6 border-b border-slate-200 dark:border-neutral-700 flex justify-between items-center">
+              <div className="p-6 border-b border-neutral-200/50 dark:border-neutral-700/50 flex justify-between items-center">
                 {title && (
                   <h2
                     id={titleId}
-                    className="text-lg font-bold text-slate-900 dark:text-neutral-100"
+                    className="text-lg font-bold text-neutral-900 dark:text-neutral-100"
                   >
                     {title}
                   </h2>
@@ -154,7 +154,7 @@ export const Modal: React.FC<ModalProps> = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 p-1.5 rounded-full hover:bg-neutral-100/80 dark:hover:bg-neutral-700/80 motion-safe:transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                     aria-label="Close modal"
                   >
                     <X size={20} aria-hidden="true" />

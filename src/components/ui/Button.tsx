@@ -12,9 +12,9 @@ import { cn } from '../../lib/utils/cn';
 const buttonVariants = cva(
   // Base styles
   `inline-flex items-center justify-center gap-2
-   font-medium rounded
+   font-medium rounded-lg
    transition-all duration-200 ease-in-out
-   active:scale-[0.98]
+   motion-safe:active:scale-[0.98]
    touch-manipulation
    disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`,
@@ -26,6 +26,7 @@ const buttonVariants = cva(
         danger: 'bg-error-600 text-white shadow-sm hover:bg-error-500 active:bg-error-700 focus-visible:ring-error-500 dark:bg-error-500 dark:hover:bg-error-400',
         ghost: 'bg-transparent text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 active:bg-neutral-200 focus-visible:ring-neutral-500 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100',
         outline: 'bg-transparent border-2 border-primary-600 text-primary-600 hover:bg-primary-50/50 active:bg-primary-100/50 focus-visible:ring-primary-500 dark:border-primary-400 dark:text-primary-400 dark:hover:bg-primary-900/20',
+        glass: 'bg-white/70 dark:bg-neutral-800/70 backdrop-blur-md text-neutral-900 dark:text-neutral-100 border border-white/20 dark:border-neutral-600/30 shadow-glass-soft hover:shadow-glass-glow hover:border-primary-500/30 dark:hover:border-primary-400/30 focus-visible:ring-primary-500',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

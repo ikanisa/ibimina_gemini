@@ -6,6 +6,8 @@
 
 import { supabase } from '../supabase';
 import type { SupabaseProfile } from '../../types';
+import { deduplicateRequest } from '../utils/requestDeduplication';
+
 
 export interface CreateStaffParams {
   email: string;

@@ -65,14 +65,7 @@ import { checkRateLimit, getRateLimitHeaders } from '../_shared/rate-limit.ts'
 // IP Allowlisting (Optional)
 // ============================================================================
 
-import { checkIPWhitelist, extractClientIP } from '../_shared/ip-whitelist.ts'owedIP.split('/')
-      // For now, just check if IP starts with network (simplified)
-      return clientIP.startsWith(network)
-    } else {
-      return clientIP === allowedIP
-    }
-  })
-}
+import { checkIPWhitelist, extractClientIP } from '../_shared/ip-whitelist.ts'
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -190,7 +183,7 @@ Deno.serve(async (req) => {
     // ============================================================================
     // Use API key as client identifier, or fall back to IP
     const clientId = apiKey || `ip-${clientIP || 'anonymous'}`
-    
+
     // institutionId already retrieved above for IP whitelist check
 
     // Check rate limit with Redis/Database backend
@@ -204,8 +197,8 @@ Deno.serve(async (req) => {
     if (!rateLimitResult.allowed) {
       const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Too many requests. Please slow down.',
           rateLimit: {
             limit: rateLimitResult.limit,
@@ -213,13 +206,13 @@ Deno.serve(async (req) => {
             resetAt: new Date(rateLimitResult.resetAt).toISOString(),
           }
         }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
             'Content-Type': 'application/json',
             ...rateLimitHeaders,
-          } 
+          }
         }
       );
     }
@@ -372,7 +365,7 @@ Deno.serve(async (req) => {
 
     // Add rate limit headers to successful response
     const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
-    
+
     return new Response(
       JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json', ...rateLimitHeaders } }
@@ -380,14 +373,14 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Ingest error:', error)
-    
+
     // Log error with context (can be forwarded to Sentry)
     const { logError } = await import('../_shared/sentry.ts');
     logError(error, {
       functionName: 'sms-ingest',
       requestId: req.headers.get('x-request-id') || undefined,
     });
-    
+
     return new Response(
       JSON.stringify({
         success: false,

@@ -238,21 +238,20 @@ export const apiClient = {
         options?: RequestOptions
     ): Promise<T> {
         try {
-            const result = await withTimeout(async () => {
-                const response = await mutateFn();
+            const response = await withTimeout(
+                mutateFn(),
+                options?.timeout ?? DEFAULT_TIMEOUT_MS
+            );
 
-                if (response.error) {
-                    throw new ApiError(
-                        response.error.message,
-                        response.error.code || 'UNKNOWN',
-                        400
-                    );
-                }
+            if (response.error) {
+                throw new ApiError(
+                    response.error.message,
+                    response.error.code || 'UNKNOWN',
+                    400
+                );
+            }
 
-                return response.data as T;
-            }, options?.timeout ?? DEFAULT_TIMEOUT_MS);
-
-            return result;
+            return response.data as T;
         } catch (error) {
             if (import.meta.env.PROD) {
                 captureError(error as Error, {
@@ -262,6 +261,7 @@ export const apiClient = {
             throw error;
         }
     },
+
 
     /**
      * Get current authenticated user's session

@@ -34,7 +34,7 @@ export async function hasMFAEnabled(): Promise<boolean> {
       console.error('Error checking MFA status:', error);
       return false;
     }
-    
+
     // Check if user has any verified TOTP factors
     return data?.totp?.some(factor => factor.status === 'verified') ?? false;
   } catch (error) {
@@ -52,7 +52,7 @@ export async function getMFAFactors(): Promise<MFAFactor[]> {
     if (error) {
       throw error;
     }
-    
+
     return (data?.totp ?? []).map(factor => ({
       id: factor.id,
       type: 'totp' as const,
@@ -76,21 +76,22 @@ export async function startMFAEnrollment(friendlyName?: string): Promise<MFASetu
       factorType: 'totp',
       friendlyName: friendlyName || 'Authenticator App',
     });
-    
+
     if (error) {
       throw error;
     }
-    
+
     return {
-      qr_code: data.qr_code,
-      secret: data.secret,
-      uri: data.uri,
+      qr_code: data.totp.qr_code,
+      secret: data.totp.secret,
+      uri: data.totp.uri,
     };
   } catch (error) {
     console.error('Error starting MFA enrollment:', error);
     throw error;
   }
 }
+
 
 /**
  * Verify and complete MFA enrollment
@@ -101,12 +102,13 @@ export async function verifyMFAEnrollment(factorId: string, code: string): Promi
       factorId,
       code,
     });
-    
+
     if (error) {
       throw error;
     }
-    
-    return data.verified;
+
+    // Supabase returns access_token and user on success
+    return !!data?.access_token;
   } catch (error) {
     console.error('Error verifying MFA enrollment:', error);
     throw error;
@@ -121,7 +123,7 @@ export async function unenrollMFA(factorId: string): Promise<void> {
     const { error } = await supabase.auth.mfa.unenroll({
       factorId,
     });
-    
+
     if (error) {
       throw error;
     }
@@ -139,11 +141,11 @@ export async function challengeMFA(factorId: string): Promise<{ challengeId: str
     const { data, error } = await supabase.auth.mfa.challenge({
       factorId,
     });
-    
+
     if (error) {
       throw error;
     }
-    
+
     return {
       challengeId: data.id,
     };
@@ -162,13 +164,14 @@ export async function verifyMFAChallenge(challengeId: string, code: string): Pro
       challengeId,
       code,
     });
-    
+
     if (error) {
       throw error;
     }
-    
+
+    // Supabase returns access_token and user on success
     return {
-      verified: data.verified ?? false,
+      verified: !!data?.access_token,
     };
   } catch (error) {
     console.error('Error verifying MFA challenge:', error);
@@ -187,9 +190,9 @@ export async function generateBackupCodes(): Promise<MFABackupCodes> {
     const code = Math.floor(10000000 + Math.random() * 90000000).toString();
     codes.push(code);
   }
-  
+
   const createdAt = new Date().toISOString();
-  
+
   // Store backup codes in database (hashed)
   // Note: In production, these should be hashed before storage
   try {
@@ -202,7 +205,7 @@ export async function generateBackupCodes(): Promise<MFABackupCodes> {
   } catch (error) {
     console.error('Error storing backup codes:', error);
   }
-  
+
   return {
     codes,
     created_at: createdAt,

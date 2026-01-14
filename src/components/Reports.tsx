@@ -244,9 +244,9 @@ const Reports: React.FC = () => {
     const filename = `report_${scope}_${scopeName || 'all'}_${dateRange.start}_to_${dateRange.end}.csv`;
     downloadCSV(csvContent, filename);
     return csvContent;
-    
+
     // Legacy format (kept for compatibility)
-    return objectsToCsv(allRows, [
+    return objectsToCsv(allRows as unknown as Record<string, unknown>[], [
       { key: 'occurred_at', header: 'Date' },
       { key: 'amount', header: 'Amount' },
       { key: 'currency', header: 'Currency' },
@@ -354,11 +354,9 @@ const Reports: React.FC = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800">
-          <AlertCircle size={20} />
-          <span className="text-sm">{error}</span>
-        </div>
+        <ErrorDisplay error={error} variant="banner" onRetry={loadReport} />
       )}
+
 
       {/* KPIs */}
       {loading ? (

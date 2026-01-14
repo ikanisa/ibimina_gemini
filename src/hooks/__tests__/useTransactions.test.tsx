@@ -48,20 +48,24 @@ const mockTransactions = [
         institution_id: 'test-institution-id',
         amount: 10000,
         currency: 'RWF',
-        transaction_type: 'DEPOSIT',
-        transaction_status: 'COMPLETED',
+        type: 'DEPOSIT',
+        channel: 'MoMo',
+        status: 'COMPLETED',
         occurred_at: '2024-01-15T10:00:00Z',
         payer_phone: '+250788123456',
+        created_at: '2024-01-15T10:00:00Z',
     },
     {
         id: 'txn-2',
         institution_id: 'test-institution-id',
         amount: 5000,
         currency: 'RWF',
-        transaction_type: 'WITHDRAWAL',
-        transaction_status: 'PENDING',
+        type: 'WITHDRAWAL',
+        channel: 'Cash',
+        status: 'PENDING',
         occurred_at: '2024-01-15T11:00:00Z',
         payer_phone: '+250789456123',
+        created_at: '2024-01-15T11:00:00Z',
     },
 ];
 
@@ -154,9 +158,11 @@ describe('useTransactions', () => {
             institution_id: 'test-institution-id',
             amount: 20000,
             currency: 'RWF',
-            transaction_type: 'DEPOSIT',
-            transaction_status: 'COMPLETED',
+            type: 'DEPOSIT',
+            channel: 'Cash',
+            status: 'COMPLETED',
             occurred_at: '2024-01-16T10:00:00Z',
+            created_at: '2024-01-16T10:00:00Z',
         };
 
         vi.mocked(transactionsApi.createTransaction).mockResolvedValue(newTransaction);
@@ -169,13 +175,13 @@ describe('useTransactions', () => {
 
         await act(async () => {
             await result.current.createTransaction({
-                institutionId: 'test-institution-id',
-                memberId: 'member-123',
+                institution_id: 'test-institution-id',
+                member_id: 'member-123',
                 amount: 20000,
                 currency: 'RWF',
                 type: 'DEPOSIT',
                 channel: 'CASH',
-                occurredAt: new Date().toISOString(),
+                occurred_at: new Date().toISOString(),
             });
         });
 
@@ -186,7 +192,7 @@ describe('useTransactions', () => {
     it('updates transaction status and updates state', async () => {
         const updatedTransaction = {
             ...mockTransactions[1],
-            transaction_status: 'COMPLETED',
+            status: 'COMPLETED' as const,
         };
 
         vi.mocked(transactionsApi.updateTransactionStatus).mockResolvedValue(updatedTransaction);
@@ -204,7 +210,7 @@ describe('useTransactions', () => {
         expect(transactionsApi.updateTransactionStatus).toHaveBeenCalledWith('txn-2', 'COMPLETED');
 
         const updated = result.current.transactions.find(t => t.id === 'txn-2');
-        expect(updated?.transaction_status).toBe('COMPLETED');
+        expect(updated?.status).toBe('COMPLETED');
     });
 
     it('handles create transaction error', async () => {
@@ -220,13 +226,13 @@ describe('useTransactions', () => {
         await act(async () => {
             try {
                 await result.current.createTransaction({
-                    institutionId: 'test-institution-id',
-                    memberId: 'member-123',
+                    institution_id: 'test-institution-id',
+                    member_id: 'member-123',
                     amount: 20000,
                     currency: 'RWF',
                     type: 'DEPOSIT',
                     channel: 'CASH',
-                    occurredAt: new Date().toISOString(),
+                    occurred_at: new Date().toISOString(),
                 });
             } catch {
                 // Expected error

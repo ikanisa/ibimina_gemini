@@ -173,10 +173,10 @@ const iconMap: Record<ToastType, React.ReactNode> = {
 };
 
 const bgColors: Record<ToastType, string> = {
-    success: 'bg-green-50 border-green-200',
-    error: 'bg-red-50 border-red-200',
-    warning: 'bg-amber-50 border-amber-200',
-    info: 'bg-blue-50 border-blue-200',
+    success: 'bg-green-50 border-green-200/50 dark:bg-green-900/30 dark:border-green-700/50',
+    error: 'bg-red-50 border-red-200/50 dark:bg-red-900/30 dark:border-red-700/50',
+    warning: 'bg-amber-50 border-amber-200/50 dark:bg-amber-900/30 dark:border-amber-700/50',
+    info: 'bg-blue-50 border-blue-200/50 dark:bg-blue-900/30 dark:border-blue-700/50',
 };
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
@@ -193,9 +193,11 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
         pointer-events-auto
         flex items-start gap-3
         max-w-sm w-full
-        bg-white border rounded-lg shadow-lg
+        bg-white/95 dark:bg-neutral-800/95 backdrop-blur-md
+        border rounded-lg shadow-glass-soft
         p-4
-        transform transition-all duration-200
+        motion-safe:transform motion-safe:transition-all motion-safe:duration-200
+        motion-reduce:transition-none
         ${isExiting ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}
         ${bgColors[toast.type]}
         animate-in slide-in-from-right-5 fade-in
@@ -205,15 +207,15 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
             <div className="flex-shrink-0 mt-0.5">{iconMap[toast.type]}</div>
 
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900">{toast.title}</p>
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{toast.title}</p>
                 {toast.message && (
-                    <p className="text-sm text-slate-600 mt-1">{toast.message}</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{toast.message}</p>
                 )}
             </div>
 
             <button
                 onClick={handleRemove}
-                className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+                className="flex-shrink-0 text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 motion-safe:transition-colors"
                 aria-label="Dismiss"
             >
                 <X size={16} />

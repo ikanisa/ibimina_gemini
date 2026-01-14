@@ -1,110 +1,116 @@
-// ============================================================================
-// Edge Function: bulk-import-groups
-// Purpose: Bulk import groups from CSV data
-// ============================================================================
+/**
+ * Supabase Edge Function: Bulk Import Groups
+ * Bulk import groups from CSV data
+ * 
+ * RBAC: Requires ADMIN role
+ * Observability: Request ID tracing + audit logging
+ */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { requireAdmin } from '../_shared/rbac.ts';
+import type { BulkImportResult } from '../_shared/types.ts';
 
 interface GroupRow {
-  group_name: string
-  code?: string
-  expected_amount: number
-  frequency: 'Weekly' | 'Monthly'
-  meeting_day?: string
-  currency?: string
+  group_name: string;
+  code?: string;
+  expected_amount: number;
+  frequency: 'Weekly' | 'Monthly';
+  meeting_day?: string;
+  currency?: string;
 }
 
 interface BulkImportRequest {
-  groups: GroupRow[]
-  institution_id?: string
+  groups: GroupRow[];
+  institution_id?: string;
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+Deno.serve(async (req) => {
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  const functionName = 'bulk-import-groups';
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // =========================================================================
+    // RBAC: Require ADMIN role
+    // =========================================================================
+    const rbacResult = await requireAdmin(req, functionName);
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Missing authorization header')
+    if (!rbacResult.success) {
+      return rbacResult.error!;
     }
 
-    const { groups, institution_id }: BulkImportRequest = await req.json()
+    const { user, logger, requestId } = rbacResult;
+    logger!.info('Processing bulk import groups request');
+
+    // =========================================================================
+    // Parse request
+    // =========================================================================
+    let body: BulkImportRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse('Invalid JSON body', 400, { 'X-Request-Id': requestId! });
+    }
+
+    const { groups, institution_id } = body;
 
     if (!groups || !Array.isArray(groups) || groups.length === 0) {
-      throw new Error('Missing or empty groups array')
+      return errorResponse('Missing or empty groups array', 400, { 'X-Request-Id': requestId! });
     }
 
-    // Get user to determine institution
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
-
-    if (userError || !user) {
-      throw new Error('Unauthorized')
+    const effectiveInstitutionId = institution_id || user!.institutionId;
+    if (!effectiveInstitutionId) {
+      return errorResponse('Institution ID required', 400, { 'X-Request-Id': requestId! });
     }
 
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('institution_id, role')
-      .eq('user_id', user.id)
-      .single()
-
-    const effective_institution_id = institution_id || profile?.institution_id
-    if (!effective_institution_id) {
-      throw new Error('Institution ID required')
+    // Platform admins can import to any institution; others only to their own
+    if (user!.role !== 'PLATFORM_ADMIN' && effectiveInstitutionId !== user!.institutionId) {
+      logger!.warn('Cross-institution import denied');
+      return errorResponse('Cannot import to another institution', 403, { 'X-Request-Id': requestId! });
     }
 
-    // Validate all groups
-    const errors: Array<{ row: number; error: string }> = []
-    const validGroups: Array<GroupRow & { row: number }> = []
+    // =========================================================================
+    // Initialize Supabase
+    // =========================================================================
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    groups.forEach((group, index) => {
+    if (!supabaseUrl || !serviceRoleKey) {
+      return errorResponse('Server configuration error', 500, { 'X-Request-Id': requestId! });
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false }
+    });
+
+    // =========================================================================
+    // Validate and insert groups
+    // =========================================================================
+    const errors: Array<{ row: number; error: string; data?: Record<string, unknown> }> = [];
+    const results: Array<{ row: number; success: boolean; id?: string; error?: string }> = [];
+
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i];
+      const rowNum = i + 1;
+
+      // Validation
       if (!group.group_name || !group.expected_amount || !group.frequency) {
-        errors.push({ row: index + 1, error: 'Missing required fields: group_name, expected_amount, frequency' })
-        return
+        errors.push({ row: rowNum, error: 'Missing required fields: group_name, expected_amount, frequency' });
+        continue;
       }
       if (group.frequency !== 'Weekly' && group.frequency !== 'Monthly') {
-        errors.push({ row: index + 1, error: 'frequency must be "Weekly" or "Monthly"' })
-        return
+        errors.push({ row: rowNum, error: 'frequency must be "Weekly" or "Monthly"' });
+        continue;
       }
-      validGroups.push({ ...group, row: index + 1 })
-    })
 
-    if (errors.length > 0) {
-      return new Response(
-        JSON.stringify({ success: false, errors }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Insert groups
-    const results: Array<{ row: number; success: boolean; id?: string; error?: string }> = []
-
-    for (const group of validGroups) {
+      // Insert
       try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await supabase
           .from('groups')
           .insert({
-            institution_id: effective_institution_id,
+            institution_id: effectiveInstitutionId,
             group_name: group.group_name,
             code: group.code || null,
             expected_amount: group.expected_amount,
@@ -114,52 +120,54 @@ serve(async (req) => {
             status: 'ACTIVE'
           })
           .select('id')
-          .single()
+          .single();
 
         if (error) {
-          results.push({ row: group.row, success: false, error: error.message })
+          results.push({ row: rowNum, success: false, error: error.message });
         } else {
-          results.push({ row: group.row, success: true, id: data.id })
+          results.push({ row: rowNum, success: true, id: data.id });
         }
       } catch (error) {
-        results.push({ row: group.row, success: false, error: error.message })
+        results.push({ row: rowNum, success: false, error: (error as Error).message });
       }
     }
 
+    const successCount = results.filter(r => r.success).length;
+    const errorCount = results.filter(r => !r.success).length + errors.length;
+
+    // =========================================================================
     // Audit log
-    await supabaseClient
-      .from('audit_log')
-      .insert({
-        actor_user_id: user.id,
-        institution_id: effective_institution_id,
-        action: 'bulk_import_groups',
-        entity_type: 'group',
-        metadata: { count: validGroups.length, results }
-      })
-
-    const successCount = results.filter(r => r.success).length
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        total: validGroups.length,
+    // =========================================================================
+    await supabase.from('audit_log').insert({
+      actor_user_id: user!.userId,
+      institution_id: effectiveInstitutionId,
+      action: 'bulk_import_groups',
+      entity_type: 'group',
+      request_id: requestId,
+      metadata: {
+        total_rows: groups.length,
         success_count: successCount,
-        error_count: results.length - successCount,
-        results
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+        error_count: errorCount
+      }
+    });
+
+    logger!.info('Bulk import completed', { successCount, errorCount });
+
+    const response: BulkImportResult = {
+      success: true,
+      totalRows: groups.length,
+      successCount,
+      errorCount,
+      errors: [...errors, ...results.filter(r => !r.success).map(r => ({ row: r.row, error: r.error! }))],
+    };
+
+    return jsonResponse(response, 200, { 'X-Request-Id': requestId! });
 
   } catch (error) {
-    console.error('Bulk import error:', error)
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+    console.error('Bulk import error:', error);
+    return errorResponse(
+      (error as Error).message || 'Unknown error',
+      500
+    );
   }
-})
-
-
+});

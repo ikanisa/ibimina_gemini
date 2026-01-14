@@ -60,7 +60,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 }) => {
     const { role: userRole, institutionId: userInstitutionId } = useAuth();
     const isPlatformAdmin = isSuperAdmin(userRole);
-    
+
     const [formData, setFormData] = useState<NewStaffData>(initialFormData);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,7 +87,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
             if (error) throw error;
             if (data) {
-                setInstitutions(data);
+                // Map to Institution type with required fields
+                setInstitutions(data.map((inst: { id: string; name: string }) => ({
+                    id: inst.id,
+                    name: inst.name,
+                    type: 'SACCO' as const,
+                    status: 'ACTIVE',
+                    created_at: new Date().toISOString(),
+                })));
             }
         } catch (err) {
             console.error('Error loading institutions:', err);

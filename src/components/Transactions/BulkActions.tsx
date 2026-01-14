@@ -75,11 +75,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
       onSelectionChange(new Set());
       onBulkActionComplete?.();
     } catch (err) {
-      const appError = handleError(err, {
-        component: 'BulkActions',
-        operation: 'bulkAllocate',
-        institutionId,
-      });
+      const appError = handleError(err, 'BulkActions.bulkAllocate');
       setError(getUserFriendlyMessage(appError));
       captureError(err, {
         component: 'BulkActions',
@@ -113,11 +109,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
       onSelectionChange(new Set());
       onBulkActionComplete?.();
     } catch (err) {
-      const appError = handleError(err, {
-        component: 'BulkActions',
-        operation: 'bulkFlag',
-        institutionId,
-      });
+      const appError = handleError(err, 'BulkActions.bulkFlag');
       setError(getUserFriendlyMessage(appError));
       captureError(err, {
         component: 'BulkActions',
@@ -153,11 +145,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
 
       onSelectionChange(new Set());
     } catch (err) {
-      const appError = handleError(err, {
-        component: 'BulkActions',
-        operation: 'bulkExport',
-        institutionId,
-      });
+      const appError = handleError(err, 'BulkActions.bulkExport');
       setError(getUserFriendlyMessage(appError));
       captureError(err, {
         component: 'BulkActions',
@@ -193,11 +181,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
       onSelectionChange(new Set());
       onBulkActionComplete?.();
     } catch (err) {
-      const appError = handleError(err, {
-        component: 'BulkActions',
-        operation: 'bulkDelete',
-        institutionId,
-      });
+      const appError = handleError(err, 'BulkActions.bulkDelete');
       setError(getUserFriendlyMessage(appError));
       captureError(err, {
         component: 'BulkActions',
