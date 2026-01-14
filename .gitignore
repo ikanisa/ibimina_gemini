@@ -36,3 +36,4 @@ dist-ssr
 test-results
 playwright-report
 blob-report
+.env.production
