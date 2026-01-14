@@ -84,10 +84,10 @@ Same variables as production, but with different values for staging/test Supabas
 **Via Wrangler CLI:**
 ```bash
 # Set production variable
-wrangler pages secret put VITE_SUPABASE_URL --project-name=ibimina-gemini
+wrangler pages secret put VITE_SUPABASE_URL --project-name=sacco
 
 # Set preview variable
-wrangler pages secret put VITE_SUPABASE_URL --project-name=ibimina-gemini --env=preview
+wrangler pages secret put VITE_SUPABASE_URL --project-name=sacco --env=preview
 ```
 
 ## Deployment Methods
@@ -121,22 +121,22 @@ wrangler pages secret put VITE_SUPABASE_URL --project-name=ibimina-gemini --env=
 npm run build
 
 # Deploy to Cloudflare Pages
-wrangler pages deploy dist --project-name=ibimina-gemini
+wrangler pages deploy dist --project-name=sacco
 ```
 
 **Update Deployment:**
 ```bash
 # Build and deploy
-npm run build && wrangler pages deploy dist --project-name=ibimina-gemini
+npm run build && wrangler pages deploy dist --project-name=sacco
 ```
 
 **Deploy to Specific Environment:**
 ```bash
 # Deploy to production
-wrangler pages deploy dist --project-name=ibimina-gemini --env=production
+wrangler pages deploy dist --project-name=sacco --env=production
 
 # Deploy to staging
-wrangler pages deploy dist --project-name=ibimina-gemini --env=staging
+wrangler pages deploy dist --project-name=sacco --env=staging
 ```
 
 ### Method 3: GitHub Actions (CI/CD)
@@ -182,7 +182,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ibimina-gemini
+          projectName: sacco
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -208,7 +208,7 @@ jobs:
 Add CNAME record in your DNS provider:
 - **Type**: CNAME
 - **Name**: `app` (or subdomain of choice)
-- **Target**: `ibimina-gemini.pages.dev`
+- **Target**: `sacco.pages.dev`
 - **Proxy**: Enabled (orange cloud)
 
 ### Step 3: SSL Certificate
@@ -242,10 +242,10 @@ Cloudflare automatically creates preview deployments for:
 
 ```bash
 # List deployments
-wrangler pages deployment list --project-name=ibimina-gemini
+wrangler pages deployment list --project-name=sacco
 
 # Get deployment details
-wrangler pages deployment tail --project-name=ibimina-gemini
+wrangler pages deployment tail --project-name=sacco
 ```
 
 ### 2. Verify Application
@@ -263,7 +263,7 @@ After deployment, verify:
 
 ```bash
 # Test health endpoint (if deployed)
-curl https://ibimina-gemini.pages.dev/api/health
+curl https://sacco.pages.dev/api/health
 
 # Or test Supabase health
 curl https://your-project.supabase.co/functions/v1/health
@@ -365,10 +365,10 @@ Cloudflare automatically compresses:
 
 ```bash
 # List deployments
-wrangler pages deployment list --project-name=ibimina-gemini
+wrangler pages deployment list --project-name=sacco
 
 # Rollback to specific deployment
-wrangler pages deployment rollback <deployment-id> --project-name=ibimina-gemini
+wrangler pages deployment rollback <deployment-id> --project-name=sacco
 ```
 
 ## Monitoring

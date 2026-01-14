@@ -246,11 +246,11 @@ ORDER BY idx_scan DESC;
 
 ```bash
 # List deployments
-wrangler pages deployment list --project-name=ibimina-gemini
+wrangler pages deployment list --project-name=sacco
 
 # Rollback to previous
 wrangler pages deployment rollback \
-  --project-name=ibimina-gemini \
+  --project-name=sacco \
   --deployment-id=PREVIOUS_ID
 ```
 

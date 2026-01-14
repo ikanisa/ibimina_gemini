@@ -12,7 +12,7 @@
 **Status:** Successfully deployed to Cloudflare Pages
 
 **Deployment URL:**
-- https://5392d2c4.ibimina-gemini.pages.dev
+- https://5392d2c4.sacco.pages.dev
 
 **Build Details:**
 - Build time: 8.26s
@@ -73,7 +73,7 @@ If migrations didn't apply automatically, run them in Supabase SQL Editor:
 
 ### Verify Frontend Deployment
 
-1. Visit: https://5392d2c4.ibimina-gemini.pages.dev
+1. Visit: https://5392d2c4.sacco.pages.dev
 2. Check that the app loads correctly
 3. Verify authentication works
 4. Test navigation between pages
@@ -154,7 +154,7 @@ WHERE is_active = true;
 
 ## 🔗 Quick Links
 
-- **Frontend:** https://5392d2c4.ibimina-gemini.pages.dev
+- **Frontend:** https://5392d2c4.sacco.pages.dev
 - **Supabase Dashboard:** https://supabase.com/dashboard/project/wadhydemushqqtcrrlwm
 - **SQL Editor:** https://supabase.com/dashboard/project/wadhydemushqqtcrrlwm/sql/new
 - **Edge Functions:** https://supabase.com/dashboard/project/wadhydemushqqtcrrlwm/functions

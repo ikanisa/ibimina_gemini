@@ -20,7 +20,7 @@
 ### 1. Verify Deployment (Immediate)
 
 #### Frontend Verification
-- [ ] Visit deployed site: https://5392d2c4.ibimina-gemini.pages.dev
+- [ ] Visit deployed site: https://5392d2c4.sacco.pages.dev
 - [ ] Test login functionality
 - [ ] Verify all pages load correctly
 - [ ] Check navigation between pages

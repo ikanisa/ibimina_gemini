@@ -78,7 +78,7 @@ Before starting deployment, complete the following:
    ```bash
    npm ci
    npm run build
-   wrangler pages deploy dist --project-name=ibimina-gemini
+   wrangler pages deploy dist --project-name=sacco
    ```
 
 3. **Or Use Deployment Script:**
@@ -160,7 +160,7 @@ Before starting deployment, complete the following:
 **Verification Commands:**
 ```bash
 # Check application is accessible
-curl -I https://ibimina-gemini.pages.dev
+curl -I https://sacco.pages.dev
 
 # Check health endpoint (if deployed)
 curl https://your-project.supabase.co/functions/v1/health
@@ -294,7 +294,7 @@ See: `docs/ROLLBACK_PROCEDURE.md`
 
 **Manual:**
 ```bash
-wrangler pages deploy dist --project-name=ibimina-gemini --env=preview
+wrangler pages deploy dist --project-name=sacco --env=preview
 ```
 
 ## Troubleshooting

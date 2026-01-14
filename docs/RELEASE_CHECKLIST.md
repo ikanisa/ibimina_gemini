@@ -40,7 +40,7 @@ git push origin main
 Cloudflare Pages will automatically build and deploy.
 
 ### Monitor Build
-1. Go to **Cloudflare Dashboard → Pages → ibimina-gemini → Deployments**
+1. Go to **Cloudflare Dashboard → Pages → sacco → Deployments**
 2. Watch the build log for errors
 3. Wait for "Success" status
 
@@ -81,7 +81,7 @@ curl -I https://your-app.pages.dev | grep -E "(X-Frame|X-Content|Content-Securit
 
 ### How to Rollback (< 1 minute)
 
-1. **Cloudflare Dashboard** → Pages → ibimina-gemini → Deployments
+1. **Cloudflare Dashboard** → Pages → sacco → Deployments
 2. Find the **last known good deployment**
 3. Click **"..."** → **"Rollback to this deployment"**
 4. Confirm rollback

@@ -14,7 +14,7 @@ Go to **Cloudflare Dashboard → Pages → Create a project**.
 
 | Setting | Value |
 |---------|-------|
-| Project name | `ibimina-gemini` |
+| Project name | `sacco` |
 | Root directory | `/` |
 | Build command | `npm ci && npm run build` |
 | Output directory | `dist` |

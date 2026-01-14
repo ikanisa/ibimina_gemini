@@ -42,7 +42,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ibimina-gemini
+          projectName: sacco
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           # Only deploy to production on main branch

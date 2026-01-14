@@ -5,7 +5,7 @@
 set -e
 
 ENVIRONMENT=${1:-production}
-PROJECT_NAME="ibimina-gemini"
+PROJECT_NAME="sacco"
 
 echo "🚀 Deploying to Cloudflare Pages ($ENVIRONMENT)..."
 

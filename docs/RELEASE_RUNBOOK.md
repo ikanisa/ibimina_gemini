@@ -174,7 +174,7 @@ ls -la dist/
 git push origin main
 
 # Monitor deployment in Cloudflare Dashboard
-# Pages → ibimina-gemini → Deployments
+# Pages → sacco → Deployments
 ```
 
 **Option B: Direct Upload**
@@ -187,7 +187,7 @@ npm install -g wrangler
 wrangler login
 
 # Deploy
-wrangler pages deploy dist --project-name=ibimina-gemini
+wrangler pages deploy dist --project-name=sacco
 ```
 
 #### 3.3 Verify Deployment
@@ -261,7 +261,7 @@ curl -X POST https://wadhydemushqqtcrrlwm.supabase.co/functions/v1/sms-ingest \
 # 3. Click "..." → "Rollback to this deployment"
 
 # Or via CLI:
-# wrangler pages deploy dist --project-name=ibimina-gemini --commit-hash=PREVIOUS_HASH
+# wrangler pages deploy dist --project-name=sacco --commit-hash=PREVIOUS_HASH
 ```
 
 ### Rollback Level 2: Edge Functions

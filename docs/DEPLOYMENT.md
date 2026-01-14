@@ -85,7 +85,7 @@ npm run preview
 wrangler login
 
 # Deploy
-wrangler pages deploy dist --project-name=ibimina-gemini
+wrangler pages deploy dist --project-name=sacco
 ```
 
 ---
@@ -164,7 +164,7 @@ Dashboard → Analytics & Logs → Web Analytics
 
 ```bash
 # List recent deployments
-wrangler pages deployment list --project-name=ibimina-gemini
+wrangler pages deployment list --project-name=sacco
 
 # Rollback to specific deployment
 wrangler pages deployment rollback --deployment-id=DEPLOYMENT_ID

@@ -32,7 +32,7 @@ This document outlines the rollback procedures for the IBIMINA GEMINI applicatio
 **Steps:**
 
 1. **Access Cloudflare Dashboard:**
-   - Go to: Workers & Pages → ibimina-gemini → Deployments
+   - Go to: Workers & Pages → sacco → Deployments
 
 2. **Find Last Good Deployment:**
    - Look for green checkmark (successful build)
@@ -47,7 +47,7 @@ This document outlines the rollback procedures for the IBIMINA GEMINI applicatio
 4. **Verify:**
    ```bash
    # Check site is accessible
-   curl -I https://ibimina-gemini.pages.dev
+   curl -I https://sacco.pages.dev
    
    # Test in browser
    # Navigate to app and verify critical flows

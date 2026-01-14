@@ -132,10 +132,10 @@ wrangler login
 
 # Deploy to production
 npm run build
-wrangler pages deploy dist --project-name=ibimina-gemini
+wrangler pages deploy dist --project-name=sacco
 
 # Deploy to preview (staging)
-wrangler pages deploy dist --project-name=ibimina-gemini --branch=staging
+wrangler pages deploy dist --project-name=sacco --branch=staging
 ```
 
 ## Verification Checklist
@@ -156,11 +156,11 @@ wrangler pages deploy dist --project-name=ibimina-gemini --branch=staging
 
 ```bash
 # Check deployment status
-wrangler pages deployment list --project-name=ibimina-gemini
+wrangler pages deployment list --project-name=sacco
 
 # Tail logs
-wrangler pages deployment tail --project-name=ibimina-gemini
+wrangler pages deployment tail --project-name=sacco
 
 # Rollback to previous deployment
-wrangler pages deployment rollback --project-name=ibimina-gemini
+wrangler pages deployment rollback --project-name=sacco
 ```

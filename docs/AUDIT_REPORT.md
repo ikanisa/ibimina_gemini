@@ -494,7 +494,7 @@ No issues found in this area.
 **Cloudflare Pages Configuration (`wrangler.jsonc`):**
 ```json
 {
-  "name": "ibimina-gemini",
+  "name": "sacco",
   "compatibility_date": "2024-01-01",
   "routes": [
     {

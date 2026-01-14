@@ -5,7 +5,7 @@
 ### Quick Rollback (< 2 minutes)
 
 1. **Go to Cloudflare Dashboard**
-   - Navigate to: Workers & Pages → ibimina-gemini → Deployments
+   - Navigate to: Workers & Pages → sacco → Deployments
 
 2. **Find Last Good Deployment**
    - Look for green checkmark (successful build)
@@ -85,7 +85,7 @@ git commit -m "fix: description"
 git push origin fix/issue-name
 
 # Cloudflare will auto-create preview URL:
-# https://fix-issue-name.ibimina-gemini.pages.dev
+# https://fix-issue-name.sacco.pages.dev
 
 # Test thoroughly before merging to main
 ```
