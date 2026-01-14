@@ -12,15 +12,37 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
 
   // Debug: Log env vars at build time (visible in Cloudflare build logs)
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+
   console.log('[Vite Build] Environment:', mode);
-  console.log('[Vite Build] VITE_SUPABASE_URL set:', !!process.env.VITE_SUPABASE_URL || !!env.VITE_SUPABASE_URL);
-  console.log('[Vite Build] VITE_SUPABASE_URL source:', process.env.VITE_SUPABASE_URL ? 'process.env' : (env.VITE_SUPABASE_URL ? 'loadEnv' : 'NOT FOUND'));
+  console.log('[Vite Build] process.env.VITE_SUPABASE_URL:', process.env.VITE_SUPABASE_URL ? 'SET' : 'NOT SET');
+  console.log('[Vite Build] loadEnv VITE_SUPABASE_URL:', env.VITE_SUPABASE_URL ? 'SET' : 'NOT SET');
+  console.log('[Vite Build] Final VITE_SUPABASE_URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'EMPTY');
+  console.log('[Vite Build] VITE_SUPABASE_ANON_KEY:', supabaseKey ? 'SET (' + supabaseKey.length + ' chars)' : 'NOT SET');
+
+  // CRITICAL: For Cloudflare Pages, we need to explicitly define these
+  // because Cloudflare's build environment doesn't always pass VITE_* to process.env correctly
+  // Vite's loadEnv should pick them up, but we double-check with process.env as fallback
+  const envDefines: Record<string, string> = {};
+
+  // Only define if we have actual values - don't override with empty strings
+  if (supabaseUrl) {
+    envDefines['import.meta.env.VITE_SUPABASE_URL'] = JSON.stringify(supabaseUrl);
+  }
+  if (supabaseKey) {
+    envDefines['import.meta.env.VITE_SUPABASE_ANON_KEY'] = JSON.stringify(supabaseKey);
+  }
+
+  console.log('[Vite Build] Env defines count:', Object.keys(envDefines).length);
 
   return {
     server: {
       port: 3000,
       host: '0.0.0.0',
     },
+    // Load env from process.env for Cloudflare Pages compatibility
+    envPrefix: 'VITE_',
     plugins: [
       react(),
       VitePWA({
@@ -145,12 +167,7 @@ export default defineConfig(({ mode }) => {
       })
     ],
     // Explicitly define env vars for Cloudflare Pages compatibility
-    // Cloudflare injects these as process.env, not as .env files
-    define: {
-      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || ''),
-      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || ''),
-      // VITE_USE_MOCK_DATA removed - application now uses only real Supabase data
-    },
+    define: envDefines,
     build: {
       // Target modern browsers for smaller bundles
       target: 'es2020',
