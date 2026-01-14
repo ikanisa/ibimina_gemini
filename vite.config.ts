@@ -11,6 +11,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
 
+  // Debug: Log env vars at build time (visible in Cloudflare build logs)
+  console.log('[Vite Build] Environment:', mode);
+  console.log('[Vite Build] VITE_SUPABASE_URL set:', !!process.env.VITE_SUPABASE_URL || !!env.VITE_SUPABASE_URL);
+  console.log('[Vite Build] VITE_SUPABASE_URL source:', process.env.VITE_SUPABASE_URL ? 'process.env' : (env.VITE_SUPABASE_URL ? 'loadEnv' : 'NOT FOUND'));
+
   return {
     server: {
       port: 3000,
