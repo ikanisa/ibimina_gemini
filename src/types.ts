@@ -260,7 +260,7 @@ export type TransactionStatus = 'Completed' | 'Pending' | 'Failed' | 'Reversed';
 export type KycStatus = 'Verified' | 'Pending' | 'Rejected';
 export type StaffRole = 'Admin' | 'Staff';
 // LoanStatus kept for backward compatibility with mappers
-export type LoanStatus = 'Active' | 'Paid' | 'Defaulted';
+export type LoanStatus = 'Pending Approval' | 'Active' | 'Overdue' | 'Closed' | 'Rejected' | 'Paid' | 'Defaulted';
 
 
 export interface Group {

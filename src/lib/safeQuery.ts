@@ -62,6 +62,7 @@ export async function safeQuery<T>(
 
         // Convert to PostgrestError shape for consistency
         const pgError: PostgrestError = {
+            name: 'PostgrestError',
             message: error.message,
             details: error.stack || '',
             hint: '',

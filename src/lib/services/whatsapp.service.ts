@@ -43,16 +43,32 @@ class WhatsAppService {
   }
 
   /**
-   * Get configuration from Supabase secrets
+   * Get configuration from environment variables
+   * Works in both browser (via import.meta.env) and Edge Function (via Deno.env) contexts
    */
   async loadConfigFromSupabase(): Promise<WhatsAppConfig> {
-    // This will be called from a Supabase Edge Function or server-side
-    // For now, return a placeholder - actual implementation will fetch from Supabase secrets
-    const phoneId = Deno.env.get('WA_PHONE_ID') || '';
-    const businessId = Deno.env.get('META_WABA_BUSINESS_ID') || '';
-    const accessToken = Deno.env.get('WA_TOKEN') || Deno.env.get('WHATSAPP_ACCESS_TOKEN') || '';
-    const verifyToken = Deno.env.get('WA_VERIFY_TOKEN') || '';
-    const appSecret = Deno.env.get('WA_APP_SECRET') || '';
+    // Detect environment and get appropriate env vars
+    const getEnv = (key: string): string => {
+      // Browser/Vite context
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+        return (import.meta.env as Record<string, string>)[`VITE_${key}`] || '';
+      }
+      // Node.js context
+      if (typeof process !== 'undefined' && process.env) {
+        return process.env[key] || '';
+      }
+      // Deno context (Edge Function) - use type assertion
+      if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
+        return ((globalThis as any).Deno.env.get(key) as string) || '';
+      }
+      return '';
+    };
+
+    const phoneId = getEnv('WA_PHONE_ID');
+    const businessId = getEnv('META_WABA_BUSINESS_ID');
+    const accessToken = getEnv('WA_TOKEN') || getEnv('WHATSAPP_ACCESS_TOKEN');
+    const verifyToken = getEnv('WA_VERIFY_TOKEN');
+    const appSecret = getEnv('WA_APP_SECRET');
 
     if (!phoneId || !businessId || !accessToken) {
       throw new Error('WhatsApp configuration is incomplete. Missing required credentials.');
@@ -67,6 +83,7 @@ class WhatsAppService {
     };
   }
 
+
   /**
    * Send a text message via WhatsApp
    */
@@ -80,7 +97,7 @@ class WhatsAppService {
 
     try {
       const url = `${this.baseUrl}/${phoneNumberId}/messages`;
-      
+
       const payload = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -137,7 +154,7 @@ class WhatsAppService {
 
     try {
       const url = `${this.baseUrl}/${phoneNumberId}/messages`;
-      
+
       const payload = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -199,7 +216,7 @@ class WhatsAppService {
 
     try {
       const url = `${this.baseUrl}/${phoneNumberId}/messages`;
-      
+
       const payload: any = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -283,7 +300,7 @@ class WhatsAppService {
   private formatPhoneNumber(phone: string): string {
     // Remove all non-digit characters
     let cleaned = phone.replace(/\D/g, '');
-    
+
     // If it doesn't start with country code, assume Rwanda (+250)
     if (!cleaned.startsWith('250')) {
       // If it starts with 0, replace with 250
@@ -296,7 +313,7 @@ class WhatsAppService {
         }
       }
     }
-    
+
     return '+' + cleaned;
   }
 }

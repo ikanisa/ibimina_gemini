@@ -48,8 +48,13 @@ class APM {
     if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
       try {
         import('@sentry/react').then((Sentry) => {
+          // Use setTag for adding context before metrics
+          if (tags) {
+            Object.entries(tags).forEach(([key, value]) => {
+              Sentry.setTag(key, value);
+            });
+          }
           Sentry.metrics.distribution(name, value, {
-            tags,
             unit,
           });
         }).catch(() => {
@@ -133,7 +138,8 @@ class APM {
 
       throw error;
     } finally {
-      transaction?.finish?.();
+      // startSpan doesn't return a finish function directly
+      // Transaction completes automatically when scope ends
     }
   }
 

@@ -109,9 +109,19 @@ export function initSentry() {
 /**
  * Capture message (for logging important events)
  */
-export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info') {
-    Sentry.captureMessage(message, level);
+export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: Record<string, unknown>) {
+    if (context) {
+        Sentry.withScope(scope => {
+            Object.entries(context).forEach(([key, value]) => {
+                scope.setExtra(key, value);
+            });
+            Sentry.captureMessage(message, level);
+        });
+    } else {
+        Sentry.captureMessage(message, level);
+    }
 }
+
 
 /**
  * Set additional context for errors

@@ -9,7 +9,8 @@
 
 import type { Metric } from 'web-vitals';
 
-interface WebVitalMetric extends Metric {
+// Extended metric with rating
+interface WebVitalMetric {
   name: string;
   value: number;
   id: string;
@@ -17,6 +18,7 @@ interface WebVitalMetric extends Metric {
   delta: number;
   navigationType: string;
 }
+
 
 /**
  * Determine rating for a metric based on thresholds
@@ -47,12 +49,12 @@ function sendToSentry(metric: WebVitalMetric) {
     // Dynamic import to avoid bundling Sentry if not configured
     if (import.meta.env.VITE_SENTRY_DSN) {
       import('@sentry/react').then((Sentry) => {
+        // Set tags for context before recording metric
+        Sentry.setTag('metric_name', metric.name);
+        Sentry.setTag('rating', metric.rating);
+        Sentry.setTag('navigation_type', metric.navigationType);
+
         Sentry.metrics.distribution('web_vital', metric.value, {
-          tags: {
-            metric_name: metric.name,
-            rating: metric.rating,
-            navigation_type: metric.navigationType,
-          },
           unit: metric.name === 'CLS' ? 'ratio' : 'millisecond',
         });
       }).catch(() => {
@@ -61,6 +63,7 @@ function sendToSentry(metric: WebVitalMetric) {
     }
   } catch (error) {
     // Silently fail if Sentry is not configured
+
     console.debug('[Web Vitals] Sentry not available:', error);
   }
 }
@@ -73,11 +76,11 @@ function sendToCloudflareAnalytics(metric: WebVitalMetric) {
     // Cloudflare Web Analytics uses beacon API
     // The beacon endpoint is automatically handled by Cloudflare if Web Analytics is enabled
     // We can also send custom events via their API
-    
+
     // For now, we'll use navigator.sendBeacon as a fallback
     // In production, Cloudflare Analytics will automatically collect Web Vitals
     // if the script is included in the page
-    
+
     const data = JSON.stringify({
       name: metric.name,
       value: metric.value,
@@ -102,10 +105,10 @@ function sendToCloudflareAnalytics(metric: WebVitalMetric) {
  */
 function logToConsole(metric: WebVitalMetric) {
   const emoji = metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌';
-  const value = metric.name === 'CLS' 
-    ? metric.value.toFixed(3) 
+  const value = metric.name === 'CLS'
+    ? metric.value.toFixed(3)
     : `${Math.round(metric.value)}ms`;
-  
+
   console.log(
     `[Web Vital] ${emoji} ${metric.name}: ${value} (${metric.rating})`,
     {

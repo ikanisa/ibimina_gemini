@@ -6,7 +6,8 @@
 
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { AuthProvider } from '../../contexts/AuthContext';
+import { AuthProvider } from '../contexts/AuthContext';
+
 
 // Custom render that wraps components with providers
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
