@@ -20,6 +20,19 @@ interface AppBootProps {
     children: ReactNode;
 }
 
+// Check env vars using STATIC access - Vite can only replace static references!
+// Dynamic access like import.meta.env[varName] will NOT work with define.
+const getEnvVar = (name: string): string | undefined => {
+    switch (name) {
+        case 'VITE_SUPABASE_URL':
+            return import.meta.env.VITE_SUPABASE_URL;
+        case 'VITE_SUPABASE_ANON_KEY':
+            return import.meta.env.VITE_SUPABASE_ANON_KEY;
+        default:
+            return undefined;
+    }
+};
+
 const REQUIRED_ENV_VARS = [
     'VITE_SUPABASE_URL',
     'VITE_SUPABASE_ANON_KEY'
@@ -53,9 +66,9 @@ const AppBoot: React.FC<AppBootProps> = ({ children }) => {
                 }
             }, 15000);
 
-            // 1. Validate environment variables
+            // 1. Validate environment variables using static access
             const missingVars = REQUIRED_ENV_VARS.filter(
-                varName => !import.meta.env[varName]
+                varName => !getEnvVar(varName)
             );
 
             if (missingVars.length > 0) {
