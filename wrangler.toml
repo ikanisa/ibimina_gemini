@@ -6,6 +6,14 @@ pages_build_output_dir = "dist"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Build-time environment variables
+# Note: When using wrangler.toml, dashboard env vars may not be passed to build.
+# These are public values (anon key is designed for client-side use).
+[vars]
+VITE_SUPABASE_URL = "https://wadhydemushqqtcrrlwm.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NDE1NTQsImV4cCI6MjA4MTMxNzU1NH0.9O6NMVpat63LnFO7hb9dLy0pz8lrMP0ZwGbIC68rdGI"
+VITE_USE_MOCK_DATA = "false"
+
 # Preview environment (non-main branches)
 [env.preview]
 # Uses same settings as production
@@ -14,6 +22,3 @@ compatibility_flags = ["nodejs_compat"]
 [env.production]
 # Uses same settings as default
 
-# Note: Environment variables should be set in Cloudflare Dashboard
-# Go to: Pages → sacco → Settings → Environment Variables
-# Required vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, NODE_VERSION=20
