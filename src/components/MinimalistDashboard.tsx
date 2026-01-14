@@ -136,14 +136,20 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
 
   if (!data) return null;
 
-  // Compute derived health for banner
+  // Compute derived health for banner with null safety
+  const health = data.health ?? {
+    momo_primary_code_present: false,
+    sms_sources_offline_count: 0,
+    last_sms_seen_at: null,
+  };
+
   const healthForBanner = {
-    momo_primary_code_present: data.health.momo_primary_code_present,
-    sms_sources_last_seen: data.health.last_sms_seen_at,
-    sms_sources_offline_count: data.health.sms_sources_offline_count,
-    sms_sources_total_count: data.health.sms_sources_offline_count > 0 ? data.health.sms_sources_offline_count : 1,
+    momo_primary_code_present: health.momo_primary_code_present ?? false,
+    sms_sources_last_seen: health.last_sms_seen_at ?? null,
+    sms_sources_offline_count: health.sms_sources_offline_count ?? 0,
+    sms_sources_total_count: (health.sms_sources_offline_count ?? 0) > 0 ? health.sms_sources_offline_count : 1,
     overall_status: (
-      !data.health.momo_primary_code_present || data.health.sms_sources_offline_count > 0
+      !(health.momo_primary_code_present ?? false) || (health.sms_sources_offline_count ?? 0) > 0
         ? 'warning'
         : 'healthy'
     ) as 'healthy' | 'warning' | 'critical'

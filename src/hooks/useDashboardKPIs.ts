@@ -68,7 +68,7 @@ export interface DashboardData {
     };
 }
 
-const DEFAULT_DASHBOARD_DATA: DashboardData = {
+export const DEFAULT_DASHBOARD_DATA: DashboardData = {
     institution_id: null,
     is_global: false,
     period_days: 7,
@@ -100,6 +100,45 @@ const DEFAULT_DASHBOARD_DATA: DashboardData = {
     },
 };
 
+/**
+ * Deep merge dashboard data with defaults to ensure all fields exist
+ */
+function mergeDashboardData(data: Partial<DashboardData> | null): DashboardData {
+    if (!data) return DEFAULT_DASHBOARD_DATA;
+
+    return {
+        institution_id: data.institution_id ?? DEFAULT_DASHBOARD_DATA.institution_id,
+        is_global: data.is_global ?? DEFAULT_DASHBOARD_DATA.is_global,
+        period_days: data.period_days ?? DEFAULT_DASHBOARD_DATA.period_days,
+        generated_at: data.generated_at ?? DEFAULT_DASHBOARD_DATA.generated_at,
+        kpis: {
+            today: {
+                received_total: data.kpis?.today?.received_total ?? 0,
+                allocated_count: data.kpis?.today?.allocated_count ?? 0,
+                unallocated_count: data.kpis?.today?.unallocated_count ?? 0,
+                parse_errors_count: data.kpis?.today?.parse_errors_count ?? 0,
+            },
+            last_days: {
+                days: data.kpis?.last_days?.days ?? 7,
+                received_total: data.kpis?.last_days?.received_total ?? 0,
+                allocated_count: data.kpis?.last_days?.allocated_count ?? 0,
+                unallocated_count: data.kpis?.last_days?.unallocated_count ?? 0,
+                unallocated_aging_24h: data.kpis?.last_days?.unallocated_aging_24h ?? 0,
+                parse_errors_count: data.kpis?.last_days?.parse_errors_count ?? 0,
+            },
+        },
+        attention: data.attention ?? [],
+        unallocated_preview: data.unallocated_preview ?? [],
+        parse_error_preview: data.parse_error_preview ?? [],
+        recent_activity: data.recent_activity ?? [],
+        health: {
+            momo_primary_code_present: data.health?.momo_primary_code_present ?? false,
+            sms_sources_offline_count: data.health?.sms_sources_offline_count ?? 0,
+            last_sms_seen_at: data.health?.last_sms_seen_at ?? null,
+        },
+    };
+}
+
 export function useDashboardKPIs(selectedInstitutionId: string | null = null) {
     const { role, institutionId: userInstitutionId } = useAuth();
     const isPlatformAdmin = isSuperAdmin(role);
@@ -110,7 +149,7 @@ export function useDashboardKPIs(selectedInstitutionId: string | null = null) {
 
     return useQuery({
         queryKey: ['dashboard', 'kpis', isPlatformAdmin ? 'global' : 'institution', effectiveInstitutionId],
-        queryFn: async () => {
+        queryFn: async (): Promise<DashboardData> => {
             try {
                 const rpcQuery = supabase.rpc('get_dashboard_summary', {
                     p_institution_id: effectiveInstitutionId || null,
@@ -126,39 +165,35 @@ export function useDashboardKPIs(selectedInstitutionId: string | null = null) {
                 const { data, error } = response;
 
                 if (error) {
-                    console.error('RPC Error fetching dashboard summary:', error);
-                    throw error;
-                }
-
-                if (!data) {
-                    console.warn('Dashboard summary RPC returned no data, using default.');
+                    console.error('[Dashboard] RPC Error:', error.message, error.code);
+                    // Return default data instead of throwing - prevents error boundary trigger
                     return DEFAULT_DASHBOARD_DATA;
                 }
 
-                // Ensure deep merge or safety? relying on JSON structure for now
-                // Any missing top-level keys should be filled from default if possible,
-                // but doing a shallow merge at least prevents "property of undefined" for top-level keys
-                // ideally we would do a deep merge, but for now let's just use data or default.
-
-                // Basic validation: check if 'kpis' and 'health' exist
-                const typedData = data as DashboardData;
-                if (!typedData.kpis || !typedData.health) {
-                    console.warn('Dashboard summary RPC returned incomplete data, merging with default.', data);
-                    return { ...DEFAULT_DASHBOARD_DATA, ...typedData };
+                if (!data) {
+                    console.warn('[Dashboard] RPC returned no data, using defaults');
+                    return DEFAULT_DASHBOARD_DATA;
                 }
 
-                return typedData;
+                // Deep merge with defaults to ensure all fields exist
+                return mergeDashboardData(data as Partial<DashboardData>);
             } catch (err) {
-                console.error('Error in useDashboardKPIs:', err);
-                throw err;
+                console.error('[Dashboard] Unexpected error:', err);
+                // Return default data instead of throwing
+                return DEFAULT_DASHBOARD_DATA;
             }
         },
-        // Cache for 5 minutes (user requirement)
+        // Cache for 5 minutes
         staleTime: 5 * 60 * 1000,
         // Keep data in cache for longer
         gcTime: 10 * 60 * 1000,
-        retry: 1,
+        // Retry with exponential backoff
+        retry: 2,
+        retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
         // Only run if we have an institution ID or are a platform admin (viewing global)
         enabled: isPlatformAdmin || !!effectiveInstitutionId,
+        // Return default data as placeholder while loading
+        placeholderData: DEFAULT_DASHBOARD_DATA,
     });
 }
+

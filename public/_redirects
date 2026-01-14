@@ -1,2 +1,8 @@
-# SPA routing fallback for Cloudflare Pages
-/*    /index.html   200
+# Cloudflare Pages SPA Routing
+# https://developers.cloudflare.com/pages/configuration/redirects/
+
+# Don't redirect existing static assets
+/assets/*  /assets/:splat  200
+
+# SPA fallback - force for all other routes
+/*  /index.html  200!
