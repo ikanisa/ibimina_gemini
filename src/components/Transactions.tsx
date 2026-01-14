@@ -53,6 +53,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
 
   // Selection state for bulk actions
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<string>>(new Set());
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -184,12 +185,6 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-slate-800">Transactions Ledger</h2>
-              {isRealtimeConnected && (
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-                  <Radio size={10} className="fill-current" />
-                  Live
-                </span>
-              )}
             </div>
             <p className="text-xs text-slate-500">{transactions?.length || 0} transactions loaded</p>
           </div>
@@ -225,7 +220,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
                   });
                 } catch (err) {
                   console.error('Export failed:', err);
-                  setError('Failed to export transactions');
+                  setExportError('Failed to export transactions');
                 }
               }}
             >
@@ -303,9 +298,9 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
       {loading && transactions.length === 0 ? (
         <div className="flex-1 overflow-hidden">
           {!isMobile ? (
-            <TransactionSkeleton count={10} variant="table" />
+            <TransactionsSkeleton />
           ) : (
-            <TransactionSkeleton count={5} variant="card" />
+            <TransactionsSkeleton />
           )}
         </div>
       ) : (

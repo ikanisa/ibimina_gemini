@@ -7,11 +7,26 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2, CheckSquare, Square } from 'lucide-react';
 import { Badge } from '../ui';
-import { DraggableTransaction } from './DragDropAllocation';
-import type { SupabaseTransaction } from '../../types';
+
+// Flexible transaction type that works with various data sources
+interface TransactionRow {
+  id: string;
+  occurred_at: string;
+  amount: number;
+  currency?: string;
+  channel?: string;
+  allocation_status: string;
+  payer_name?: string | null;
+  payer_phone?: string | null;
+  momo_ref?: string | null;
+  reference?: string | null;
+  member_id?: string | null;
+  members?: { full_name?: string | null };
+  groups?: { name?: string | null };
+}
 
 interface VirtualizedTransactionTableProps {
-  transactions: Array<SupabaseTransaction & { members?: { full_name?: string | null }; groups?: { name?: string | null } }>;
+  transactions: TransactionRow[];
   onRowClick: (transactionId: string) => void;
   formatDate: (dateString: string) => string;
   formatTime: (dateString: string) => string;
@@ -134,11 +149,8 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
             const isSelected = selectedIds.has(tx.id);
             const isUnallocated = tx.allocation_status === 'unallocated';
             return (
-              <DraggableTransaction
+              <div
                 key={tx.id}
-                transactionId={tx.id}
-                amount={tx.amount}
-                currency={tx.currency || 'RWF'}
                 className="absolute"
                 style={{
                   top: 0,
@@ -150,66 +162,65 @@ export const VirtualizedTransactionTable: React.FC<VirtualizedTransactionTablePr
               >
                 <div
                   onClick={() => onRowClick(tx.id)}
-                  className={`grid grid-cols-12 px-4 py-3 items-center border-b transition-colors cursor-pointer ${
-                    isSelected
-                      ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-                      : 'border-slate-100 hover:bg-slate-50 active:bg-slate-100'
-                  } ${isUnallocated ? 'opacity-100' : 'opacity-90'}`}
+                  className={`grid grid-cols-12 px-4 py-3 items-center border-b transition-colors cursor-pointer ${isSelected
+                    ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                    : 'border-slate-100 hover:bg-slate-50 active:bg-slate-100'
+                    } ${isUnallocated ? 'opacity-100' : 'opacity-90'}`}
                 >
-                {onSelectionToggle && (
-                  <div className="col-span-1 flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        onSelectionToggle(tx.id);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
-                    />
-                  </div>
-                )}
-                <div className={onSelectionToggle ? "col-span-2 whitespace-nowrap" : "col-span-2 whitespace-nowrap"}>
-                  <div className="text-sm text-slate-900 font-medium">{formatDate(tx.occurred_at)}</div>
-                  <div className="text-xs text-slate-400">{formatTime(tx.occurred_at)}</div>
-                </div>
-                <div className="col-span-2 whitespace-nowrap">
-                  <div className="text-sm font-bold text-green-600">
-                    {tx.amount.toLocaleString()} {tx.currency || 'RWF'}
-                  </div>
-                  <div className="text-xs text-slate-400">{tx.channel}</div>
-                </div>
-                <div className="col-span-2 whitespace-nowrap">
-                  <div className="text-sm text-slate-900">
-                    {tx.payer_name || tx.payer_phone || '—'}
-                  </div>
-                  {tx.payer_name && tx.payer_phone && (
-                    <div className="text-xs text-slate-400 font-mono">{tx.payer_phone}</div>
-                  )}
-                </div>
-                <div className="col-span-2 whitespace-nowrap">
-                  <div className="text-xs text-slate-600 font-mono max-w-[120px] truncate">
-                    {tx.momo_ref || tx.reference || '—'}
-                  </div>
-                </div>
-                <div className="col-span-1 whitespace-nowrap">
-                  {getStatusBadge(tx.allocation_status)}
-                </div>
-                <div className="col-span-1 whitespace-nowrap">
-                  {tx.member_id ? (
-                    <div>
-                      <div className="text-sm text-slate-900">{tx.members?.full_name || '—'}</div>
-                      {tx.groups?.name && (
-                        <div className="text-xs text-slate-400">{tx.groups.name}</div>
-                      )}
+                  {onSelectionToggle && (
+                    <div className="col-span-1 flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          onSelectionToggle(tx.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                      />
                     </div>
-                  ) : (
-                    <span className="text-sm text-slate-400">—</span>
                   )}
+                  <div className={onSelectionToggle ? "col-span-2 whitespace-nowrap" : "col-span-2 whitespace-nowrap"}>
+                    <div className="text-sm text-slate-900 font-medium">{formatDate(tx.occurred_at)}</div>
+                    <div className="text-xs text-slate-400">{formatTime(tx.occurred_at)}</div>
+                  </div>
+                  <div className="col-span-2 whitespace-nowrap">
+                    <div className="text-sm font-bold text-green-600">
+                      {tx.amount.toLocaleString()} {tx.currency || 'RWF'}
+                    </div>
+                    <div className="text-xs text-slate-400">{tx.channel}</div>
+                  </div>
+                  <div className="col-span-2 whitespace-nowrap">
+                    <div className="text-sm text-slate-900">
+                      {tx.payer_name || tx.payer_phone || '—'}
+                    </div>
+                    {tx.payer_name && tx.payer_phone && (
+                      <div className="text-xs text-slate-400 font-mono">{tx.payer_phone}</div>
+                    )}
+                  </div>
+                  <div className="col-span-2 whitespace-nowrap">
+                    <div className="text-xs text-slate-600 font-mono max-w-[120px] truncate">
+                      {tx.momo_ref || tx.reference || '—'}
+                    </div>
+                  </div>
+                  <div className="col-span-1 whitespace-nowrap">
+                    {getStatusBadge(tx.allocation_status)}
+                  </div>
+                  <div className="col-span-1 whitespace-nowrap">
+                    {tx.member_id ? (
+                      <div>
+                        <div className="text-sm text-slate-900">{tx.members?.full_name || '—'}</div>
+                        {tx.groups?.name && (
+                          <div className="text-xs text-slate-400">{tx.groups.name}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400">—</span>
+                    )}
+                  </div>
                 </div>
-                </div>
-              </DraggableTransaction>
+              </div>
             );
           })}
         </div>

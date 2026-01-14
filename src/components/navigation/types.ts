@@ -45,4 +45,6 @@ export interface HeaderProps {
   onSignOut: () => void;
   onMobileMenuToggle: () => void;
   isMobileMenuOpen: boolean;
+  onChangePassword?: () => void;
 }
+

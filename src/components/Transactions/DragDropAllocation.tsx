@@ -8,7 +8,7 @@ import React, { useState, useCallback } from 'react';
 import { User, Users, Loader2, CheckCircle2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { handleError, getUserFriendlyMessage } from '../../lib/errors/errorHandler';
+import { handleError, getUserFriendlyMessage } from '../../lib/errors/ErrorHandler';
 import { captureError } from '../../lib/sentry';
 import { Button } from '../ui';
 
@@ -169,7 +169,7 @@ export const DragDropAllocation: React.FC<DragDropAllocationProps> = ({
 
       setSuccess(true);
       setDraggedTransaction(null);
-      
+
       // Clear success message after 2 seconds
       setTimeout(() => {
         setSuccess(false);
@@ -223,7 +223,7 @@ export const DragDropAllocation: React.FC<DragDropAllocationProps> = ({
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
         <p className="font-medium mb-1">Drag and drop to allocate:</p>
         <p className="text-xs">
-          Drag the transaction (amount: {transactionAmount.toLocaleString()} {transactionCurrency}) 
+          Drag the transaction (amount: {transactionAmount.toLocaleString()} {transactionCurrency})
           to a member or group below to allocate it.
         </p>
       </div>

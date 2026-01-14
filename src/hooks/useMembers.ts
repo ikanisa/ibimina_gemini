@@ -10,7 +10,7 @@ import * as membersApi from '../lib/api/members.api';
 import { queryKeys } from '../lib/query-client';
 import type { SupabaseMember } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/errorHandler';
+import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 
 export interface UseMembersOptions {
   includeGroups?: boolean;

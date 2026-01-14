@@ -166,6 +166,12 @@ export interface SupabaseTransaction {
   channel: string;
   status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED';
   reference?: string | null;
+  // MoMo SMS/transaction fields
+  occurred_at?: string;
+  payer_name?: string | null;
+  payer_phone?: string | null;
+  momo_ref?: string | null;
+  allocation_status?: 'unallocated' | 'allocated' | 'flagged' | 'duplicate';
   created_at: string;
 }
 
@@ -243,6 +249,10 @@ export enum ViewState {
   SETTINGS = 'SETTINGS',
   PROFILE = 'PROFILE',
   SMS_GATEWAY_DEVICES = 'SMS_GATEWAY_DEVICES',
+  // Additional views for SystemHealthIndicator and MemberDetail
+  LOANS = 'LOANS',
+  ALLOCATION_QUEUE = 'ALLOCATION_QUEUE',
+  RECONCILIATION = 'RECONCILIATION',
 }
 
 export type Status = 'Active' | 'Pending' | 'Suspended' | 'Closed';

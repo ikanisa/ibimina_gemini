@@ -9,7 +9,7 @@ import { AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 import { Eye, WifiOff } from 'lucide-react';
 // Mock data removed - using only real Supabase data
-import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile } from './types';
+import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile, Transaction } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { buildInitialsAvatar } from './lib/avatars';
 import { Sidebar, Header, MobileBottomNav } from './components/navigation';

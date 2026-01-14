@@ -13,7 +13,7 @@ import { CheckSquare, Square, Trash2, Flag, Download, Loader2, AlertCircle } fro
 import { Button } from '../ui';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { handleError, getUserFriendlyMessage } from '../../lib/errors/errorHandler';
+import { handleError, getUserFriendlyMessage } from '../../lib/errors/ErrorHandler';
 import { captureError } from '../../lib/sentry';
 
 interface BulkActionsProps {

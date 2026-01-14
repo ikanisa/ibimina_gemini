@@ -2,6 +2,7 @@
  * Centralized error handling exports
  */
 
-export * from './errorHandler';
+export * from './ErrorHandler';
 export * from './retry';
+
 
