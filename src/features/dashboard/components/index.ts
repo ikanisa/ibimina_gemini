@@ -4,5 +4,7 @@ export { PreviewList } from './PreviewList';
 export { ActivityList } from './ActivityList';
 export { DashboardHealthBanner } from './DashboardHealthBanner';
 export { InstitutionSwitcher } from './InstitutionSwitcher';
-
-
+export { StatWidget } from './StatWidget';
+export { TimeRangeFilter, getDateRangeFromFilter, TIME_RANGE_OPTIONS } from './TimeRangeFilter';
+export type { TimeRange, TimeRangeOption } from './TimeRangeFilter';
+export { UnallocatedActionsCard } from './UnallocatedActionsCard';

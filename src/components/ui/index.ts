@@ -24,5 +24,7 @@ export * from './SimpleSelect';
 export * from './Breadcrumbs';
 export * from './ThemeToggle';
 export * from './DataStateWrapper';
+export * from './InstitutionSemanticSearch';
+export * from './GlassCard';
 export * from '../WizardProgress';
 

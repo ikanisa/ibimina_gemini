@@ -15,11 +15,11 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Mail,
-  Lock,
   Building,
   User,
   Loader2,
-  Eye
+  Eye,
+  Copy
 } from 'lucide-react';
 // Mock data removed - using only real Supabase data
 import { StaffMember, StaffRole, SupabaseProfile } from '../types';
@@ -27,7 +27,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { buildInitialsAvatar } from '../lib/avatars';
 import { mapStaffRole, mapStaffStatus } from '../lib/mappers';
-import { LoadingSpinner, ErrorDisplay, EmptyState, Button, FormField, SearchInput, Badge, Modal } from './ui';
+import { LoadingSpinner, ErrorDisplay, EmptyState, Button, FormField, SearchInput, Badge, Modal, InstitutionSemanticSearch } from './ui';
 import { useIsMobile } from '../hooks/useResponsive';
 
 type Tab = 'Staff List' | 'Roles & Permissions';
@@ -38,7 +38,8 @@ interface ParsedCandidate {
   name: string;
   email: string;
   role: StaffRole;
-  branch: string;
+  institutionId: string;
+  institutionName: string;
   confidence: number; // 0-100 score from AI
 }
 
@@ -64,12 +65,31 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     name: '',
     email: '',
     role: 'Staff' as StaffRole,
-    branch: '',
+    institutionId: '',
+    institutionName: '',
     status: 'Active' as 'Active' | 'Suspended',
-    onboardingMethod: 'invite', // 'invite' | 'password'
-    password: ''
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Success modal state
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [createdStaffCredentials, setCreatedStaffCredentials] = useState<{
+    name: string;
+    email: string;
+    password: string;
+    institutionName: string;
+  } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Generate random 8-character password
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  };
 
   // Import Modal State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -157,15 +177,21 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     if (!newStaffData.email.trim()) errors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newStaffData.email)) errors.email = "Invalid email format";
 
-    if (!newStaffData.branch.trim()) errors.branch = "Branch assignment is required";
-
-    if (newStaffData.onboardingMethod === 'password') {
-      if (!newStaffData.password) errors.password = "Temporary password is required";
-      else if (newStaffData.password.length < 8) errors.password = "Password must be at least 8 characters";
-    }
+    if (!newStaffData.institutionId) errors.institutionId = "Institution is required";
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Copy to clipboard helper
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   const handleCreateStaff = async (e: React.FormEvent) => {
@@ -174,17 +200,17 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
 
     setIsSubmitting(true);
 
-    // Always use Supabase API - mock data removed
+    // Generate 8-character password
+    const generatedPassword = generatePassword();
 
     const { data, error } = await supabase.functions.invoke('staff-invite', {
       body: {
         email: newStaffData.email,
         full_name: newStaffData.name,
         role: newStaffData.role,
-        branch: newStaffData.branch,
-        institution_id: institutionId,
-        onboarding_method: newStaffData.onboardingMethod,
-        password: newStaffData.onboardingMethod === 'password' ? newStaffData.password : undefined
+        institution_id: newStaffData.institutionId || institutionId,
+        onboarding_method: 'password',
+        password: generatedPassword
       }
     });
 
@@ -204,13 +230,22 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
           name,
           email: newProfile.email || newStaffData.email,
           role: mapStaffRole(newProfile.role),
-          branch: newProfile.branch || newStaffData.branch,
+          branch: newStaffData.institutionName || 'HQ',
           status: mapStaffStatus(newProfile.status),
           lastLogin: newProfile.last_login_at ? new Date(newProfile.last_login_at).toLocaleString() : '—',
           avatarUrl: newProfile.avatar_url || buildInitialsAvatar(name)
         },
         ...prev
       ]);
+
+      // Show success modal with credentials
+      setCreatedStaffCredentials({
+        name: newStaffData.name,
+        email: newStaffData.email,
+        password: generatedPassword,
+        institutionName: newStaffData.institutionName
+      });
+      setIsSuccessModalOpen(true);
     }
 
     setIsSubmitting(false);
@@ -219,10 +254,9 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
       name: '',
       email: '',
       role: 'Staff',
-      branch: '',
+      institutionId: '',
+      institutionName: '',
       status: 'Active',
-      onboardingMethod: 'invite',
-      password: ''
     });
   };
 
@@ -347,7 +381,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
               <tr>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Staff Member</th>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Branch</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Institution</th>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Last Login</th>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
@@ -532,7 +566,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                   </div>
                 </div>
 
-                {/* Role & Branch */}
+                {/* Role & Institution */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Role <span className="text-red-500">*</span></label>
@@ -545,100 +579,17 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                       <option value="Admin">Admin</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Branch <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      <input
-                        type="text"
-                        className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.branch ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
-                        placeholder="Assign Branch"
-                        value={newStaffData.branch}
-                        onChange={e => setNewStaffData({ ...newStaffData, branch: e.target.value })}
-                      />
-                    </div>
-                    {formErrors.branch && <p className="text-red-500 text-xs mt-1">{formErrors.branch}</p>}
-                  </div>
                 </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Initial Status</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="status"
-                        checked={newStaffData.status === 'Active'}
-                        onChange={() => setNewStaffData({ ...newStaffData, status: 'Active' })}
-                        className="text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-slate-700">Active</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="status"
-                        checked={newStaffData.status === 'Suspended'}
-                        onChange={() => setNewStaffData({ ...newStaffData, status: 'Suspended' })}
-                        className="text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-slate-700">Suspended</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Onboarding */}
-                <div className="pt-4 border-t border-slate-100">
-                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-3">Onboarding Method</label>
-
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => setNewStaffData({ ...newStaffData, onboardingMethod: 'invite' })}
-                      className={`p-3 border rounded-lg text-left transition-all ${newStaffData.onboardingMethod === 'invite'
-                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                        : 'border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 mb-1">
-                        <Mail size={16} /> Send Invitation
-                      </div>
-                      <p className="text-xs text-slate-500">Email link to set password</p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setNewStaffData({ ...newStaffData, onboardingMethod: 'password' })}
-                      className={`p-3 border rounded-lg text-left transition-all ${newStaffData.onboardingMethod === 'password'
-                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                        : 'border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 mb-1">
-                        <Lock size={16} /> Set Password
-                      </div>
-                      <p className="text-xs text-slate-500">Manually create password</p>
-                    </button>
-                  </div>
-
-                  {newStaffData.onboardingMethod === 'password' && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Temporary Password <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                        <input
-                          type="password"
-                          className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.password ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
-                          placeholder="Enter temporary password"
-                          value={newStaffData.password}
-                          onChange={e => setNewStaffData({ ...newStaffData, password: e.target.value })}
-                        />
-                      </div>
-                      {formErrors.password && <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>}
-                    </div>
-                  )}
-                </div>
+                {/* Institution Search */}
+                <InstitutionSemanticSearch
+                  label="Institution"
+                  required
+                  value={newStaffData.institutionId}
+                  onChange={(id, name) => setNewStaffData({ ...newStaffData, institutionId: id, institutionName: name })}
+                  error={formErrors.institutionId}
+                  placeholder="Search for institution..."
+                />
 
               </div>
               {formErrors.submit && (
@@ -766,7 +717,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                           <th className="px-4 py-3 font-medium text-slate-500">Name</th>
                           <th className="px-4 py-3 font-medium text-slate-500">Email</th>
                           <th className="px-4 py-3 font-medium text-slate-500">Role</th>
-                          <th className="px-4 py-3 font-medium text-slate-500">Branch</th>
+                          <th className="px-4 py-3 font-medium text-slate-500">Institution</th>
                           <th className="px-4 py-3 font-medium text-slate-500 w-10"></th>
                         </tr>
                       </thead>
@@ -857,6 +808,96 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal - Show credentials after staff creation */}
+      {isSuccessModalOpen && createdStaffCredentials && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 bg-green-50 flex justify-between items-center">
+              <h3 className="font-bold text-green-800 text-lg flex items-center gap-2">
+                <Check className="bg-green-100 text-green-600 p-1 rounded-full w-6 h-6" />
+                Staff Created Successfully
+              </h3>
+              <button
+                onClick={() => {
+                  setIsSuccessModalOpen(false);
+                  setCreatedStaffCredentials(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Credentials Content */}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 mb-4">
+                Share these login credentials with <strong>{createdStaffCredentials.name}</strong>:
+              </p>
+
+              {/* Email */}
+              <div className="bg-slate-50 rounded-lg p-3">
+                <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Email</label>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-mono text-slate-800">{createdStaffCredentials.email}</span>
+                  <button
+                    onClick={() => copyToClipboard(createdStaffCredentials.email, 'email')}
+                    className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-slate-100"
+                    title="Copy email"
+                  >
+                    {copiedField === 'email' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="bg-slate-50 rounded-lg p-3">
+                <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Password</label>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-mono text-slate-800">{createdStaffCredentials.password}</span>
+                  <button
+                    onClick={() => copyToClipboard(createdStaffCredentials.password, 'password')}
+                    className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-slate-100"
+                    title="Copy password"
+                  >
+                    {copiedField === 'password' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Institution */}
+              <div className="bg-slate-50 rounded-lg p-3">
+                <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Institution</label>
+                <span className="text-sm text-slate-800">{createdStaffCredentials.institutionName}</span>
+              </div>
+
+              {/* Copy All Button */}
+              <button
+                onClick={() => copyToClipboard(
+                  `Login credentials for ${createdStaffCredentials.name}:\nEmail: ${createdStaffCredentials.email}\nPassword: ${createdStaffCredentials.password}\nInstitution: ${createdStaffCredentials.institutionName}`,
+                  'all'
+                )}
+                className="w-full mt-4 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                {copiedField === 'all' ? (
+                  <>
+                    <Check size={16} /> Copied to Clipboard!
+                  </>
+                ) : (
+                  <>
+                    <Copy size={16} /> Copy All Credentials
+                  </>
+                )}
+              </button>
+
+              <p className="text-xs text-slate-500 text-center">
+                Please share these credentials securely with the new staff member.
+              </p>
+            </div>
           </div>
         </div>
       )}

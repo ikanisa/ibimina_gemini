@@ -4,11 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, ErrorDisplay, SimpleInput, SimpleSelect } from '../ui';
+import { Modal, Button, ErrorDisplay, SimpleInput, InstitutionSemanticSearch } from '../ui';
 import { Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { AddDeviceData, Institution } from './types';
+import type { AddDeviceData } from './types';
 import { isSuperAdmin } from '../../lib/utils/roleHelpers';
 
 interface AddDeviceModalProps {
@@ -27,41 +27,33 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [institutions, setInstitutions] = useState<Institution[]>([]);
-  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+  const [institutionName, setInstitutionName] = useState('');
   const [newDeviceData, setNewDeviceData] = useState<AddDeviceData>({
     device_name: '',
     institution_id: isPlatformAdmin ? '' : (userInstitutionId || ''),
     momo_code: '',
   });
 
-  // Load institutions for platform admins
+  // Load user's institution name for non-platform admins
   useEffect(() => {
-    if (isOpen && isPlatformAdmin) {
-      loadInstitutions();
-    } else if (isOpen && userInstitutionId) {
+    if (isOpen && !isPlatformAdmin && userInstitutionId) {
       setNewDeviceData(prev => ({ ...prev, institution_id: userInstitutionId }));
+      loadUserInstitutionName(userInstitutionId);
     }
   }, [isOpen, isPlatformAdmin, userInstitutionId]);
 
-  const loadInstitutions = async () => {
-    setLoadingInstitutions(true);
+  const loadUserInstitutionName = async (institutionId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('institutions')
-        .select('id, name')
-        .eq('status', 'ACTIVE')
-        .order('name');
-
-      if (error) throw error;
-      if (data) {
-        setInstitutions(data);
+        .select('name')
+        .eq('id', institutionId)
+        .single();
+      if (data?.name) {
+        setInstitutionName(data.name);
       }
     } catch (err) {
-      console.error('Error loading institutions:', err);
-      setFormErrors({ submit: 'Failed to load institutions' });
-    } finally {
-      setLoadingInstitutions(false);
+      console.error('Error loading institution name:', err);
     }
   };
 
@@ -175,27 +167,21 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
         />
 
         {isPlatformAdmin ? (
-          <SimpleSelect
+          <InstitutionSemanticSearch
             label="Institution"
             required
-            error={formErrors.institution_id}
             value={newDeviceData.institution_id}
-            onChange={(e) =>
-              setNewDeviceData({ ...newDeviceData, institution_id: e.target.value })
-            }
-            options={[
-              { value: '', label: 'Select institution...' },
-              ...institutions.map((inst) => ({
-                value: inst.id,
-                label: inst.name,
-              })),
-            ]}
-            disabled={loadingInstitutions}
+            onChange={(id, name) => {
+              setNewDeviceData({ ...newDeviceData, institution_id: id });
+              setInstitutionName(name);
+            }}
+            error={formErrors.institution_id}
+            placeholder="Search for institution..."
           />
         ) : (
           <SimpleInput
             label="Institution"
-            value={institutions.find((i) => i.id === newDeviceData.institution_id)?.name || ''}
+            value={institutionName}
             disabled
           />
         )}

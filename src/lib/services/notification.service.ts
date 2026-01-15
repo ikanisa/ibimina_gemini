@@ -1,6 +1,9 @@
 /**
  * Notification Service
- * Handles sending notifications via SMS and WhatsApp
+ * Handles sending manual WhatsApp messages triggered by staff
+ * 
+ * NOTE: Automated SMS/WhatsApp notifications have been removed.
+ * All messages are now triggered manually by staff.
  */
 
 import { supabase } from '../supabase';
@@ -16,21 +19,22 @@ export interface NotificationTemplate {
   variables: Record<string, string>;
 }
 
-export interface SendNotificationParams {
+export interface SendWhatsAppMessageParams {
   institutionId: string;
   recipientType: 'MEMBER' | 'LEADER' | 'GROUP';
   recipientId: string;
   recipientPhone: string;
-  templateType: string;
-  variables: Record<string, string>;
-  channel?: 'SMS' | 'WHATSAPP' | 'BOTH';
-  documentUrl?: string; // For sending PDFs
+  messageType: string;
+  message: string;
+  documentUrl?: string;
   documentFilename?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationResult {
   success: boolean;
   notificationLogId?: string;
+  messageId?: string;
   error?: string;
 }
 
@@ -41,7 +45,7 @@ class NotificationService {
   async getTemplate(
     institutionId: string,
     templateType: string,
-    channel: 'SMS' | 'WHATSAPP' | 'BOTH' = 'BOTH',
+    channel: 'SMS' | 'WHATSAPP' | 'BOTH' = 'WHATSAPP',
     language: string = 'en'
   ): Promise<NotificationTemplate | null> {
     const { data, error } = await supabase
@@ -73,7 +77,7 @@ class NotificationService {
   /**
    * Replace template variables with actual values
    */
-  private replaceTemplateVariables(
+  replaceTemplateVariables(
     template: string,
     variables: Record<string, string>
   ): string {
@@ -86,79 +90,63 @@ class NotificationService {
   }
 
   /**
-   * Send notification via SMS
+   * Send WhatsApp message directly (manual trigger by staff)
    */
-  private async sendSMS(
-    phone: string,
-    message: string
-  ): Promise<{ success: boolean; externalId?: string; error?: string }> {
-    // SMS sending is handled via the SMS Gateway Android app which forwards MoMo messages.
-    // Direct SMS sending from the web app is not implemented - use WhatsApp channel instead.
-    // Integration with SMS providers (Twilio, AWS SNS) can be added if needed.
-    return {
-      success: false,
-      error: 'SMS channel not available - use WhatsApp',
-    };
-  }
-
-  /**
-   * Send notification via WhatsApp
-   */
-  private async sendWhatsApp(
-    phone: string,
-    message: string,
-    documentUrl?: string,
-    documentFilename?: string
-  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendWhatsAppMessage(
+    params: SendWhatsAppMessageParams
+  ): Promise<NotificationResult> {
     try {
-      // Load config from environment (in Edge Function) or Supabase
+      // Load WhatsApp config
       const config = await whatsappService.loadConfigFromSupabase();
       await whatsappService.initialize(config);
 
-      if (documentUrl && documentFilename) {
-        // Send document
-        const result = await whatsappService.sendDocument({
-          to: phone,
-          documentUrl,
-          filename: documentFilename,
-          caption: message,
+      let result: { success: boolean; messageId?: string; error?: string };
+
+      if (params.documentUrl && params.documentFilename) {
+        // Send document with message
+        result = await whatsappService.sendDocument({
+          to: params.recipientPhone,
+          documentUrl: params.documentUrl,
+          filename: params.documentFilename,
+          caption: params.message,
         });
-        return {
-          success: result.success,
-          messageId: result.messageId,
-          error: result.error,
-        };
       } else {
         // Send text message
-        const result = await whatsappService.sendMessage({
-          to: phone,
-          message,
+        result = await whatsappService.sendMessage({
+          to: params.recipientPhone,
+          message: params.message,
         });
-        return {
-          success: result.success,
-          messageId: result.messageId,
-          error: result.error,
-        };
       }
+
+      // Log the notification
+      const logId = await this.logNotification(params, result);
+
+      return {
+        success: result.success,
+        notificationLogId: logId || undefined,
+        messageId: result.messageId,
+        error: result.error,
+      };
     } catch (error) {
       console.error('WhatsApp send error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+
+      // Log failed attempt
+      await this.logNotification(params, { success: false, error: errorMsg });
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMsg,
       };
     }
   }
 
   /**
-   * Log notification to database
+   * Log notification to database for audit trail
    */
   private async logNotification(
-    params: SendNotificationParams,
-    channel: 'SMS' | 'WHATSAPP',
-    message: string,
-    status: 'PENDING' | 'SENT' | 'FAILED' | 'DELIVERED',
-    externalId?: string,
-    errorMessage?: string
+    params: SendWhatsAppMessageParams,
+    result: { success: boolean; messageId?: string; error?: string }
   ): Promise<string | null> {
     const { data, error } = await supabase
       .from('notification_logs')
@@ -167,13 +155,14 @@ class NotificationService {
         recipient_type: params.recipientType,
         recipient_id: params.recipientId,
         recipient_phone: params.recipientPhone,
-        channel,
-        template_type: params.templateType,
-        message_body: message,
-        status,
-        external_id: externalId,
-        error_message: errorMessage,
-        sent_at: status === 'SENT' ? new Date().toISOString() : null,
+        channel: 'WHATSAPP',
+        template_type: params.messageType,
+        message_body: params.message,
+        status: result.success ? 'SENT' : 'FAILED',
+        external_id: result.messageId,
+        error_message: result.error,
+        sent_at: result.success ? new Date().toISOString() : null,
+        metadata: params.metadata || {},
       })
       .select('id')
       .single();
@@ -187,250 +176,46 @@ class NotificationService {
   }
 
   /**
-   * Send notification
+   * Send via Edge Function (for server-side sending)
    */
-  async sendNotification(params: SendNotificationParams): Promise<NotificationResult> {
+  async sendViaEdgeFunction(
+    params: SendWhatsAppMessageParams
+  ): Promise<NotificationResult> {
     try {
-      // Get template
-      const template = await this.getTemplate(
-        params.institutionId,
-        params.templateType,
-        params.channel || 'BOTH'
-      );
+      const { data, error } = await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          to: params.recipientPhone,
+          message: params.message,
+          documentUrl: params.documentUrl,
+          documentFilename: params.documentFilename,
+          idempotencyKey: `${params.recipientId}-${Date.now()}`,
+        },
+      });
 
-      if (!template) {
-        return {
-          success: false,
-          error: `Template not found: ${params.templateType}`,
-        };
+      if (error) {
+        return { success: false, error: error.message };
       }
 
-      // Replace variables in template
-      const message = this.replaceTemplateVariables(template.body, params.variables);
-      const subject = template.subject
-        ? this.replaceTemplateVariables(template.subject, params.variables)
-        : undefined;
-
-      const channels: ('SMS' | 'WHATSAPP')[] = [];
-      if (template.channel === 'BOTH' || template.channel === 'SMS') {
-        channels.push('SMS');
-      }
-      if (template.channel === 'BOTH' || template.channel === 'WHATSAPP') {
-        channels.push('WHATSAPP');
-      }
-
-      // If specific channel requested, filter
-      if (params.channel && params.channel !== 'BOTH') {
-        const filtered = channels.filter(c => c === params.channel);
-        if (filtered.length > 0) {
-          channels.splice(0, channels.length, ...filtered);
-        }
-      }
-
-      let lastError: string | undefined;
-      let lastLogId: string | undefined;
-      let successCount = 0;
-
-      // Send via each channel
-      for (const channel of channels) {
-        try {
-          let result: { success: boolean; externalId?: string; messageId?: string; error?: string };
-
-          if (channel === 'WHATSAPP') {
-            result = await this.sendWhatsApp(
-              params.recipientPhone,
-              message,
-              params.documentUrl,
-              params.documentFilename
-            );
-          } else {
-            result = await this.sendSMS(params.recipientPhone, message);
-          }
-
-          const logId = await this.logNotification(
-            params,
-            channel,
-            message,
-            result.success ? 'SENT' : 'FAILED',
-            result.externalId || result.messageId,
-            result.error
-          );
-
-          if (result.success) {
-            successCount++;
-            if (!lastLogId) lastLogId = logId || undefined;
-          } else {
-            lastError = result.error;
-          }
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          await this.logNotification(
-            params,
-            channel,
-            message,
-            'FAILED',
-            undefined,
-            errorMsg
-          );
-          lastError = errorMsg;
-        }
-      }
+      // Log the notification
+      const logId = await this.logNotification(params, {
+        success: data?.success ?? false,
+        messageId: data?.messageId,
+        error: data?.error,
+      });
 
       return {
-        success: successCount > 0,
-        notificationLogId: lastLogId,
-        error: successCount === 0 ? lastError : undefined,
+        success: data?.success ?? false,
+        notificationLogId: logId || undefined,
+        messageId: data?.messageId,
+        error: data?.error,
       };
     } catch (error) {
-      console.error('Notification send error:', error);
+      console.error('Edge function error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
-  }
-
-  /**
-   * Send contribution reminder to a member
-   */
-  async sendContributionReminder(
-    institutionId: string,
-    memberId: string,
-    memberName: string,
-    memberPhone: string,
-    groupName: string,
-    expectedAmount: number,
-    currency: string,
-    dueDate: string,
-    channel?: 'SMS' | 'WHATSAPP' | 'BOTH'
-  ): Promise<NotificationResult> {
-    return this.sendNotification({
-      institutionId,
-      recipientType: 'MEMBER',
-      recipientId: memberId,
-      recipientPhone: memberPhone,
-      templateType: 'CONTRIBUTION_REMINDER',
-      variables: {
-        member_name: memberName,
-        expected_amount: expectedAmount.toString(),
-        currency,
-        group_name: groupName,
-        due_date: dueDate,
-      },
-      channel,
-    });
-  }
-
-  /**
-   * Send periodic total to a member
-   */
-  async sendPeriodicTotal(
-    institutionId: string,
-    memberId: string,
-    memberName: string,
-    memberPhone: string,
-    groupName: string,
-    period: string,
-    periodTotal: number,
-    overallTotal: number,
-    currency: string,
-    channel?: 'SMS' | 'WHATSAPP' | 'BOTH'
-  ): Promise<NotificationResult> {
-    return this.sendNotification({
-      institutionId,
-      recipientType: 'MEMBER',
-      recipientId: memberId,
-      recipientPhone: memberPhone,
-      templateType: 'PERIODIC_TOTAL',
-      variables: {
-        member_name: memberName,
-        period,
-        period_total: periodTotal.toString(),
-        overall_total: overallTotal.toString(),
-        currency,
-        group_name: groupName,
-      },
-      channel,
-    });
-  }
-
-  /**
-   * Send contribution confirmation to member
-   */
-  async sendContributionConfirmation(
-    institutionId: string,
-    memberId: string,
-    memberName: string,
-    memberPhone: string,
-    groupName: string,
-    contributionAmount: number,
-    overallTotal: number,
-    currency: string,
-    arrears?: number,
-    arrearsMessage?: string
-  ): Promise<NotificationResult> {
-    let arrearsMsg = '';
-    if (arrears && arrears > 0) {
-      arrearsMsg = arrearsMessage || ` You have outstanding arrears of ${arrears} ${currency}.`;
-    }
-
-    return this.sendNotification({
-      institutionId,
-      recipientType: 'MEMBER',
-      recipientId: memberId,
-      recipientPhone: memberPhone,
-      templateType: 'CONTRIBUTION_CONFIRMATION',
-      variables: {
-        member_name: memberName,
-        contribution_amount: contributionAmount.toString(),
-        currency,
-        group_name: groupName,
-        overall_total: overallTotal.toString(),
-        arrears_message: arrearsMsg,
-      },
-      channel: 'BOTH', // Send via both WhatsApp and SMS
-    });
-  }
-
-  /**
-   * Send group report to leaders
-   */
-  async sendGroupReport(
-    institutionId: string,
-    groupId: string,
-    leaderId: string,
-    leaderName: string,
-    leaderPhone: string,
-    groupName: string,
-    reportType: 'WEEKLY' | 'MONTHLY' | 'OVERALL',
-    periodStart: string,
-    periodEnd: string,
-    totalContributions: number,
-    currency: string,
-    memberCount: number,
-    pdfUrl: string,
-    pdfFilename: string
-  ): Promise<NotificationResult> {
-    return this.sendNotification({
-      institutionId,
-      recipientType: 'LEADER',
-      recipientId: leaderId,
-      recipientPhone: leaderPhone,
-      templateType: 'GROUP_REPORT',
-      variables: {
-        leader_name: leaderName,
-        report_type: reportType,
-        group_name: groupName,
-        period_start: periodStart,
-        period_end: periodEnd,
-        total_contributions: totalContributions.toString(),
-        currency,
-        member_count: memberCount.toString(),
-      },
-      channel: 'WHATSAPP',
-      documentUrl: pdfUrl,
-      documentFilename: pdfFilename,
-    });
   }
 }
 

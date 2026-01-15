@@ -44,5 +44,12 @@ declare module 'jspdf' {
         output(type: 'blob'): Blob;
         output(type: 'dataurlstring'): string;
         output(type: 'arraybuffer'): ArrayBuffer;
+        // Drawing methods
+        setFillColor(r: number, g: number, b: number): void;
+        setDrawColor(r: number, g: number, b: number): void;
+        setTextColor(r: number, g: number, b: number): void;
+        rect(x: number, y: number, w: number, h: number, style?: string): void;
+        roundedRect(x: number, y: number, w: number, h: number, rx: number, ry: number, style?: string): void;
+        line(x1: number, y1: number, x2: number, y2: number): void;
     }
 }

@@ -19,6 +19,7 @@ export { PreviewList } from './components/PreviewList';
 export { useDashboardKPIs, DEFAULT_DASHBOARD_DATA } from './hooks/useDashboardKPIs';
 export type { DashboardData } from './hooks/useDashboardKPIs';
 export { useDashboardStats } from './hooks/useDashboardStats';
+export { useDashboardFilters } from './hooks/useDashboardFilters';
 
 // Hooks (V2 - standardized)
 export {

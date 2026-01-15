@@ -49,7 +49,10 @@ const EMPTY_STATS: KpiStats = {
   activeGroups: 0,
   totalGroupFunds: 0,
   totalSavings: 0,
+  totalDeposits: 0,
+  totalLoans: 0,
   outstandingLoans: 0,
+  unallocatedCount: 0,
   tokenSupply: 0,
   dailyDeposits: 0,
   reconciliationStatus: 'Pending',
@@ -455,8 +458,6 @@ const App: React.FC = () => {
                       <MinimalistDashboard onNavigate={setCurrentView} />
                     ) : (
                       <Dashboard
-                        stats={dashboardStats}
-                        recentTransactions={dashboardTransactions}
                         onNavigate={setCurrentView}
                       />
                     )}

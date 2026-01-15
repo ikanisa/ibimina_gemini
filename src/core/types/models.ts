@@ -147,7 +147,10 @@ export interface KpiStats {
     activeGroups: number;
     totalGroupFunds: number;
     totalSavings: number;
+    totalDeposits: number;
+    totalLoans: number;
     outstandingLoans: number;
+    unallocatedCount: number;
     tokenSupply: number;
     dailyDeposits: number;
     reconciliationStatus: 'Balanced' | 'Pending' | 'Issues';
