@@ -1,9 +1,9 @@
 import React from 'react';
-import { useRoleAccess } from '../hooks/useRoleAccess';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { SettingsCard } from '../SettingsCard';
 import { HealthBanner } from '../HealthBanner';
 import { SETTINGS_NAV_ITEMS } from '../constants';
-import { SettingsTab } from '../types';
+import { SettingsTab } from '@/core/types';
 
 interface SettingsHomeProps {
   onNavigate: (tab: SettingsTab) => void;

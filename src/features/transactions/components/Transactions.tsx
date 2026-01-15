@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
-import { Transaction, ViewState } from '../types';
+import { Transaction, ViewState } from '@/core/types';
 import { Download, Filter, ExternalLink, FileText, Loader2, Calendar, X, Radio } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -9,10 +9,10 @@ import { TransactionsSkeleton } from './ui/PageSkeletons';
 import { VirtualizedTransactionTable } from './Transactions/VirtualizedTransactionTable';
 import { BulkActions } from './Transactions/BulkActions';
 import { DraggableTransaction } from './Transactions/DragDropAllocation';
-import { useRealtimeTransactions } from '../hooks/useRealtime';
+import { useRealtimeTransactions } from '@/hooks/useRealtime';
 import { isSuperAdmin } from '../lib/utils/roleHelpers';
-import { useTransactionsPaginated } from '../hooks/useTransactionsPaginated';
-import { useIsMobile } from '../hooks/useResponsive';
+import { useTransactionsPaginated } from '@/hooks/useTransactionsPaginated';
+import { useIsMobile } from '@/hooks/useResponsive';
 
 const TransactionDrawer = lazy(() => import('./TransactionDrawer'));
 

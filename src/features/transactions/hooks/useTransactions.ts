@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as transactionsApi from '../lib/api/transactions.api';
 import { queryKeys } from '../lib/query-client';
-import type { SupabaseTransaction } from '../types';
+import type { SupabaseTransaction } from '@/core/types';
 import { useAuth } from '../contexts/AuthContext';
 import { handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 

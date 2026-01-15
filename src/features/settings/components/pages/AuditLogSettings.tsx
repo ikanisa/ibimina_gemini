@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { ViewState } from '../../../types';
+import { ViewState } from '@/core/types';
 
 interface AuditEvent {
   id: string;

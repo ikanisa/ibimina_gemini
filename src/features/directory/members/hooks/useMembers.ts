@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import * as membersApi from '../lib/api/members.api';
 import { queryKeys } from '../lib/query-client';
-import type { SupabaseMember } from '../types';
+import type { SupabaseMember } from '@/core/types';
 import { useAuth } from '../contexts/AuthContext';
 import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
 

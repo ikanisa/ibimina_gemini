@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as groupsApi from '../lib/api/groups.api';
 import * as transactionsApi from '../lib/api/transactions.api';
 import * as smsApi from '../lib/api/sms.api';
-import type { SupabaseGroupMember, SupabaseMeeting, SupabaseContribution, SupabaseTransaction, SupabaseSmsMessage } from '../types';
+import type { SupabaseGroupMember, SupabaseMeeting, SupabaseContribution, SupabaseTransaction, SupabaseSmsMessage } from '@/core/types';
 
 export interface GroupDetails {
   members: Array<SupabaseGroupMember & { members?: { full_name?: string | null } }>;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { KpiStats } from '../types';
+import { KpiStats } from '@/core/types';
 import { withTimeout } from '../lib/utils/timeout';
 import { safeQuery } from '../lib/safeQuery';
 

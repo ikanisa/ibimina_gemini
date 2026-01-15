@@ -13,9 +13,9 @@ import {
   Briefcase
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { KpiStats, SupabaseTransaction, ViewState } from '../types';
-import { useTransactions } from '../hooks/useTransactions';
-import { useDashboardStats } from '../hooks/useDashboardStats';
+import { KpiStats, SupabaseTransaction, ViewState } from '@/core/types';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 interface DashboardProps {
   stats?: KpiStats; // Optional now, hook handles it

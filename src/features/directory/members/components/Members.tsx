@@ -6,7 +6,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Filter, Plus, Upload } from 'lucide-react';
-import { Member, ViewState } from '../types';
+import { Member, ViewState } from '@/core/types';
 // Mock data removed - using only real Supabase data
 import { useAuth } from '../contexts/AuthContext';
 import { useMembers } from '../hooks';

@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ViewState } from '../types';
+import { ViewState } from '@/core/types';
 import { isSuperAdmin } from '../lib/utils/roleHelpers';
-import { useDashboardKPIs, DashboardData } from '../hooks/useDashboardKPIs';
+import { useDashboardKPIs, DashboardData } from '@/hooks/useDashboardKPIs';
 import {
   KpiCard,
   AttentionItem,

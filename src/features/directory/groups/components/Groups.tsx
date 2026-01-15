@@ -27,7 +27,7 @@ import {
   SupabaseTransaction,
   Transaction,
   ViewState,
-} from '../types';
+} from '@/core/types';
 import { supabase } from '../lib/supabase';
 import { mapGroupMemberRole, mapGroupMemberStatus, mapTransactionStatus, mapTransactionType } from '../lib/mappers';
 import { useGroups } from '../hooks';

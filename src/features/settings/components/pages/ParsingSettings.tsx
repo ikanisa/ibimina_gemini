@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { SettingsCard } from '../SettingsCard';
 import { SettingsPage } from '../SettingsPage';
-import { useSettings } from '../hooks/useSettings';
+import { useSettings } from '@/hooks/useSettings';
 
 type ParsingMode = 'deterministic' | 'ai_fallback';
 
