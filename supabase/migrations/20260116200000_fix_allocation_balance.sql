@@ -261,6 +261,7 @@ comment on function public.suggest_member_for_transaction is
 
 drop view if exists public.vw_transactions_consolidated;
 
+-- Create a simpler view that only uses columns guaranteed to exist
 create or replace view public.vw_transactions_consolidated as
 select 
   t.id,
@@ -282,21 +283,13 @@ select
   t.allocated_by,
   t.allocated_at,
   t.allocation_note,
-  -- SMS source info (using correct FK column name)
+  -- SMS source info (minimal, only id)
   sms.id as sms_id,
-  sms.sms_text,
-  sms.sender_phone,
-  sms.received_at as sms_received_at,
-  sms.parse_status,
-  sms.parse_error,
-  sms.source as sms_source,
   -- Member info (if allocated)
   m.full_name as member_name,
   m.phone as member_phone,
-  m.savings_balance as member_balance,
   -- Group info (if allocated)
   g.group_name,
-  g.fund_balance as group_balance,
   -- Allocated by user info
   p.full_name as allocated_by_name
 from public.transactions t

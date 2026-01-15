@@ -1,11 +1,7 @@
 -- Restore loans module after consolidation removal
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'loan_status') THEN
-    CREATE TYPE loan_status AS ENUM ('PENDING_APPROVAL', 'ACTIVE', 'OVERDUE', 'CLOSED', 'REJECTED');
-  END IF;
-END $$;
+-- Note: loan_status enum already exists from 20260102000001_fix_profiles.sql with values:
+-- 'PENDING', 'APPROVED', 'REJECTED', 'ACTIVE', 'CLOSED', 'DEFAULTED'
 
 CREATE TABLE IF NOT EXISTS public.loans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -14,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.loans (
   group_id uuid REFERENCES public.groups(id) ON DELETE SET NULL,
   amount numeric(16, 2) NOT NULL,
   outstanding_balance numeric(16, 2) NOT NULL DEFAULT 0,
-  status loan_status NOT NULL DEFAULT 'PENDING_APPROVAL',
+  status loan_status NOT NULL DEFAULT 'PENDING',
   start_date date NOT NULL,
   next_payment_date date,
   interest_rate numeric(5, 2) NOT NULL DEFAULT 0,
@@ -34,3 +30,4 @@ ON public.loans
 FOR ALL
 USING (public.is_platform_admin() OR institution_id = public.current_institution_id())
 WITH CHECK (public.is_platform_admin() OR institution_id = public.current_institution_id());
+
