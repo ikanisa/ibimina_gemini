@@ -1,317 +1,295 @@
-# Ibimina (SACCO+) — MoMo SMS Ledger + Reconciliation PWA
+# Ibimina (SACCO+) — MoMo SMS Ledger & Reconciliation PWA
 
-Ibimina is a **minimalist, operations-first** web app for SACCOs and group savings.
-It ingests **Mobile Money (MoMo) SMS**, parses them into **immutable transactions**, and provides a clean workflow for staff to **allocate** transactions to **members and groups**, then generate **institution/group/member reports**.
+<div align="center">
 
-This system is **not AI-first**. AI (optional) is only used as a **fallback inside SMS parsing** when deterministic parsing fails.
+![Version](https://img.shields.io/badge/version-0.0.0-blue)
+![Node](https://img.shields.io/badge/node-%3E%3D20.19.0-green)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)
+![React](https://img.shields.io/badge/React-19-blue)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
----
+**A minimalist, operations-first PWA for SACCOs and group savings.**
 
-## What this system does
+[Quick Start](#quick-start) • [Architecture](#architecture) • [Features](#features) • [Deployment](#deployment) • [API Reference](#api-reference)
 
-### Core workflow
-
-1. **SMS Ingest**: MoMo SMS arrives from an approved SMS source (Android gateway/webhook).
-2. **Raw Storage (Idempotent)**: SMS is stored in `momo_sms_raw` with strict dedupe.
-3. **Parsing (Deterministic-first)**:
-   - Extracts amount, payer, reference, time, tx id (when available)
-   - Optional AI fallback parsing only if enabled in institution settings
-4. **Transactions (Immutable)**: Parsed output becomes a row in `transactions` (no edits to facts).
-5. **Reconciliation & Allocation**:
-   - Unallocated transactions appear in a work queue
-   - Staff allocates a transaction to an existing member (implies group)
-6. **Reports**:
-   - Institution summary, group breakdown, member statements
-   - Export CSV
+</div>
 
 ---
 
-## Roles & access model (multi-tenant)
+## 📋 Overview
 
-Ibimina is multi-tenant by institution. All sensitive rows are scoped by `institution_id` with strict **Supabase RLS**.
+Ibimina ingests **Mobile Money (MoMo) SMS**, parses them into **immutable transactions**, and provides a clean workflow for staff to **allocate** transactions to **members and groups**, then generate **institution/group/member reports**.
 
-### Roles
+### Core Workflow
 
-| Role | Access |
-|------|--------|
-| **PLATFORM_ADMIN** | Full access across all institutions. Creates institutions, assigns MoMo code(s), manages all staff. |
-| **INSTITUTION_ADMIN** | Manages staff + directory (groups/members) for their institution. Controls institution settings. |
-| **INSTITUTION_STAFF / TREASURER** | Daily operations (transactions, allocation, directory updates). |
-| **INSTITUTION_AUDITOR** | Read-only access to ledger + reports + audit log. |
+```mermaid
+flowchart LR
+    A[📱 MoMo SMS] --> B[🔐 Ingest API]
+    B --> C[(momo_sms_raw)]
+    C --> D[⚙️ Parser]
+    D --> E[(transactions)]
+    E --> F[👤 Staff Allocates]
+    F --> G[📊 Reports]
+```
 
-> **Important rule**: Every staff user belongs to exactly **one institution**, except `PLATFORM_ADMIN`.
-
----
-
-## Main modules (UI)
-
-### Dashboard (operational)
-- KPIs (today + last N days)
-- Quick actions (New Group, Add Member, Record Deposit, View Reports)
-- Weekly deposits/withdrawals chart
-- "Needs attention" items:
-  - Unallocated transactions
-  - Parse errors
-
-### Transactions (unified ledger)
-- **Consolidated view** showing:
-  - All transactions from SMS parsing
-  - Status filters: All | Unallocated | Allocated | Flagged
-  - Date range picker
-  - Search by phone, reference, name
-- Transaction detail drawer with allocation action
-- Infinite scroll for performance
-- Export capability
-
-### Directory
-- Groups (wizard + CSV import)
-- Members (wizard + CSV import)
-
-### Reports
-- Institution / Group / Member scopes
-- Breakdown + ledger
-- CSV export
-
-### Settings (control plane)
-- Institution profile & **MoMo code(s)**
-- Parsing thresholds & dedupe rules
-- SMS sources/devices (health/last seen)
-- Staff management (admin only)
-- Audit log (admin/auditor)
+| Step | Description |
+|------|-------------|
+| **1. SMS Ingest** | MoMo SMS arrives from Android gateway/webhook |
+| **2. Raw Storage** | Stored in `momo_sms_raw` with strict dedupe |
+| **3. Parsing** | Deterministic extraction (AI fallback optional) |
+| **4. Transactions** | Immutable rows in `transactions` table |
+| **5. Reconciliation** | Staff allocates transactions to members |
+| **6. Reports** | Institution/group/member statements + CSV |
 
 ---
 
-## Data model (high level)
+## 🚀 Quick Start
 
-> The key is: **institution-scoped truth with immutable transactions**.
+### Prerequisites
 
-### Institutions & staff
-- `institutions`
-- `institution_momo_codes` (supports primary/active codes)
-- `institution_settings` (parsing mode, thresholds)
-- `profiles` (auth user profile: role + institution_id + status)
-- `staff_invites`
-- `audit_log`
+- **Node.js** ≥20.19.0 (see `.nvmrc`)
+- **npm** or **pnpm**
+- **Supabase CLI** (for local development)
 
-### Directory
-- `groups` (institution-scoped)
-- `members` (belongs to exactly one group + institution)
-
-### Pipeline
-- `sms_sources` (approved devices/webhooks, last_seen_at)
-- `momo_sms_raw` (raw inbound SMS, idempotent)
-- `sms_parse_attempts` (parse attempt logging)
-- `transactions` (parsed facts, immutable)
-
----
-
-## Security & data integrity (non-negotiable)
-
-### Supabase RLS
-- RLS enabled on all sensitive tables
-- Staff sees only rows where `institution_id = profiles.institution_id`
-- PLATFORM_ADMIN can access all institutions
-- Helper functions: `current_institution_id()`, `is_platform_admin()`, `can_write()`
-
-### Immutability
-Transactions are immutable facts. The database rejects updates to:
-- `amount`, `occurred_at`, `momo_tx_id`, `momo_ref`, payer identity fields
-
-Allowed updates:
-- Allocation fields (`member_id`, `group_id`, `allocation_status`)
-- Flag/duplicate metadata
-- Notes
-
-### Audit logging
-All important actions write an `audit_log` event:
-- Settings updates
-- Institution changes
-- Staff invitations/role changes
-- SMS ingested/parsed
-- Transaction allocation
-- Duplicate marking
-- Parse error resolution
-
----
-
-## SMS ingestion & parsing
-
-### Edge Functions
-- `sms-ingest`: Secure entrypoint for SMS payloads (idempotent, API key authenticated)
-- `parse-momo-sms`: Parses pending SMS (deterministic-first, AI fallback optional)
-
-### Dedupe strategy
-- Raw SMS dedupe by `sms_hash` (SHA256 of sender + text + time bucket)
-- Transaction dedupe by `momo_tx_id` (preferred), else `txn_fingerprint`
-
-### Parsing modes
-Configured per institution in `institution_settings`:
-- `deterministic` — Rule-based parsing only
-- `fallback_enabled` — AI fallback when deterministic fails
-
----
-
-## Getting started (local development)
-
-### Requirements
-- Node.js **20.19.0+** (see `.nvmrc`)
-- npm or pnpm
-- Supabase CLI
-- A Supabase project (local or remote)
-
-### 1) Install dependencies
+### Installation
 
 ```bash
+# Clone and install
+git clone <repo-url>
+cd ibimina_gemini
 npm install
-```
 
-### 2) Configure environment variables
-
-Create `.env.local` for the frontend app (start from `.env.example`):
-
-```bash
+# Configure environment
 cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
 ```
 
-Then edit `.env.local` and add your Supabase credentials:
+### Environment Variables
 
 ```bash
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+# Required (from Supabase Dashboard → Settings → API)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbG...
+
+# Optional
+VITE_SENTRY_DSN=https://...@sentry.io/...
 ```
 
-**Where to get your Supabase credentials:**
-1. Go to [Supabase Dashboard](https://app.supabase.com)
-2. Select your project
-3. Navigate to **Settings → API**
-4. Copy the **Project URL** and **anon public** key
+> ⚠️ **Never use the service role key in frontend.** Only the `anon` key is safe to expose.
 
-> ⚠️ **Never put Supabase service role key in the frontend.** Only use the `anon` key (public key) which is safe to expose. Row Level Security (RLS) provides the actual security.
-
-**Verify your configuration:**
+### Running Locally
 
 ```bash
-# Quick verification (checks file format and JWT structure)
-node -e "const fs=require('fs'); const env=fs.readFileSync('.env.local','utf8'); const url=env.match(/VITE_SUPABASE_URL=(.+)/)?.[1]?.trim(); const key=env.match(/VITE_SUPABASE_ANON_KEY=(.+)/)?.[1]?.trim(); console.log('URL:', url); console.log('Key:', key?.substring(0,30)+'...'); if(url&&key) console.log('✓ Configuration looks good');"
+# Start development server
+npm run dev
+# → http://localhost:3000
+
+# Type check
+npm run typecheck
+
+# Run tests
+npm run test
+
+# Build for production
+npm run build
 ```
 
-Or use the verification script:
+### Verify Configuration
 
 ```bash
 node scripts/verify-supabase-config.js
 ```
 
-For Edge Functions, set secrets via Supabase CLI:
+---
 
-```bash
-supabase secrets set OPENAI_API_KEY=sk-...
-supabase secrets set GEMINI_API_KEY=AIza...
-supabase secrets set INGEST_API_KEY=your-secure-key
+## 🏗️ Architecture
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 19, TypeScript 5.8, Vite 6 |
+| **Styling** | TailwindCSS 3, Framer Motion 12 |
+| **State** | TanStack Query 5 (React Query) |
+| **Backend** | Supabase (PostgreSQL + Auth + Edge Functions) |
+| **Hosting** | Cloudflare Pages |
+| **PWA** | vite-plugin-pwa (Service Worker, offline) |
+| **Testing** | Vitest (unit), Playwright (E2E) |
+| **Monitoring** | Sentry |
+
+### Project Structure
+
+```
+├── src/
+│   ├── core/                 # Infrastructure (config, types, errors)
+│   ├── features/             # Feature modules (vertical slices)
+│   │   ├── auth/             # Authentication
+│   │   ├── dashboard/        # Dashboard & KPIs
+│   │   ├── directory/        # Groups & Members
+│   │   ├── reports/          # Report generation
+│   │   ├── settings/         # Institution settings
+│   │   └── transactions/     # Transaction management
+│   ├── shared/               # Reusable UI components
+│   ├── hooks/                # Global hooks
+│   ├── lib/                  # Utilities & API clients
+│   └── App.tsx               # Main entry
+├── supabase/
+│   ├── migrations/           # 69 SQL migrations
+│   ├── functions/            # 15 Edge Functions
+│   └── seed/                 # Development seed data
+├── e2e/                      # Playwright E2E tests
+├── docs/                     # Comprehensive documentation
+└── public/                   # Static assets & PWA manifest
 ```
 
-### 3) Apply database schema/migrations
+### Feature-Based Architecture
 
-```bash
-# Start local Supabase
-supabase start
+Each feature is a **vertical slice** with its own components, hooks, and services:
 
-# Apply migrations
-supabase db push
-
-# Or reset with seed data
-supabase db reset
+```typescript
+// Import from feature modules
+import { useTransactionsV2 } from '@/features/transactions';
+import { useMembersV2 } from '@/features/directory';
+import { Button } from '@/shared/components/ui';
 ```
-
-### 4) Run the app
-
-```bash
-npm run dev
-```
-
-App will be available at `http://localhost:3000` (configured in `vite.config.ts`)
-
-**Troubleshooting:**
-- **`placeholder.supabase.co` errors**: Make sure `.env.local` exists and has the correct `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values
-- **Environment variables not loading**: Restart the dev server after changing `.env.local` (Vite loads env vars at startup)
-- **Connection issues**: Check the browser console for `[Supabase Config]` log to verify the connection
-- **Network errors**: Verify your Supabase project is active (not paused) in the Supabase dashboard
-- **JWT errors**: Ensure you're using the `anon` key, not the `service_role` key
 
 ---
 
-## Seeding demo data (staging/local)
+## 👥 Roles & Access
 
-Staging/local environments should include seed data so pages are testable:
-- 2 institutions
-- 10+ groups + 100+ members per institution
-- 300+ transactions with unallocated items
-- Parse errors + duplicates for reconciliation testing
+| Role | Access Level |
+|------|--------------|
+| **PLATFORM_ADMIN** | Full access across all institutions |
+| **INSTITUTION_ADMIN** | Manages staff + directory for their institution |
+| **INSTITUTION_STAFF** | Daily operations (transactions, allocation) |
+| **INSTITUTION_AUDITOR** | Read-only (ledger + reports + audit log) |
 
-Seed files are in `supabase/seed/`.
+> Every staff user belongs to exactly **one institution**, except Platform Admins.
 
-> ⚠️ **Production should not auto-seed.**
+### RBAC Enforcement
+
+- **UI Layer**: Route guards, conditional rendering
+- **API Layer**: Edge Function auth checks
+- **Database Layer**: PostgreSQL RLS policies
 
 ---
 
-## Testing
+## 📦 Features
 
-### Unit tests (Vitest)
+### Dashboard
+- Today's KPIs + weekly trends
+- Quick actions (New Group, Add Member, Record Deposit)
+- Needs attention items (unallocated transactions, parse errors)
+
+### Transactions
+- Unified ledger view with filtering
+- Status: All | Unallocated | Allocated | Flagged
+- Transaction detail drawer with allocation action
+- Infinite scroll + CSV export
+
+### Directory
+- Groups (wizard + CSV import)
+- Members (wizard + CSV import)
+- WhatsApp notifications for group leaders
+
+### Reports
+- Institution / Group / Member scopes
+- Breakdown + ledger views
+- CSV export
+
+### Settings
+- Institution profile & MoMo codes
+- Parsing thresholds & dedupe rules
+- SMS sources/devices (health monitoring)
+- Staff management
+- Audit log
+
+---
+
+## 🔧 Edge Functions
+
+| Function | Purpose |
+|----------|---------|
+| `sms-ingest` | Secure SMS ingestion endpoint |
+| `parse-momo-sms` | Parse pending SMS (deterministic + AI fallback) |
+| `health` | System health check |
+| `staff-invite` | Staff invitation handler |
+| `whatsapp-webhook` | WhatsApp webhook receiver |
+| `send-whatsapp` | Send WhatsApp messages |
+| `send-contribution-confirmation` | Member contribution confirmations |
+| `process-pending-notifications` | Notification queue processor |
+| `send-scheduled-notifications` | Scheduled notifications |
+| `bulk-import-groups` | Bulk group import |
+| `bulk-import-members` | Bulk member import |
+| `generate-group-report` | Generate group reports |
+| `ocr-extract` | OCR text extraction |
+| `set-whatsapp-secrets` | Configure WhatsApp secrets |
+
+---
+
+## 🗄️ Database
+
+### Key Tables
+
+| Table | Purpose |
+|-------|---------|
+| `institutions` | Multi-tenant institutions |
+| `profiles` | User profiles with role + institution |
+| `groups` | Savings groups |
+| `members` | Group members |
+| `momo_sms_raw` | Raw SMS storage (idempotent) |
+| `transactions` | Parsed transactions (immutable) |
+| `audit_log` | All important actions |
+
+### Security Model
+
+- **RLS Enabled**: All sensitive tables
+- **Tenant Isolation**: `institution_id` scoping
+- **Helper Functions**: `current_institution_id()`, `is_platform_admin()`
+- **Immutability**: Transaction facts cannot be modified
+
+---
+
+## 🧪 Testing
+
+### Unit Tests (Vitest)
 
 ```bash
-npm run test
-npm run test:coverage
+npm run test              # Run tests
+npm run test:coverage     # With coverage report
 ```
 
-### E2E tests (Playwright)
+### E2E Tests (Playwright)
 
-Critical flows covered:
+```bash
+npm run e2e              # All E2E tests
+npm run e2e:smoke        # Smoke tests
+npm run e2e:critical     # Critical flows
+npm run e2e:ui           # Interactive mode
+```
+
+### Critical Flows Tested
+
 - Login → Dashboard loads
 - Transactions filter + allocation
-- Reconciliation parse error resolution
+- Parse error resolution
 - Create group/member wizard
 - Reports export
-
-```bash
-# Run all E2E tests
-npm run e2e
-
-# Run specific suites
-npm run e2e:critical   # Critical flows
-npm run e2e:security   # Security/auth tests
-npm run e2e:rls        # RLS policy tests
-npm run e2e:smoke      # Smoke tests
-
-# Interactive mode
-npm run e2e:ui
-```
-
-### RLS / security tests
-
-The `e2e/rls.spec.ts` suite asserts:
-- Staff cannot access other institutions' data
-- Institution admin cannot manage other institutions
-- Auditor is read-only
-- Platform admin can view all
+- RBAC enforcement
 
 ---
 
-## Deployment
+## 🚢 Deployment
 
 ### Cloudflare Pages
 
-Key requirements:
-- SPA routing fallback configured (`public/_redirects`)
-- Safe environment variables only (`VITE_*`)
-- No secrets in client bundle
-- Error boundary enabled for runtime errors
-
-Build:
-
 ```bash
-npm run build
-```
+# Preview deployment
+npm run deploy:preview
 
-Output: `dist/`
+# Production deployment
+npm run deploy:production
+```
 
 ### Supabase
 
@@ -323,143 +301,106 @@ supabase functions deploy
 supabase db push
 ```
 
----
+### Environment Configuration
 
-## Operational checklist (production readiness)
-
-Before go-live:
-
-- [ ] RLS enabled & validated for all sensitive tables
-- [ ] Audit log events emitted for all admin + reconciliation actions
-- [ ] SMS ingest authenticated (API key) + sources restricted
-- [ ] Parsing idempotency verified (no duplicates on retry)
-- [ ] Cloudflare build stable (no blank screens / infinite loading)
-- [ ] UAT checklist completed on staging (see `docs/UAT.md`)
-- [ ] Rollback plan documented (see `docs/RELEASE_RUNBOOK.md`)
-
-**📊 Comprehensive Audit:** See `docs/AUDIT_REPORT.md` for a detailed production readiness assessment with:
-- Critical issues requiring immediate attention
-- Performance optimization recommendations
-- Security audit findings
-- UI/UX improvement suggestions
-- Complete production readiness checklist
-
-See `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` for additional checklist items.
+| Environment | Configuration |
+|-------------|---------------|
+| **Local** | `.env.local` (git-ignored) |
+| **Preview** | Cloudflare Dashboard → Environment Variables |
+| **Production** | Cloudflare Dashboard → Environment Variables |
 
 ---
 
-## Project structure
-
-```
-├── components/           # React components (UI, dashboard, forms, etc.)
-├── contexts/             # React contexts (AuthContext, etc.)
-├── hooks/                # Custom React hooks
-├── lib/                  # Core libraries
-│   ├── api/              # API client, error handling
-│   ├── supabase.ts       # Supabase client configuration
-│   ├── env.ts            # Environment variable utilities
-│   └── ...               # Utilities, validation, transformers
-├── supabase/
-│   ├── migrations/       # Database migrations (SQL)
-│   ├── functions/        # Supabase Edge Functions
-│   ├── seed/             # Seed data for development
-│   └── config.toml       # Supabase local config
-├── e2e/                  # Playwright E2E tests
-├── docs/                 # Comprehensive documentation
-│   ├── UAT.md            # User acceptance testing checklist
-│   ├── RELEASE_RUNBOOK.md # Deployment guide
-│   ├── DEPLOYMENT.md     # Deployment instructions
-│   └── redesign/         # Architecture & implementation docs
-├── scripts/              # Utility scripts
-│   └── verify-supabase-config.js  # Configuration verification
-├── public/               # Static assets, _redirects, _headers
-├── .env.example          # Environment variables template
-└── package.json
-```
-
----
-
-## Documentation
+## 📖 Documentation
 
 | Document | Purpose |
 |----------|---------|
-| `docs/IMPLEMENTATION_PLAN.md` | **📋 Comprehensive implementation plan** - Gap analysis & prioritized roadmap to production readiness |
-| `docs/AUDIT_REPORT.md` | **Comprehensive fullstack audit & production readiness report** (Score: 7.2/10) |
-| `docs/UAT.md` | User acceptance testing checklist |
-| `docs/RELEASE_RUNBOOK.md` | Production deployment runbook |
-| `docs/DEPLOYMENT.md` | Deployment instructions for Cloudflare Pages |
-| `docs/deploy/env-matrix.md` | Complete environment variables reference |
-| `docs/redesign/PRODUCTION_READINESS_CHECKLIST.md` | Pre-launch checklist |
-| `docs/redesign/QA_GAP_REPORT.md` | Test coverage audit |
-| `docs/redesign/FINAL_SCHEMA.md` | Database schema documentation |
-| `docs/redesign/ROUTES_PAGES_MAP.md` | Frontend routes map |
-| `TROUBLESHOOTING.md` | Common issues and solutions |
-
-> **📋 Production Readiness:** 
-> - **Start here:** `docs/IMPLEMENTATION_PLAN.md` - Comprehensive gap analysis and 3-week implementation roadmap
-> - **Detailed audit:** `docs/AUDIT_REPORT.md` - Full assessment with recommendations
-> - **Current status:** ~60% of critical items implemented, ~25% partial, ~15% missing
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture |
+| [AUDIT_REPORT.md](docs/AUDIT_REPORT.md) | Production readiness audit |
+| [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Implementation roadmap |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment instructions |
+| [RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md) | Production deployment runbook |
+| [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) | Security findings |
+| [API_REFERENCE.md](docs/API_REFERENCE.md) | API documentation |
 
 ---
 
-## Contributing
+## 🛠️ Development Commands
 
-### Guiding principles
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run lint` | ESLint |
+| `npm run test` | Run unit tests |
+| `npm run e2e` | Run E2E tests |
+| `npm run storybook` | Component storybook |
 
-1. **Minimal UI, strong correctness** — Prefer simplicity over features
-2. **DB constraints + RLS over frontend "trust"** — Security at the data layer
-3. **No duplicate tables** — Always audit existing schema first
-4. **Transactions are immutable facts** — Parse once, allocate many times
-5. **Audit everything** — Every important action gets logged
+---
 
-### Development workflow
+## 🔒 Security
+
+### Non-Negotiables
+
+1. **RLS on all tables** — Database enforces tenant isolation
+2. **Immutable transactions** — Facts cannot be modified
+3. **Audit logging** — All important actions logged
+4. **SMS authentication** — API key + source validation
+5. **No secrets in client** — Only anon key exposed
+
+### Compliance
+
+- Multi-tenant data isolation
+- PII encryption support
+- Rate limiting
+- IP whitelisting (optional)
+
+---
+
+## 📊 Production Readiness
+
+| Gate | Status |
+|------|--------|
+| TypeScript | ✅ Clean |
+| Build | ✅ Passing |
+| RLS Policies | ✅ Enabled |
+| Audit Logging | ✅ Configured |
+| Error Tracking | ✅ Sentry |
+| PWA | ✅ v1.2.0 |
+
+See [AUDIT_REPORT.md](docs/AUDIT_REPORT.md) for detailed assessment.
+
+---
+
+## 🤝 Contributing
+
+### Guiding Principles
+
+1. **Minimal UI, strong correctness** — Simplicity over features
+2. **DB constraints + RLS over frontend trust** — Security at data layer
+3. **No duplicate tables** — Audit existing schema first
+4. **Transactions are immutable** — Parse once, allocate many
+5. **Audit everything** — Every important action logged
+
+### Workflow
 
 1. Create feature branch from `main`
-2. Implement changes following existing patterns
+2. Implement following existing patterns
 3. Add/update tests
-4. Run `npm run typecheck` and fix any errors
-5. Run `npm run e2e:smoke` to verify basics
+4. Run `npm run typecheck` and fix errors
+5. Run `npm run e2e:smoke` to verify
 6. Create PR for review
 
 ---
 
-## Tech stack
-
-- **Frontend**: React 19, TypeScript, Tailwind CSS, Vite
-- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions, RLS)
-- **Hosting**: Cloudflare Pages
-- **Testing**: Playwright (E2E), Vitest (Unit)
-- **PWA**: vite-plugin-pwa (Service Worker, offline support)
-
-## Environment Configuration
-
-### Local Development
-
-The app uses `.env.local` for local development (git-ignored). Required variables:
-
-- `VITE_SUPABASE_URL` - Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Your Supabase anon/public key
-- Mock data has been removed - the application now uses only real Supabase data
-
-See `.env.example` for the complete template.
-
-### Production/Cloudflare Pages
-
-For production deployments on Cloudflare Pages, set environment variables in:
-**Cloudflare Dashboard → Pages → Your Project → Settings → Environment Variables**
-
-Set the same `VITE_*` variables for Production, Preview, and Development environments as needed.
-
-**Important:** Environment variables must start with `VITE_` to be exposed to the browser. Never put secrets in `VITE_*` variables - only use the public `anon` key for Supabase.
-
----
-
-## License
+## 📄 License
 
 TBD
 
 ---
 
-## Support
+## 🆘 Support
 
 For issues or questions, please open a GitHub issue.
