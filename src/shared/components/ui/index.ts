@@ -24,5 +24,6 @@ export * from './SimpleSelect';
 export * from './Breadcrumbs';
 export * from './ThemeToggle';
 export * from './DataStateWrapper';
-export * from '../WizardProgress';
+export * from './AnimatedPage';
+
 

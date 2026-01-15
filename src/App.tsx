@@ -1,16 +1,19 @@
 /**
  * App Component (Refactored)
  * Main application container with navigation
- * Uses modular navigation components
+ * Uses modular navigation components and feature-based imports
  */
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 import { Eye, WifiOff } from 'lucide-react';
-// Mock data removed - using only real Supabase data
-import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile, Transaction } from './types';
-import { useAuth } from './contexts/AuthContext';
+
+// Core imports (new paths)
+import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile, Transaction } from '@/core/types';
+import { useAuth } from '@/core/auth';
+
+// UI and component imports
 import { buildInitialsAvatar } from './lib/avatars';
 import { Sidebar, Header, MobileBottomNav } from './components/navigation';
 import { AnimatedPage } from './components/ui/AnimatedPage';
@@ -19,6 +22,8 @@ import { useSessionTimeout, SessionWarningModal } from './hooks/useSessionTimeou
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { SkipLink } from './components/ui/SkipLink';
 
+// Lazy-loaded components (using legacy paths that work with current import structure)
+// TODO: Update to @/features/* paths after all component imports are fixed
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const MinimalistDashboard = lazy(() => import('./components/MinimalistDashboard'));
 const Groups = lazy(() => import('./components/Groups'));
