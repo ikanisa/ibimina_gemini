@@ -754,8 +754,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                             <td className="p-2">
                               <input
                                 type="text"
-                                value={candidate.branch}
-                                onChange={(e) => updateCandidate(candidate.id, 'branch', e.target.value)}
+                                value={candidate.institutionName}
+                                onChange={(e) => updateCandidate(candidate.id, 'institutionName', e.target.value)}
                                 className="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 outline-none"
                               />
                             </td>

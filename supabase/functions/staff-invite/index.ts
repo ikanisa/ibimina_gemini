@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
     const fullName = String(body.full_name ?? '').trim();
     const role = mapRoleToEnum(body.role ?? null);
     const institutionId = body.institution_id ?? user!.institutionId;
-    const onboardingMethod = body.onboarding_method ?? 'password';
-    const password = body.password ?? 'Sacco+'; // Default password
+    // Always use password method - email invites removed
+    const password = body.password ?? 'Sacco+2026'; // Use provided password or default
 
     if (!email) {
       return errorResponse('Email is required', 400, { 'X-Request-Id': requestId! });
@@ -120,27 +120,18 @@ Deno.serve(async (req) => {
     }
 
     // =========================================================================
-    // Create user via Supabase Auth
+    // Create user via Supabase Auth (always password method)
     // =========================================================================
-    const inviteResult =
-      onboardingMethod === 'password'
-        ? await supabase.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: {
-            full_name: fullName,
-            role,
-            institution_id: institutionId
-          }
-        })
-        : await supabase.auth.admin.inviteUserByEmail(email, {
-          data: {
-            full_name: fullName,
-            role,
-            institution_id: institutionId
-          }
-        });
+    const inviteResult = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        role,
+        institution_id: institutionId
+      }
+    });
 
     if (inviteResult.error || !inviteResult.data.user) {
       // Update invite status to failed
@@ -183,8 +174,8 @@ Deno.serve(async (req) => {
       return errorResponse(profileError.message, 400, { 'X-Request-Id': requestId! });
     }
 
-    // Update invite status if password method
-    if (inviteId && onboardingMethod === 'password') {
+    // Update invite status
+    if (inviteId) {
       await supabase
         .from('staff_invites')
         .update({
@@ -208,7 +199,7 @@ Deno.serve(async (req) => {
       metadata: {
         email,
         role,
-        method: onboardingMethod,
+        method: 'password',
         invite_id: inviteId
       }
     });
@@ -218,7 +209,8 @@ Deno.serve(async (req) => {
     return jsonResponse({
       success: true,
       profile,
-      invite_id: inviteId
+      invite_id: inviteId,
+      password // Return password so UI can display it
     }, 200, { 'X-Request-Id': requestId! });
 
   } catch (error) {
