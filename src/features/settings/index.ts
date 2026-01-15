@@ -22,6 +22,16 @@ export { StaffSettingsPage } from './components/pages/StaffSettingsPage';
 export { NotificationsSettingsPage } from './components/pages/NotificationsSettingsPage';
 export { ProfilePage } from './components/pages/ProfilePage';
 
+// Services
+export { settingsService } from './services/settingsService';
+export type {
+    InstitutionSettings,
+    StaffMember,
+    SmsSource,
+    AuditLogEntry,
+} from './services/settingsService';
+
 // Types and constants
 export * from './types';
 export * from './constants';
+

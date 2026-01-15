@@ -14,5 +14,15 @@ export { ReportKpiCard } from './components/ReportKpiCard';
 export { ReportLedgerTable } from './components/ReportLedgerTable';
 export { ReportsSkeleton } from './components/ReportsSkeleton';
 
+// Services
+export { reportService } from './services/reportService';
+export type {
+    ReportFilters as ReportFiltersType,
+    ReportSummary,
+    ReportBreakdown,
+    LedgerEntry,
+} from './services/reportService';
+
 // Types
 export * from './types';
+
