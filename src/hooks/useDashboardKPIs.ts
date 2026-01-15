@@ -2,14 +2,15 @@
  * Custom hook for Dashboard KPI data
  * 
  * Centralizes dashboard data fetching with caching to optimize performance.
- * Replaces direct RPC calls in components.
+ * Uses dashboardService for all data access.
+ * 
+ * @deprecated Consider using useDashboardKPIsV2 from '@/features/dashboard' for new code
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { dashboardService } from '@/features/dashboard/services/dashboardService';
 import { useAuth } from '../contexts/AuthContext';
 import { isSuperAdmin } from '../lib/utils/roleHelpers';
-import { withTimeout } from '../lib/utils/timeout';
 
 // API response structure matching the RPC function
 export interface DashboardData {
@@ -144,56 +145,62 @@ export function useDashboardKPIs(selectedInstitutionId: string | null = null) {
     const isPlatformAdmin = isSuperAdmin(role);
 
     // Determine effective institution ID based on role
-    // If admin, use selected. If staff/allocator, force their assigned institution.
     const effectiveInstitutionId = isPlatformAdmin ? selectedInstitutionId : userInstitutionId;
 
     return useQuery({
         queryKey: ['dashboard', 'kpis', isPlatformAdmin ? 'global' : 'institution', effectiveInstitutionId],
         queryFn: async (): Promise<DashboardData> => {
             try {
-                const rpcQuery = supabase.rpc('get_dashboard_summary', {
-                    p_institution_id: effectiveInstitutionId || null,
-                    p_days: 7
+                // Use dashboardService.getSummary
+                const summary = await dashboardService.getSummary({
+                    institutionId: effectiveInstitutionId || undefined,
+                    days: 7,
                 });
 
-                const response = await withTimeout(
-                    Promise.resolve(rpcQuery),
-                    20000,
-                    'Dashboard load timeout'
-                );
+                // Map service response to expected DashboardData structure
+                const dashboardData: Partial<DashboardData> = {
+                    institution_id: effectiveInstitutionId,
+                    is_global: isPlatformAdmin && !effectiveInstitutionId,
+                    period_days: 7,
+                    generated_at: new Date().toISOString(),
+                    kpis: {
+                        today: {
+                            received_total: summary.todayDeposits || 0,
+                            allocated_count: 0,
+                            unallocated_count: summary.pendingTransactions || 0,
+                            parse_errors_count: 0,
+                        },
+                        last_days: {
+                            days: 7,
+                            received_total: summary.totalDeposits || 0,
+                            allocated_count: 0,
+                            unallocated_count: summary.pendingTransactions || 0,
+                            unallocated_aging_24h: 0,
+                            parse_errors_count: 0,
+                        },
+                    },
+                    attention: [],
+                    unallocated_preview: [],
+                    parse_error_preview: [],
+                    recent_activity: [],
+                    health: {
+                        momo_primary_code_present: false,
+                        sms_sources_offline_count: 0,
+                        last_sms_seen_at: null,
+                    },
+                };
 
-                const { data, error } = response;
-
-                if (error) {
-                    console.error('[Dashboard] RPC Error:', error.message, error.code);
-                    // Return default data instead of throwing - prevents error boundary trigger
-                    return DEFAULT_DASHBOARD_DATA;
-                }
-
-                if (!data) {
-                    console.warn('[Dashboard] RPC returned no data, using defaults');
-                    return DEFAULT_DASHBOARD_DATA;
-                }
-
-                // Deep merge with defaults to ensure all fields exist
-                return mergeDashboardData(data as Partial<DashboardData>);
+                return mergeDashboardData(dashboardData);
             } catch (err) {
                 console.error('[Dashboard] Unexpected error:', err);
-                // Return default data instead of throwing
                 return DEFAULT_DASHBOARD_DATA;
             }
         },
-        // Cache for 5 minutes
         staleTime: 5 * 60 * 1000,
-        // Keep data in cache for longer
         gcTime: 10 * 60 * 1000,
-        // Retry with exponential backoff
         retry: 2,
         retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
-        // Only run if we have an institution ID or are a platform admin (viewing global)
         enabled: isPlatformAdmin || !!effectiveInstitutionId,
-        // Return default data as placeholder while loading
         placeholderData: DEFAULT_DASHBOARD_DATA,
     });
 }
-

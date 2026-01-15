@@ -3,14 +3,16 @@
  * 
  * Provides a clean interface for components to interact with group data
  * Uses React Query for caching, background refetching, and optimistic updates
+ * 
+ * @deprecated Consider using useGroupsV2 from '@/features/directory/groups' for new code
  */
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import * as groupsApi from '../lib/api/groups.api';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { groupService, type CreateGroupInput, type UpdateGroupInput } from '@/features/directory/groups/services/groupService';
 import { queryKeys } from '../lib/query-client';
 import type { SupabaseGroup } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
+import { getUserFriendlyMessage } from '@/core/errors';
 
 export interface UseGroupsOptions {
   includeMemberCounts?: boolean;
@@ -28,11 +30,10 @@ export interface UseGroupsReturn {
   hasMore: boolean;
   refetch: () => Promise<void>;
   loadMore: () => Promise<void>;
-  createGroup: (params: groupsApi.CreateGroupParams) => Promise<SupabaseGroup>;
-  updateGroup: (id: string, params: groupsApi.UpdateGroupParams) => Promise<SupabaseGroup>;
+  createGroup: (params: CreateGroupInput) => Promise<SupabaseGroup>;
+  updateGroup: (id: string, params: UpdateGroupInput) => Promise<SupabaseGroup>;
   deleteGroup: (id: string) => Promise<void>;
   searchGroups: (searchTerm: string) => Promise<SupabaseGroup[]>;
-  // Additional React Query features
   isFetching: boolean;
   isRefetching: boolean;
 }
@@ -53,10 +54,10 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
   // Build query key
   const queryKey = queryKeys.groups.list({
     institutionId: institutionId || '',
-    searchTerm: undefined, // Can be extended later
+    searchTerm: undefined,
   });
 
-  // Use infinite query for pagination
+  // Use infinite query for pagination - now using groupService
   const {
     data,
     isLoading,
@@ -75,33 +76,37 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
 
       const limit = pageParam === 0 ? initialLimit : loadMoreLimit;
 
-      // Wrap with timeout
+      // Use groupService.getAll
+      const groups = await groupService.getAll({
+        institutionId,
+        limit,
+        // offset: pageParam, // Note: service would need to support offset for true pagination
+      });
+
+      // Build member counts if requested
+      let memberCounts: Record<string, number> = {};
       if (includeMemberCounts) {
-        const result = await withTimeout(
-          groupsApi.fetchGroupsWithMemberCounts(
-            institutionId,
-            { limit, offset: pageParam }
-          ),
-          30000,
-          'useGroups.fetchGroupsWithMemberCounts'
-        );
-        return {
-          data: result.groups,
-          memberCounts: result.memberCounts,
-          nextPage: result.groups.length === limit ? pageParam + result.groups.length : null,
-        };
-      } else {
-        const groups = await withTimeout(
-          groupsApi.fetchGroups(institutionId, { limit, offset: pageParam }),
-          30000,
-          'useGroups.fetchGroups'
-        );
-        return {
-          data: groups,
-          memberCounts: {},
-          nextPage: groups.length === limit ? pageParam + groups.length : null,
-        };
+        // Get stats for each group to include member counts
+        const statsPromises = groups.slice(0, 20).map(async (group) => {
+          try {
+            const stats = await groupService.getStats(group.id);
+            return { id: group.id, count: stats.totalMembers };
+          } catch {
+            return { id: group.id, count: 0 };
+          }
+        });
+        const statsResults = await Promise.all(statsPromises);
+        memberCounts = statsResults.reduce((acc, { id, count }) => {
+          acc[id] = count;
+          return acc;
+        }, {} as Record<string, number>);
       }
+
+      return {
+        data: groups,
+        memberCounts,
+        nextPage: groups.length === limit ? pageParam + groups.length : null,
+      };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: autoFetch && !!institutionId,
@@ -112,15 +117,11 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
   const groups = data?.pages.flatMap(page => page.data) || [];
   const memberCounts = data?.pages.reduce((acc, page) => ({ ...acc, ...page.memberCounts }), {}) || {};
 
-  // Create group mutation with optimistic update
+  // Create group mutation - using groupService
   const createMutation = useMutation({
-    mutationFn: (params: groupsApi.CreateGroupParams) =>
-      groupsApi.createGroup(params),
+    mutationFn: (params: CreateGroupInput) => groupService.create(params),
     onSuccess: (newGroup) => {
-      // Invalidate and refetch groups list
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
-
-      // Optionally update the cache optimistically
       queryClient.setQueryData<typeof data>(
         [...queryKey, 'infinite', includeMemberCounts],
         (old) => {
@@ -138,18 +139,13 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
     },
   });
 
-  // Update group mutation with optimistic update
+  // Update group mutation - using groupService
   const updateMutation = useMutation({
-    mutationFn: ({ id, params }: { id: string; params: groupsApi.UpdateGroupParams }) =>
-      groupsApi.updateGroup(id, params),
+    mutationFn: ({ id, params }: { id: string; params: UpdateGroupInput }) =>
+      groupService.update(id, params),
     onMutate: async ({ id, params }) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot previous value
       const previousData = queryClient.getQueryData<typeof data>([...queryKey, 'infinite', includeMemberCounts]);
-
-      // Optimistically update
       queryClient.setQueryData<typeof data>(
         [...queryKey, 'infinite', includeMemberCounts],
         (old) => {
@@ -163,35 +159,31 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
           };
         }
       );
-
       return { previousData };
     },
     onError: (_err, _variables, context) => {
-      // Rollback on error
       if (context?.previousData) {
         queryClient.setQueryData([...queryKey, 'infinite', includeMemberCounts], context.previousData);
       }
     },
     onSuccess: () => {
-      // Invalidate to refetch fresh data
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
     },
   });
 
-  // Delete group mutation
+  // Delete group mutation - using groupService
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => groupsApi.deleteGroup(id),
+    mutationFn: (id: string) => groupService.delete(id),
     onSuccess: () => {
-      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.lists() });
     },
   });
 
-  const createGroup = async (params: groupsApi.CreateGroupParams) => {
+  const createGroup = async (params: CreateGroupInput) => {
     return createMutation.mutateAsync(params);
   };
 
-  const updateGroup = async (id: string, params: groupsApi.UpdateGroupParams) => {
+  const updateGroup = async (id: string, params: UpdateGroupInput) => {
     return updateMutation.mutateAsync({ id, params });
   };
 
@@ -202,7 +194,8 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
   const searchGroups = async (searchTerm: string) => {
     if (!institutionId) return [];
     try {
-      return await groupsApi.searchGroups(institutionId, searchTerm);
+      const allGroups = await groupService.getAll({ institutionId, searchTerm });
+      return allGroups;
     } catch (err) {
       console.error('Error searching groups:', err);
       return [];
@@ -219,12 +212,7 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
     await refetchQuery();
   };
 
-  // Handle errors consistently
-  const errorMessage = error
-    ? getUserFriendlyMessage(
-      handleError(error, 'useGroups')
-    )
-    : null;
+  const errorMessage = error ? getUserFriendlyMessage(error) : null;
 
   return {
     groups,

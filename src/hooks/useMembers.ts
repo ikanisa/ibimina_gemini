@@ -3,14 +3,16 @@
  * 
  * Provides a clean interface for components to interact with member data
  * Uses React Query for caching, background refetching, and optimistic updates
+ * 
+ * @deprecated Consider using useMembersV2 from '@/features/directory/members' for new code
  */
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import * as membersApi from '../lib/api/members.api';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { memberService, type CreateMemberInput, type UpdateMemberInput } from '@/features/directory/members/services/memberService';
 import { queryKeys } from '../lib/query-client';
 import type { SupabaseMember } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
+import { getUserFriendlyMessage } from '@/core/errors';
 
 export interface UseMembersOptions {
   includeGroups?: boolean;
@@ -27,11 +29,10 @@ export interface UseMembersReturn {
   hasMore: boolean;
   refetch: () => Promise<void>;
   loadMore: () => Promise<void>;
-  createMember: (params: membersApi.CreateMemberParams) => Promise<SupabaseMember>;
-  updateMember: (id: string, params: membersApi.UpdateMemberParams) => Promise<SupabaseMember>;
+  createMember: (params: CreateMemberInput) => Promise<SupabaseMember>;
+  updateMember: (id: string, params: UpdateMemberInput) => Promise<SupabaseMember>;
   deleteMember: (id: string) => Promise<void>;
   searchMembers: (searchTerm: string) => Promise<SupabaseMember[]>;
-  // Additional React Query features
   isFetching: boolean;
   isRefetching: boolean;
 }
@@ -52,10 +53,10 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
   // Build query key
   const queryKey = queryKeys.members.list({
     institutionId: institutionId || '',
-    searchTerm: undefined, // Can be extended later
+    searchTerm: undefined,
   });
 
-  // Use infinite query for pagination
+  // Use infinite query for pagination - now using memberService
   const {
     data,
     isLoading,
@@ -74,29 +75,11 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
 
       const limit = pageParam === 0 ? initialLimit : loadMoreLimit;
 
-      // Wrap with timeout
-      const data = includeGroups
-        ? await withTimeout(
-          membersApi.fetchMembersWithGroups(institutionId, { limit, offset: pageParam }),
-          30000,
-          {
-            operation: 'fetchMembersWithGroups',
-            component: 'useMembers',
-            institutionId,
-          }
-        )
-        : await withTimeout(
-          membersApi.fetchMembers(institutionId, { limit, offset: pageParam }),
-          30000,
-          {
-            operation: 'fetchMembers',
-            component: 'useMembers',
-            institutionId,
-          }
-        );
-
-      // fetchMembersWithGroups returns MemberWithGroups[], fetchMembers returns SupabaseMember[]
-      const members = data as SupabaseMember[];
+      // Use memberService.getAll
+      const members = await memberService.getAll({
+        institutionId,
+        limit,
+      });
 
       return {
         data: members,
@@ -111,15 +94,11 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
   // Flatten pages into single array
   const members = data?.pages.flatMap(page => page.data) || [];
 
-  // Create member mutation with optimistic update
+  // Create member mutation - using memberService
   const createMutation = useMutation({
-    mutationFn: (params: membersApi.CreateMemberParams) =>
-      membersApi.createMember(params),
+    mutationFn: (params: CreateMemberInput) => memberService.create(params),
     onSuccess: (newMember) => {
-      // Invalidate and refetch members list
       queryClient.invalidateQueries({ queryKey: queryKeys.members.lists() });
-
-      // Optionally update the cache optimistically
       queryClient.setQueryData<typeof data>(
         [...queryKey, 'infinite'],
         (old) => {
@@ -137,18 +116,13 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
     },
   });
 
-  // Update member mutation with optimistic update
+  // Update member mutation - using memberService
   const updateMutation = useMutation({
-    mutationFn: ({ id, params }: { id: string; params: membersApi.UpdateMemberParams }) =>
-      membersApi.updateMember(id, params),
+    mutationFn: ({ id, params }: { id: string; params: UpdateMemberInput }) =>
+      memberService.update(id, params),
     onMutate: async ({ id, params }) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot previous value
       const previousData = queryClient.getQueryData<typeof data>([...queryKey, 'infinite']);
-
-      // Optimistically update
       queryClient.setQueryData<typeof data>(
         [...queryKey, 'infinite'],
         (old) => {
@@ -162,35 +136,33 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
           };
         }
       );
-
       return { previousData };
     },
     onError: (_err, _variables, context) => {
-      // Rollback on error
       if (context?.previousData) {
         queryClient.setQueryData([...queryKey, 'infinite'], context.previousData);
       }
     },
     onSuccess: () => {
-      // Invalidate to refetch fresh data
       queryClient.invalidateQueries({ queryKey: queryKeys.members.lists() });
     },
   });
 
-  // Delete member mutation
+  // Delete member mutation - note: memberService doesn't have delete, so we'll mark as inactive
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => membersApi.deleteMember(id),
+    mutationFn: async (id: string) => {
+      await memberService.update(id, { status: 'INACTIVE' });
+    },
     onSuccess: () => {
-      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.members.lists() });
     },
   });
 
-  const createMember = async (params: membersApi.CreateMemberParams) => {
+  const createMember = async (params: CreateMemberInput) => {
     return createMutation.mutateAsync(params);
   };
 
-  const updateMember = async (id: string, params: membersApi.UpdateMemberParams) => {
+  const updateMember = async (id: string, params: UpdateMemberInput) => {
     return updateMutation.mutateAsync({ id, params });
   };
 
@@ -201,7 +173,7 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
   const searchMembers = async (searchTerm: string) => {
     if (!institutionId) return [];
     try {
-      return await membersApi.searchMembers(institutionId, searchTerm);
+      return await memberService.search(institutionId, searchTerm);
     } catch (err) {
       console.error('Error searching members:', err);
       return [];
@@ -218,11 +190,7 @@ export function useMembers(options: UseMembersOptions = {}): UseMembersReturn {
     await refetchQuery();
   };
 
-  // Handle errors consistently
-  const errorMessage = error
-    ? getUserFriendlyMessage(handleError(error, 'useMembers'))
-    : null;
-
+  const errorMessage = error ? getUserFriendlyMessage(error) : null;
 
   return {
     members,
