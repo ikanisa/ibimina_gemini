@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import { Group } from '../../types';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { Button } from '../ui';
+import { Group } from '@/core/types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import { Button } from '@/shared/components/ui';
 import { Save, Trash2 } from 'lucide-react';
 
 interface GroupSettingsTabProps {

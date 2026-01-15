@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Send, FileText, Users, AlertCircle, CheckCircle, Loader2, Calendar, MessageSquare } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../contexts/AuthContext';
-import { Button } from '../../ui';
-import { generateGroupReport, getGroupLeaders } from '../../../lib/api/reports.api';
-import { notificationService } from '../../../lib/services/notification.service';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { Button } from '@/shared/components/ui';
+import { generateGroupReport, getGroupLeaders } from '@/lib/api/reports.api';
+import { notificationService } from '@/lib/services/notification.service';
 
 interface Group {
   id: string;

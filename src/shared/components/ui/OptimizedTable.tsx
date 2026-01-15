@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableCell } from './Table';
-import { cn } from '../../lib/utils/cn';
+import { cn } from '@/lib/utils/cn';
 
 interface Column<T> {
   key: string;

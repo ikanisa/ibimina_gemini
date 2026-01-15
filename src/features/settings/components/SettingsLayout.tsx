@@ -1,8 +1,8 @@
 import React, { ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { useRoleAccess } from './hooks/useRoleAccess';
-import { SETTINGS_NAV_ITEMS } from './constants';
-import { SettingsTab } from './types';
+import { useRoleAccess } from '@/features/settings/hooks/useRoleAccess';
+import { SETTINGS_NAV_ITEMS } from '@/features/settings/constants';
+import { SettingsTab } from '@/features/settings/types';
 
 interface SettingsLayoutProps {
   children: ReactNode;

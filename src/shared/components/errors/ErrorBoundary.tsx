@@ -1,7 +1,7 @@
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { clearAllAppCachesAndReload } from '../lib/pwa';
-import { captureError } from '../lib/sentry';
+import { clearAllAppCachesAndReload } from '@/lib/pwa';
+import { captureError } from '@/lib/sentry';
 
 // ============================================================================
 // ERROR BOUNDARY COMPONENT

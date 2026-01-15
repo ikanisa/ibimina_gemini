@@ -6,8 +6,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import { captureError } from '../lib/sentry';
+import { supabase } from '@/lib/supabase';
+import { captureError } from '@/lib/sentry';
 
 export interface RealtimeSubscriptionOptions {
   table: string;

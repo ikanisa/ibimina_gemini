@@ -4,9 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Member, ViewState } from '../../types';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { StatusIndicator } from '../ui/StatusIndicator';
+import { Member, ViewState } from '@/core/types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import { StatusIndicator } from '@/shared/components/ui/StatusIndicator';
 import {
   X,
   User,

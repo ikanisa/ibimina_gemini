@@ -6,8 +6,8 @@
 import React, { useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2, MoreHorizontal } from 'lucide-react';
-import { Badge } from '../ui';
-import type { Member } from '../../types';
+import { Badge } from '@/shared/components/ui';
+import type { Member } from '@/core/types';
 
 interface VirtualizedMembersListProps {
   members: Member[];

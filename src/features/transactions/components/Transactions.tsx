@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { Transaction, ViewState } from '@/core/types';
 import { Download, Filter, ExternalLink, FileText, Loader2, Calendar, X, Radio } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '../lib/mappers';
-import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge } from './ui';
-import { TransactionsSkeleton } from './ui/PageSkeletons';
-import { VirtualizedTransactionTable } from './Transactions/VirtualizedTransactionTable';
-import { BulkActions } from './Transactions/BulkActions';
-import { DraggableTransaction } from './Transactions/DragDropAllocation';
+import { useAuth } from '@/core/auth';
+import { supabase } from '@/lib/supabase';
+import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '@/lib/mappers';
+import { LoadingSpinner, ErrorDisplay, EmptyState, Button, SearchInput, Badge } from '@/shared/components/ui';
+import { TransactionsSkeleton } from '@/shared/components/ui';
+import { VirtualizedTransactionTable } from './VirtualizedTransactionTable';
+import { BulkActions } from './BulkActions';
+import { DraggableTransaction } from './DragDropAllocation';
 import { useRealtimeTransactions } from '@/hooks/useRealtime';
-import { isSuperAdmin } from '../lib/utils/roleHelpers';
+import { isSuperAdmin } from '@/lib/utils/roleHelpers';
 import { useTransactionsPaginated } from '@/hooks/useTransactionsPaginated';
 import { useIsMobile } from '@/hooks/useResponsive';
 
@@ -211,7 +211,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
               leftIcon={<Download size={16} />}
               onClick={async () => {
                 try {
-                  const { exportTransactions } = await import('../lib/csv/export');
+                  const { exportTransactions } = await import('@/lib/csv/export');
                   exportTransactions(transactions.map(tx => ({
                     ...tx,
                     members: undefined,

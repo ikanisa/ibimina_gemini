@@ -11,9 +11,9 @@ import {
   CreditCard,
   PieChart,
 } from 'lucide-react';
-import { ViewState } from '../../types';
-import { cn } from '../../lib/utils/cn';
-import { useIsMobile } from '../../hooks/useResponsive';
+import { ViewState } from '@/core/types';
+import { cn } from '@/lib/utils/cn';
+import { useIsMobile } from '@/shared/hooks/useResponsive';
 
 interface MobileBottomNavProps {
   currentView: ViewState;

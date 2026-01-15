@@ -6,10 +6,10 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { isSuperAdmin } from '../lib/utils/roleHelpers';
-import { withTimeout } from '../lib/utils/timeout';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { isSuperAdmin } from '@/lib/utils/roleHelpers';
+import { withTimeout } from '@/lib/utils/timeout';
 
 // API response structure matching the RPC function
 export interface DashboardData {

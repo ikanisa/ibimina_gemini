@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useTransactions } from '../../hooks/useTransactions';
-import { useAllocateTransaction } from '../../hooks/useAllocateTransaction';
-import { Button, Badge, LoadingSpinner, EmptyState } from '../ui';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useAllocateTransaction } from '@/hooks/useAllocateTransaction';
+import { Button, Badge, LoadingSpinner, EmptyState } from '@/shared/components/ui';
 import { AllocationModal } from './AllocationModal';
 import { Flag, AlertTriangle, CheckCircle, Search, Filter } from 'lucide-react';
-import { formatCurrency } from '../../lib/utils/format';
+import { formatCurrency } from '@/lib/utils/format';
 
 export const UnallocatedQueue: React.FC = () => {
     const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);

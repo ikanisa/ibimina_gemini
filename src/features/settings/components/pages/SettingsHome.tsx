@@ -1,8 +1,8 @@
 import React from 'react';
-import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useRoleAccess } from '@/features/settings/hooks/useRoleAccess';
 import { SettingsCard } from '../SettingsCard';
 import { HealthBanner } from '../HealthBanner';
-import { SETTINGS_NAV_ITEMS } from '../constants';
+import { SETTINGS_NAV_ITEMS } from '@/features/settings/constants';
 import { SettingsTab } from '@/core/types';
 
 interface SettingsHomeProps {

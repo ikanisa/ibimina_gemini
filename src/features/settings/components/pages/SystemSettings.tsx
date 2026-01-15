@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Database, Cpu, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { SettingsCard } from '../SettingsCard';
 import { SettingsRow } from '../SettingsRow';
 import { HealthBanner } from '../HealthBanner';

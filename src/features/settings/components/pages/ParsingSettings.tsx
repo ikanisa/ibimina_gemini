@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
 import { Sliders } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
 import { SettingsCard } from '../SettingsCard';
 import { SettingsPage } from '../SettingsPage';
-import { useSettings } from '@/hooks/useSettings';
+import { useSettings } from '@/features/settings/hooks/useSettings';
 
 type ParsingMode = 'deterministic' | 'ai_fallback';
 

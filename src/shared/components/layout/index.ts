@@ -1,7 +1,6 @@
 /**
- * Layout Components
+ * Centralized exports for layout components
  */
 
-export { AppLayout } from './AppLayout';
-export { Sidebar } from './Sidebar';
-export { MobileSidebar } from './MobileSidebar';
+export * from './PageLayout';
+export * from './Section';

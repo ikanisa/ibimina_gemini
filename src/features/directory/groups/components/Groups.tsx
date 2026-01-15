@@ -28,17 +28,17 @@ import {
   Transaction,
   ViewState,
 } from '@/core/types';
-import { supabase } from '../lib/supabase';
-import { mapGroupMemberRole, mapGroupMemberStatus, mapTransactionStatus, mapTransactionType } from '../lib/mappers';
-import { useGroups } from '../hooks';
-import { useAuth } from '../contexts/AuthContext';
-import { transformGroups } from '../lib/transformers/groupTransformer';
-import { PageLayout, Section } from './layout';
-import { Button, SearchInput, ErrorDisplay, LoadingSpinner } from './ui';
-import { GroupsList } from './groups/GroupsList';
-import { GroupDetail } from './groups/GroupDetail';
-import { CreateGroupModal } from './groups/CreateGroupModal';
-import { GroupsSkeleton } from './groups/GroupsSkeleton';
+import { supabase } from '@/lib/supabase';
+import { mapGroupMemberRole, mapGroupMemberStatus, mapTransactionStatus, mapTransactionType } from '@/lib/mappers';
+import { useGroups } from '@/hooks';
+import { useAuth } from '@/core/auth';
+import { transformGroups } from '@/lib/transformers/groupTransformer';
+import { PageLayout, Section } from '@/shared/components/layout';
+import { Button, SearchInput, ErrorDisplay, LoadingSpinner } from '@/shared/components/ui';
+import { GroupsList } from './GroupsList';
+import { GroupDetail } from './GroupDetail';
+import { CreateGroupModal } from './CreateGroupModal';
+import { GroupsSkeleton } from './GroupsSkeleton';
 
 interface GroupsProps {
   onNavigate?: (view: ViewState) => void;

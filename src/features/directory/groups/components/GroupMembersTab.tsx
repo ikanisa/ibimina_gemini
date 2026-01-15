@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import { Group, GroupMember } from '../../types';
-import { Table, TableHeader, TableRow, TableHead, TableCell } from '../ui/Table';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { Group, GroupMember } from '@/core/types';
+import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
 import { MoreHorizontal, Users } from 'lucide-react';
-import { ViewState } from '../../types';
+import { ViewState } from '@/core/types';
 
 interface GroupMembersTabProps {
   group: Group;

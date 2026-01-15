@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { useRoleAccess } from './settings/hooks/useRoleAccess';
-import { SettingsLayout } from './settings/SettingsLayout';
-import { SettingsTab } from './settings/types';
+import { useRoleAccess } from '@/features/settings/hooks/useRoleAccess';
+import { SettingsLayout } from './SettingsLayout';
+import { SettingsTab } from '@/features/settings/types';
 import {
   SettingsHome,
   InstitutionSettings,
@@ -12,7 +12,8 @@ import {
   StaffSettings,
   AuditLogSettings,
   SystemSettings
-} from './settings/pages';
+} from './pages';
+
 
 interface SettingsProps {
   onNavigateBack?: () => void;
@@ -27,7 +28,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigateBack }) => {
     if (tab === 'staff' && !access.canManageStaff) return;
     if (tab === 'audit-log' && !access.canViewAuditLog) return;
     if (tab === 'system' && !access.canManageSystem) return;
-    
+
     setActiveTab(tab);
   };
 

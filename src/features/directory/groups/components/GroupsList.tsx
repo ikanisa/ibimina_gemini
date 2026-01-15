@@ -4,13 +4,13 @@
  */
 
 import React from 'react';
-import { Group } from '../../types';
-import { Table, TableHeader, TableRow, TableHead, TableCell } from '../ui/Table';
-import { StatusIndicator } from '../ui/StatusIndicator';
+import { Group } from '@/core/types';
+import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table';
+import { StatusIndicator } from '@/shared/components/ui/StatusIndicator';
 import { Calendar, ChevronRight, Briefcase } from 'lucide-react';
-import { EmptyState } from '../ui';
+import { EmptyState } from '@/shared/components/ui';
 import { VirtualizedGroupsList } from './VirtualizedGroupsList';
-import { useIsMobile } from '../../hooks/useResponsive';
+import { useIsMobile } from '@/hooks/useResponsive';
 
 interface GroupsListProps {
   groups: Group[];

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, AlertCircle } from 'lucide-react';
-import * as mfaUtils from '../../lib/auth/mfa';
+import * as mfaUtils from '@/lib/auth/mfa';
 
 interface MFAVerifyProps {
   factorId: string;

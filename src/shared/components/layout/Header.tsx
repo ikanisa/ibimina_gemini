@@ -5,10 +5,10 @@
 
 import React, { useState } from 'react';
 import { Menu, Bell, Search, WifiOff, LogOut, UserCircle, KeyRound } from 'lucide-react';
-import { ViewState } from '../../types';
+import { ViewState } from '@/core/types';
 import type { HeaderProps } from './types';
-import { useIsMobile, useIsTabletOrLarger } from '../../hooks/useResponsive';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { useIsMobile, useIsTabletOrLarger } from '@/shared/hooks/useResponsive';
+import { ThemeToggle } from '@/shared/components/ui/ThemeToggle';
 
 export const Header: React.FC<HeaderProps> = ({
   currentView,

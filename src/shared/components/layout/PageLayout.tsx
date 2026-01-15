@@ -4,8 +4,8 @@
  */
 
 import React from 'react';
-import { cn } from '../../lib/utils/cn';
-import { spacing } from '../../lib/design-tokens';
+import { cn } from '@/lib/utils/cn';
+import { spacing } from '@/lib/design-tokens';
 
 interface PageLayoutProps {
   children: React.ReactNode;

@@ -12,7 +12,7 @@ import {
     Settings,
     LucideIcon
 } from 'lucide-react';
-import { ViewState } from '../../types';
+import { ViewState } from '@/core/types';
 
 // ============================================================================
 // TYPES

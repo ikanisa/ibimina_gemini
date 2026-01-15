@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ViewState } from '../../types';
+import { ViewState } from '@/core/types';
 import type { NavigationItemProps } from './types';
 
 export const NavigationItem: React.FC<NavigationItemProps> = ({

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Skeleton } from '../ui/Skeleton';
+import { Skeleton } from '@/shared/components/ui/Skeleton';
 
 export const ReportsSkeleton: React.FC = () => {
     return (

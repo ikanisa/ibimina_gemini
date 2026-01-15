@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Smartphone } from 'lucide-react';
-import { Group, SmsMessage, Transaction } from '../../types';
+import { Group, SmsMessage, Transaction } from '@/core/types';
 
 interface GroupMoMoTabProps {
     group: Group;

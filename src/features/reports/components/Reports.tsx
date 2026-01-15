@@ -6,21 +6,21 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Filter, AlertCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { PageLayout, Section } from './layout';
-import { isSuperAdmin } from '../lib/utils/roleHelpers';
-import { Button, Badge, ErrorDisplay, LoadingSpinner } from './ui';
-import { ReportsSkeleton } from './ui/PageSkeletons';
-import { ReportFilters } from './reports/ReportFilters';
-import { ReportKPIs } from './reports/ReportKPIs';
+import { useAuth } from '@/core/auth';
+import { supabase } from '@/lib/supabase';
+import { PageLayout, Section } from '@/shared/components/layout';
+import { isSuperAdmin } from '@/lib/utils/roleHelpers';
+import { Button, Badge, ErrorDisplay, LoadingSpinner } from '@/shared/components/ui';
+import { ReportsSkeleton } from '@/shared/components/ui';
+import { ReportFilters } from './ReportFilters';
+import { ReportKPIs } from './ReportKPIs';
 import {
   BreakdownTable,
   ReportLedgerTable,
   CsvExport,
   objectsToCsv,
   generateReportFilename,
-} from './reports/index';
+} from '.';
 import type {
   ReportScope,
   StatusFilter,
@@ -28,7 +28,7 @@ import type {
   LedgerRow,
   GroupOption,
   MemberOption,
-} from './reports/types';
+} from './types';
 
 const LEDGER_PAGE_SIZE = 50;
 
@@ -239,7 +239,7 @@ const Reports: React.FC = () => {
     }
 
     // Convert to CSV using enhanced export utilities
-    const { arrayToCSV, downloadCSV } = await import('../lib/csv/export');
+    const { arrayToCSV, downloadCSV } = await import('@/lib/csv/export');
     const csvContent = arrayToCSV(allRows);
     const filename = `report_${scope}_${scopeName || 'all'}_${dateRange.start}_to_${dateRange.end}.csv`;
     downloadCSV(csvContent, filename);

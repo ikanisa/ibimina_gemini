@@ -4,8 +4,8 @@
  */
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { cn } from '../../lib/utils/cn';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import { cn } from '@/lib/utils/cn';
 
 interface SectionProps {
   title?: string;

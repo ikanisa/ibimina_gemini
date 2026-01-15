@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Download, CheckCircle2, AlertCircle, FileSpreadsheet, AlertTriangle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import { Modal, Button, ErrorDisplay, Badge } from '../ui';
-import { WizardProgress } from '../WizardProgress';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { Modal, Button, ErrorDisplay, Badge } from '@/shared/components/ui';
+import { WizardProgress } from '@/shared/components/ui';
 
 interface Group {
   id: string;

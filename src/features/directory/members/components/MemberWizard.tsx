@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Check, User, Users, Search } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import { Modal, Button, FormField, ErrorDisplay } from '../ui';
-import { WizardProgress } from '../WizardProgress';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { Modal, Button, FormField, ErrorDisplay } from '@/shared/components/ui';
+import { WizardProgress } from '@/shared/components/ui';
 
 interface MemberWizardProps {
   isOpen: boolean;

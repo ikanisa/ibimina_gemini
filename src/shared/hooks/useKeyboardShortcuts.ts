@@ -8,7 +8,7 @@ import {
   shortcutRegistry,
   type KeyboardShortcut,
   matchesShortcut,
-} from '../lib/shortcuts/keyboard';
+} from '@/lib/shortcuts/keyboard';
 
 export interface UseKeyboardShortcutsOptions {
   /** Whether shortcuts are enabled */

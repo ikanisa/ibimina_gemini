@@ -4,12 +4,12 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { Member } from '../../types';
-import { Badge, EmptyState, LoadingSpinner } from '../ui';
+import { Member } from '@/core/types';
+import { Badge, EmptyState, LoadingSpinner } from '@/shared/components/ui';
 import { MoreHorizontal, User, Loader2, Plus } from 'lucide-react';
-import { Button } from '../ui';
+import { Button } from '@/shared/components/ui';
 import { VirtualizedMembersList } from './VirtualizedMembersList';
-import { useIsMobile } from '../../hooks/useResponsive';
+import { useIsMobile } from '@/hooks/useResponsive';
 
 interface MembersListProps {
   members: Member[];

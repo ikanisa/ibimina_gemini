@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { loadingSpin } from '../../lib/animations/framer-motion';
+import { loadingSpin } from '@/lib/animations/framer-motion';
 
 export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';

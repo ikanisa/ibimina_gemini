@@ -8,10 +8,10 @@ import {
   TrendingUp,
   RefreshCw
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
 import { ViewState } from '@/core/types';
-import { isSuperAdmin } from '../lib/utils/roleHelpers';
+import { isSuperAdmin } from '@/lib/utils/roleHelpers';
 import { useDashboardKPIs, DashboardData } from '@/hooks/useDashboardKPIs';
 import {
   KpiCard,
@@ -20,8 +20,8 @@ import {
   ActivityList,
   DashboardHealthBanner,
   InstitutionSwitcher
-} from './dashboard/index';
-import { DashboardSkeleton } from './ui/PageSkeletons';
+} from '.';
+import { DashboardSkeleton } from '@/shared/components/ui';
 
 
 // API response structure matching the RPC function

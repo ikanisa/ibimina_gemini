@@ -3,8 +3,8 @@ import {
   FileText, Filter, User, Calendar, Activity, ChevronRight, 
   X, ExternalLink, RefreshCw, ChevronDown, AlertCircle
 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
 import { ViewState } from '@/core/types';
 
 interface AuditEvent {

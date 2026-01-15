@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Smartphone,
 } from 'lucide-react';
-import { ViewState } from '../../types';
+import { ViewState } from '@/core/types';
 import { NavigationItem } from './NavigationItem';
 // Mock data removed - using only real Supabase data
 import type { SidebarProps } from './types';

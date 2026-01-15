@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Moon, Sun } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/shared/hooks/useTheme';
 import { motion } from 'framer-motion';
 
 export interface ThemeToggleProps {

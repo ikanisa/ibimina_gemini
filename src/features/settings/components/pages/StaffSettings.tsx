@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Mail, Phone, Shield, Building, Trash2, UserCheck } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
 import { DrawerForm } from '../DrawerForm';
 import { HealthBanner } from '../HealthBanner';
 

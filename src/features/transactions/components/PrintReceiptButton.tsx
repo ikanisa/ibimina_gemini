@@ -5,8 +5,8 @@
 
 import React, { useState } from 'react';
 import { Printer, Loader, FileText } from 'lucide-react';
-import { printReceipt, transactionToReceiptData } from '../../lib/utils/receipt';
-import type { ConsolidatedTransaction } from '../../types';
+import { printReceipt, transactionToReceiptData } from '@/lib/utils/receipt';
+import type { ConsolidatedTransaction } from '@/core/types';
 
 // ============================================================================
 // TYPES

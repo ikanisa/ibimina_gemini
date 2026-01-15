@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { handleError } from '../lib/errors/ErrorHandler';
-import { queryKeys } from '../lib/query-client';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { handleError } from '@/lib/errors/ErrorHandler';
+import { queryKeys } from '@/lib/query-client';
 
 export interface AllocateTransactionParams {
     transactionId: string;

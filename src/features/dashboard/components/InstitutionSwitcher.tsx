@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Building, ChevronDown, Check, Globe } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 interface Institution {
   id: string;

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
 import { KpiStats } from '@/core/types';
-import { withTimeout } from '../lib/utils/timeout';
-import { safeQuery } from '../lib/safeQuery';
+import { withTimeout } from '@/lib/utils/timeout';
+import { safeQuery } from '@/lib/safeQuery';
 
 const EMPTY_STATS: KpiStats = {
     totalMembers: 0,

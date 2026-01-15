@@ -6,11 +6,11 @@
 
 import React, { useState, useCallback } from 'react';
 import { User, Users, Loader2, CheckCircle2, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import { handleError, getUserFriendlyMessage } from '../../lib/errors/ErrorHandler';
-import { captureError } from '../../lib/sentry';
-import { Button } from '../ui';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { handleError, getUserFriendlyMessage } from '@/lib/errors/ErrorHandler';
+import { captureError } from '@/lib/sentry';
+import { Button } from '@/shared/components/ui';
 
 interface DragDropAllocationProps {
   transactionId: string;

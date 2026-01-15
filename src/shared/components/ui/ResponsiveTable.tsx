@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react';
-import { useIsMobile } from '../../hooks/useResponsive';
+import { useIsMobile } from '@/shared/hooks/useResponsive';
 
 // ============================================================================
 // TYPES

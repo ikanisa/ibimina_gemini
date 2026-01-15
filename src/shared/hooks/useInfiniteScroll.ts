@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
+import { withTimeout, handleError, getUserFriendlyMessage } from '@/lib/errors/ErrorHandler';
 
 interface UseInfiniteScrollOptions<T> {
   fetchFn: (offset: number, limit: number) => Promise<T[]>;

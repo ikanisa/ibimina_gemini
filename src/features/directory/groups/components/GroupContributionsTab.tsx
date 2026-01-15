@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Group, Contribution, GroupMember } from '../../types';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { Group, Contribution, GroupMember } from '@/core/types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
 import { LayoutGrid, List, ChevronLeft, ChevronRight, Smartphone, DollarSign, Wallet, Check } from 'lucide-react';
 
 interface GroupContributionsTabProps {

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Calendar, DollarSign, Phone, Hash, FileText, CheckCircle2, Search, AlertCircle, MapPin, Clock, MessageSquare, Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { Button, Badge, SearchInput, LoadingSpinner, EmptyState } from './ui';
-import { drawerSlide, transitions } from '../lib/animations/framer-motion';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { Button, Badge, SearchInput, LoadingSpinner, EmptyState } from '@/shared/components/ui';
+import { drawerSlide, transitions } from '@/lib/animations/framer-motion';
 import { useTransactions } from '@/hooks/useTransactions';
-import { DragDropAllocation, DraggableTransaction } from './Transactions/DragDropAllocation';
+import { DragDropAllocation, DraggableTransaction } from './DragDropAllocation';
 
 interface TransactionDetails {
   id: string;

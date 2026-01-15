@@ -11,7 +11,7 @@ import {
   applyTheme,
   watchSystemTheme,
   type Theme,
-} from '../lib/theme/dark-mode';
+} from '@/lib/theme/dark-mode';
 
 export interface UseThemeReturn {
   theme: Theme;

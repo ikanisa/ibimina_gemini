@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Briefcase } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import { Modal, Button, FormField, ErrorDisplay } from '../ui';
-import { WizardProgress } from '../WizardProgress';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { Modal, Button, FormField, ErrorDisplay } from '@/shared/components/ui';
+import { WizardProgress } from '@/shared/components/ui';
 
 interface GroupWizardProps {
   isOpen: boolean;

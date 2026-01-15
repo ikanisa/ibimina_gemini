@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Modal, Button, ErrorDisplay, SimpleInput } from '../ui';
-import { validateMemberData } from '../../lib/validation';
+import { Modal, Button, ErrorDisplay, SimpleInput } from '@/shared/components/ui';
+import { validateMemberData } from '@/lib/validation';
 import { Plus } from 'lucide-react';
 
 interface AddMemberModalProps {

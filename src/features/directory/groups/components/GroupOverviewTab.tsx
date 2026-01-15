@@ -4,10 +4,10 @@
  */
 
 import React from 'react';
-import { Group, GroupMember, Meeting } from '../../types';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { Group, GroupMember, Meeting } from '@/core/types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
 import { Calendar, DollarSign, Users, AlertCircle } from 'lucide-react';
-import { ViewState } from '../../types';
+import { ViewState } from '@/core/types';
 
 interface GroupOverviewTabProps {
   group: Group;

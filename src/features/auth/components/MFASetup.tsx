@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, CheckCircle, XCircle, Copy, Download } from 'lucide-react';
-import { useMFA } from '../../hooks/useMFA';
-import * as mfaUtils from '../../lib/auth/mfa';
+import { useMFA } from '@/hooks/useMFA';
+import * as mfaUtils from '@/lib/auth/mfa';
 
 interface MFASetupProps {
   onComplete?: () => void;

@@ -1,6 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Building, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/core/auth';
 
 const ForgotPassword = lazy(() => import('./ForgotPassword'));
 

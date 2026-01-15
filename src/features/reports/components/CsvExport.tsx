@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
-import { Button } from '../ui';
+import { Button } from '@/shared/components/ui';
 
 interface CsvExportProps {
   onExport: () => Promise<string>;

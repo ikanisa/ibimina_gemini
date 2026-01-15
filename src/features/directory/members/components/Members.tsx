@@ -8,15 +8,15 @@ import React, { useState, useMemo } from 'react';
 import { Filter, Plus, Upload } from 'lucide-react';
 import { Member, ViewState } from '@/core/types';
 // Mock data removed - using only real Supabase data
-import { useAuth } from '../contexts/AuthContext';
-import { useMembers } from '../hooks';
-import { transformMembers } from '../lib/transformers/memberTransformer';
-import { PageLayout, Section } from './layout';
-import { Button, SearchInput, ErrorDisplay } from './ui';
-import { MembersSkeleton } from './ui/PageSkeletons';
-import { MembersList } from './members/MembersList';
-import { MemberDetail } from './members/MemberDetail';
-import { AddMemberModal } from './members/AddMemberModal';
+import { useAuth } from '@/core/auth';
+import { useMembers } from '@/hooks';
+import { transformMembers } from '@/lib/transformers/memberTransformer';
+import { PageLayout, Section } from '@/shared/components/layout';
+import { Button, SearchInput, ErrorDisplay } from '@/shared/components/ui';
+import { MembersSkeleton } from '@/shared/components/ui';
+import { MembersList } from './MembersList';
+import { MemberDetail } from './MemberDetail';
+import { AddMemberModal } from './AddMemberModal';
 import BulkMemberUpload from './BulkMemberUpload';
 
 interface MembersProps {

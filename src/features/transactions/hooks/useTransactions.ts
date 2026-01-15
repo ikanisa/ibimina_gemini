@@ -6,11 +6,11 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as transactionsApi from '../lib/api/transactions.api';
-import { queryKeys } from '../lib/query-client';
+import * as transactionsApi from '@/lib/api/transactions.api';
+import { queryKeys } from '@/lib/query-client';
 import type { SupabaseTransaction } from '@/core/types';
-import { useAuth } from '../contexts/AuthContext';
-import { handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
+import { useAuth } from '@/core/auth';
+import { handleError, getUserFriendlyMessage } from '@/lib/errors/ErrorHandler';
 
 export interface UseTransactionsOptions {
   memberId?: string;
@@ -66,7 +66,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
       }
 
       // Build query with all filters - wrapped with timeout
-      const { withTimeout } = await import('../lib/errors/ErrorHandler');
+      const { withTimeout } = await import('@/lib/errors/ErrorHandler');
       return withTimeout(
         transactionsApi.fetchTransactions(institutionId, {
           memberId,
@@ -226,7 +226,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const createTransaction = async (params: transactionsApi.CreateTransactionParams) => {
     // Queue action if offline
     if (!navigator.onLine) {
-      const { queueAction } = await import('../lib/offline/queue');
+      const { queueAction } = await import('@/lib/offline/queue');
       queueAction({
         type: 'create',
         resource: 'transaction',
@@ -252,7 +252,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const allocateTransaction = async (transactionId: string, memberId: string, note?: string | null) => {
     // Queue action if offline
     if (!navigator.onLine) {
-      const { queueAction } = await import('../lib/offline/queue');
+      const { queueAction } = await import('@/lib/offline/queue');
       queueAction({
         type: 'allocate',
         resource: 'transaction',

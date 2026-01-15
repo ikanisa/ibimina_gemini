@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { modalBackdrop, modalContent, transitions } from '../../lib/animations/framer-motion';
+import { modalBackdrop, modalContent, transitions } from '@/lib/animations/framer-motion';
 
 export interface ModalProps {
   isOpen: boolean;

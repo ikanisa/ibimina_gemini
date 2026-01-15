@@ -1,7 +1,7 @@
 /**
  * App Component (Refactored)
  * Main application container with navigation
- * Uses modular navigation components and feature-based imports
+ * Uses feature-based module structure
  */
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
@@ -9,33 +9,31 @@ import { AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 import { Eye, WifiOff } from 'lucide-react';
 
-// Core imports (new paths)
+// Core imports
 import { ViewState, StaffRole, StaffMember, KpiStats, SupabaseProfile, Transaction } from '@/core/types';
 import { useAuth } from '@/core/auth';
 
-// UI and component imports
+// Shared UI and component imports
 import { buildInitialsAvatar } from './lib/avatars';
 import { Sidebar, Header, MobileBottomNav } from './components/navigation';
-import { AnimatedPage } from './components/ui/AnimatedPage';
+import { AnimatedPage, SkipLink } from '@/shared/components/ui';
 import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { useSessionTimeout, SessionWarningModal } from './hooks/useSessionTimeout';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { SkipLink } from './components/ui/SkipLink';
 
-// Lazy-loaded components (using legacy paths that work with current import structure)
-// TODO: Update to @/features/* paths after all component imports are fixed
-const Dashboard = lazy(() => import('./components/Dashboard'));
-const MinimalistDashboard = lazy(() => import('./components/MinimalistDashboard'));
-const Groups = lazy(() => import('./components/Groups'));
-const Members = lazy(() => import('./components/Members'));
-const Transactions = lazy(() => import('./components/Transactions'));
+// Lazy-loaded feature components
+const Dashboard = lazy(() => import('@/features/dashboard/components/Dashboard'));
+const MinimalistDashboard = lazy(() => import('@/features/dashboard/components/MinimalistDashboard'));
+const Groups = lazy(() => import('@/features/directory/groups/components/Groups'));
+const Members = lazy(() => import('@/features/directory/members/components/Members'));
+const Transactions = lazy(() => import('@/features/transactions/components/Transactions'));
 const Institutions = lazy(() => import('./components/institutions/Institutions'));
-const Reports = lazy(() => import('./components/Reports'));
+const Reports = lazy(() => import('@/features/reports/components/Reports'));
 const Staff = lazy(() => import('./components/Staff'));
 const Profile = lazy(() => import('./components/Profile'));
-const SettingsPage = lazy(() => import('./components/Settings'));
+const SettingsPage = lazy(() => import('@/features/settings/components/Settings'));
 const SmsGatewayDevices = lazy(() => import('./components/sms-gateway/SmsGatewayDevices'));
-const Login = lazy(() => import('./components/Login'));
+const Login = lazy(() => import('@/features/auth/components/Login'));
 const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
 const AppBoot = lazy(() => import('./components/AppBoot'));
 const SystemHealthIndicator = lazy(() => import('./components/SystemHealthIndicator'));

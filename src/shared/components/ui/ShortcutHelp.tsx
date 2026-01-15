@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Keyboard } from 'lucide-react';
-import { shortcutRegistry, formatShortcut, type KeyboardShortcut } from '../../lib/shortcuts/keyboard';
+import { shortcutRegistry, formatShortcut, type KeyboardShortcut } from '@/lib/shortcuts/keyboard';
 
 export interface ShortcutHelpProps {
   /** Whether the modal is open */

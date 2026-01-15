@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, User, Users, Check, Loader2, AlertCircle } from 'lucide-react';
-import { useMemberSearch } from '../../hooks/useMemberSearch';
-import { useAllocateTransaction } from '../../hooks/useAllocateTransaction';
-import { Button, SearchInput } from '../ui';
+import { useMemberSearch } from '@/hooks/useMemberSearch';
+import { useAllocateTransaction } from '@/hooks/useAllocateTransaction';
+import { Button, SearchInput } from '@/shared/components/ui';
 
 interface AllocationModalProps {
     isOpen: boolean;

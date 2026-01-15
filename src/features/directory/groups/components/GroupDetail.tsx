@@ -4,14 +4,14 @@
  */
 
 import React, { useState } from 'react';
-import { Group, ViewState } from '../../types';
+import { Group, ViewState } from '@/core/types';
 import { Briefcase, Users, DollarSign, CheckCircle2, Calendar, Smartphone, Settings } from 'lucide-react';
 import { GroupOverviewTab } from './GroupOverviewTab';
 import { GroupMembersTab } from './GroupMembersTab';
 import { GroupContributionsTab } from './GroupContributionsTab';
 import { GroupMeetingsTab } from './GroupMeetingsTab';
 import { GroupSettingsTab } from './GroupSettingsTab';
-import { Breadcrumbs } from '../ui/Breadcrumbs';
+import { Breadcrumbs } from '@/shared/components/ui/Breadcrumbs';
 import type { DetailTab } from './types';
 
 interface GroupDetailProps {

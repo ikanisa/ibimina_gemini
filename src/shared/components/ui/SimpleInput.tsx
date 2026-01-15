@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { cn } from '../../lib/utils/cn';
+import { cn } from '@/lib/utils/cn';
 
 interface SimpleInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;

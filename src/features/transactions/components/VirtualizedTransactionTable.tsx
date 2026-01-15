@@ -6,7 +6,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2, CheckSquare, Square } from 'lucide-react';
-import { Badge } from '../ui';
+import { Badge } from '@/shared/components/ui';
 
 // Flexible transaction type that works with various data sources
 interface TransactionRow {

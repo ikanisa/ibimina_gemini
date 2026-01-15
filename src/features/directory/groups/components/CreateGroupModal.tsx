@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Modal, Button, ErrorDisplay, SimpleInput, SimpleSelect } from '../ui';
-import { validateGroupData } from '../../lib/validation';
+import { Modal, Button, ErrorDisplay, SimpleInput, SimpleSelect } from '@/shared/components/ui';
+import { validateGroupData } from '@/lib/validation';
 import { Plus } from 'lucide-react';
 
 interface CreateGroupModalProps {

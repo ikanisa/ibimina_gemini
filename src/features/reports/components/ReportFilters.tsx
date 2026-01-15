@@ -5,7 +5,7 @@
 
 import React, { memo } from 'react';
 import { Building2, Briefcase, User, Calendar } from 'lucide-react';
-import { SearchInput, Button } from '../ui';
+import { SearchInput, Button } from '@/shared/components/ui';
 import { ReportScope, StatusFilter, GroupOption, MemberOption } from './types';
 
 interface ReportFiltersProps {

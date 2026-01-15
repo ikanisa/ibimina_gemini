@@ -3,7 +3,7 @@
  * Centralized role-based access control for settings
  */
 
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '@/core/auth';
 import { useMemo } from 'react';
 
 export type UserRole = 'PLATFORM_ADMIN' | 'INSTITUTION_ADMIN' | 'INSTITUTION_STAFF' | 'INSTITUTION_AUDITOR';

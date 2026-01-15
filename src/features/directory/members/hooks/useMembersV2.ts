@@ -17,7 +17,7 @@ import {
     type MemberFilters,
     type CreateMemberInput,
     type UpdateMemberInput
-} from '../services/memberService';
+} from './services/memberService';
 
 // ============================================================================
 // Query Keys

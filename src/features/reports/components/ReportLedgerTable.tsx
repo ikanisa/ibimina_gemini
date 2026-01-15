@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { Loader2, FileText } from 'lucide-react';
-import { Badge } from '../ui';
-import { useIsMobile } from '../../hooks/useResponsive';
+import { Badge } from '@/shared/components/ui';
+import { useIsMobile } from '@/hooks/useResponsive';
 
 interface LedgerRow {
   id: string;

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Skeleton, TableRowSkeleton } from '../ui/Skeleton';
+import { Skeleton, TableRowSkeleton } from '@/shared/components/ui/Skeleton';
 
 export const GroupsSkeleton: React.FC = () => {
     return (

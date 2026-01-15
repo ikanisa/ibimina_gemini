@@ -4,8 +4,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import * as mfaUtils from '../lib/auth/mfa';
-import type { MFAFactor, MFASetupResponse, MFABackupCodes } from '../lib/auth/mfa';
+import * as mfaUtils from '@/lib/auth/mfa';
+import type { MFAFactor, MFASetupResponse, MFABackupCodes } from '@/lib/auth/mfa';
 
 interface UseMFAReturn {
   hasMFA: boolean;

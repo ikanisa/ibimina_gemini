@@ -10,11 +10,11 @@
 
 import React, { useState } from 'react';
 import { CheckSquare, Square, Trash2, Flag, Download, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '../ui';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import { handleError, getUserFriendlyMessage } from '../../lib/errors/ErrorHandler';
-import { captureError } from '../../lib/sentry';
+import { Button } from '@/shared/components/ui';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/core/auth';
+import { handleError, getUserFriendlyMessage } from '@/lib/errors/ErrorHandler';
+import { captureError } from '@/lib/sentry';
 
 interface BulkActionsProps {
   selectedIds: Set<string>;
@@ -138,7 +138,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
       if (fetchError) throw fetchError;
 
       // Use enhanced CSV export
-      const { exportTransactions } = await import('../../lib/csv/export');
+      const { exportTransactions } = await import('@/lib/csv/export');
       exportTransactions(data || [], {
         filename: `transactions_${new Date().toISOString().split('T')[0]}.csv`,
       });

@@ -6,7 +6,7 @@
 import React, { ReactNode } from 'react';
 import { HealthBanner } from './HealthBanner';
 import { SaveBar } from './SaveBar';
-import { HealthIssue } from './types';
+import { HealthIssue } from '@/features/settings/types';
 
 interface SettingsPageProps {
   title: string;

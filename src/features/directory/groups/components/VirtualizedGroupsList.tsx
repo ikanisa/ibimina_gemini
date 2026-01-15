@@ -6,8 +6,8 @@
 import React, { useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Calendar, ChevronRight } from 'lucide-react';
-import { StatusIndicator } from '../ui/StatusIndicator';
-import type { Group } from '../../types';
+import { StatusIndicator } from '@/shared/components/ui/StatusIndicator';
+import type { Group } from '@/core/types';
 
 interface VirtualizedGroupsListProps {
   groups: Group[];

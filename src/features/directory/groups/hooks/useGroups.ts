@@ -6,11 +6,11 @@
  */
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import * as groupsApi from '../lib/api/groups.api';
-import { queryKeys } from '../lib/query-client';
+import * as groupsApi from '@/lib/api/groups.api';
+import { queryKeys } from '@/lib/query-client';
 import type { SupabaseGroup } from '@/core/types';
-import { useAuth } from '../contexts/AuthContext';
-import { withTimeout, handleError, getUserFriendlyMessage } from '../lib/errors/ErrorHandler';
+import { useAuth } from '@/core/auth';
+import { withTimeout, handleError, getUserFriendlyMessage } from '@/lib/errors/ErrorHandler';
 
 export interface UseGroupsOptions {
   includeMemberCounts?: boolean;

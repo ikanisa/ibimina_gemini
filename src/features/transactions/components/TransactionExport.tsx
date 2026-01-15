@@ -5,8 +5,8 @@
 
 import React, { useState } from 'react';
 import { Download, FileSpreadsheet, Loader } from 'lucide-react';
-import { exportTransactionsToCsv } from '../../lib/utils/export';
-import type { ConsolidatedTransaction } from '../../types';
+import { exportTransactionsToCsv } from '@/lib/utils/export';
+import type { ConsolidatedTransaction } from '@/core/types';
 
 // ============================================================================
 // TYPES

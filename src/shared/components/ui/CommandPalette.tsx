@@ -6,9 +6,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Command } from 'lucide-react';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
-import { formatShortcut, type KeyboardShortcut } from '../../lib/shortcuts/keyboard';
-import { shortcutRegistry } from '../../lib/shortcuts/keyboard';
+import { useKeyboardShortcut } from '@/shared/hooks/useKeyboardShortcuts';
+import { formatShortcut, type KeyboardShortcut } from '@/lib/shortcuts/keyboard';
+import { shortcutRegistry } from '@/lib/shortcuts/keyboard';
 
 export interface CommandPaletteItem {
   id: string;

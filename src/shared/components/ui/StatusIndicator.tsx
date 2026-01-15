@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { CheckCircle, AlertCircle, XCircle, Clock } from 'lucide-react';
-import { cn } from '../../lib/utils/cn';
+import { cn } from '@/lib/utils/cn';
 
 export type Status = 'active' | 'pending' | 'inactive' | 'error' | 'warning';
 

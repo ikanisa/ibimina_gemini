@@ -4,8 +4,8 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { AuditLogger } from '../lib/services/AuditLogger';
+import { supabase } from '@/lib/supabase';
+import { AuditLogger } from '@/lib/services/AuditLogger';
 
 // ============================================================================
 // CONFIGURATION

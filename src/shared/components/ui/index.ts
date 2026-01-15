@@ -27,3 +27,4 @@ export * from './DataStateWrapper';
 export * from './AnimatedPage';
 
 
+export * from './WizardProgress';
