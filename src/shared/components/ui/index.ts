@@ -28,3 +28,4 @@ export * from './AnimatedPage';
 
 
 export * from './WizardProgress';
+export * from './GroupSearchSelect';

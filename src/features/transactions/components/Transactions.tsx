@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { Transaction, ViewState } from '@/core/types';
-import { Download, Filter, ExternalLink, FileText, Loader2, Calendar, X, Radio } from 'lucide-react';
+import { Download, Filter, ExternalLink, FileText, Loader2, Calendar, X, Radio, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/core/auth';
 import { supabase } from '@/lib/supabase';
 import { mapTransactionStatus, mapTransactionType, mapTransactionChannel } from '@/lib/mappers';
@@ -13,6 +13,7 @@ import { useRealtimeTransactions } from '@/hooks/useRealtime';
 import { isSuperAdmin } from '@/lib/utils/roleHelpers';
 import { useTransactionsPaginated } from '@/hooks/useTransactionsPaginated';
 import { useIsMobile } from '@/hooks/useResponsive';
+import { transactionService } from '../services/transactionService';
 
 const TransactionDrawer = lazy(() => import('./TransactionDrawer'));
 
@@ -73,6 +74,9 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Unallocated count for badge
+  const [unallocatedCount, setUnallocatedCount] = useState<number>(0);
+
   // Ref for infinite scroll container
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +113,20 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [hasMore, loadMore, loadingMore]);
+
+  // Fetch unallocated count
+  useEffect(() => {
+    if (!institutionId) return;
+    const fetchUnallocatedCount = async () => {
+      try {
+        const count = await transactionService.getUnallocatedCount(institutionId);
+        setUnallocatedCount(count);
+      } catch (err) {
+        console.error('Error fetching unallocated count:', err);
+      }
+    };
+    fetchUnallocatedCount();
+  }, [institutionId, transactions]); // Refetch when transactions change
 
   const handleRowClick = (txId: string) => {
     setSelectedTransactionId(txId);
@@ -244,17 +262,25 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
         </div>
 
         {/* Status tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(['all', 'unallocated', 'allocated', 'flagged'] as StatusFilter[]).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${statusFilter === status
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status === 'unallocated' && unallocatedCount > 0 && (
+                <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${statusFilter === 'unallocated'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-amber-100 text-amber-700'
+                  }`}>
+                  {unallocatedCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -311,11 +337,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
       {/* Table with infinite scroll */}
       {loading && transactions.length === 0 ? (
         <div className="flex-1 overflow-hidden">
-          {!isMobile ? (
-            <TransactionsSkeleton />
-          ) : (
-            <TransactionsSkeleton />
-          )}
+          <TransactionsSkeleton />
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 overflow-hidden flex flex-col">

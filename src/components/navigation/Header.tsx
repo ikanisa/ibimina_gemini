@@ -37,6 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Member Management';
       case ViewState.TRANSACTIONS:
         return 'Transactions';
+      case ViewState.LOANS:
+        return 'Loans';
       case ViewState.REPORTS:
         return 'Reports & Analytics';
       case ViewState.STAFF:

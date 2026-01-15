@@ -119,7 +119,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
         <div className="grid grid-cols-2 gap-4">
           <SimpleSelect
-            label="Meeting Day"
+            label="Contribution Day"
             error={formErrors.meeting_day}
             value={newGroupData.meeting_day}
             onChange={(e) =>

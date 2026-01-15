@@ -193,7 +193,7 @@ export const DESIGN_TOKENS = {
         },
         blur: {
             sm: '8px',
-            md: '16px',
+            md: '12px',
             lg: '24px',
             xl: '40px',
         },

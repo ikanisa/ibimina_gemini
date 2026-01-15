@@ -1,29 +1,36 @@
 /**
  * Role helper utilities
  * Centralizes role checking logic to ensure consistency across the app
+ * 
+ * Only 2 roles: ADMIN and STAFF
  */
 
 /**
  * Check if a role is Admin
- * Handles both 'Admin' and legacy database values
  */
 export function isSuperAdmin(role: string | null | undefined): boolean {
   if (!role) return false;
-  const roleUpper = role.toUpperCase();
-  return roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN';
+  return role.toUpperCase() === 'ADMIN';
 }
 
 /**
- * Check if a role is Admin (alias for isSuperAdmin for backward compatibility)
- */
-export function isBranchManager(role: string | null | undefined): boolean {
-  return isSuperAdmin(role);
-}
-
-/**
- * Check if a role has admin privileges
+ * Check if a role is Admin (alias for isSuperAdmin)
  */
 export function isAdmin(role: string | null | undefined): boolean {
   return isSuperAdmin(role);
 }
 
+/**
+ * Check if a role is Staff
+ */
+export function isStaff(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return role.toUpperCase() === 'STAFF';
+}
+
+/**
+ * @deprecated Use isAdmin instead
+ */
+export function isBranchManager(role: string | null | undefined): boolean {
+  return isAdmin(role);
+}

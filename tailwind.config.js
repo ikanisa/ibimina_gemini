@@ -103,26 +103,34 @@ export default {
     require('@tailwindcss/forms'),
     require('@tailwindcss/typography'),
     // Glass morphism utilities
+    // Glass morphism utilities using design tokens
     function ({ addUtilities, theme }) {
       addUtilities({
         '.glass': {
-          'background': 'rgba(255, 255, 255, 0.7)',
-          'backdrop-filter': 'blur(16px)',
-          '-webkit-backdrop-filter': 'blur(16px)',
-          'border': '1px solid rgba(255, 255, 255, 0.2)',
+          'background-color': 'rgba(255, 255, 255, 0.7)',
+          'backdrop-filter': 'blur(12px)',
+          '-webkit-backdrop-filter': 'blur(12px)',
+          'border-width': '1px',
+          'border-color': 'rgba(255, 255, 255, 0.2)',
         },
         '.glass-dark': {
-          'background': 'rgba(30, 41, 59, 0.7)',
-          'backdrop-filter': 'blur(16px)',
-          '-webkit-backdrop-filter': 'blur(16px)',
-          'border': '1px solid rgba(148, 163, 184, 0.2)',
+          'background-color': 'rgba(30, 41, 59, 0.7)',
+          'backdrop-filter': 'blur(12px)',
+          '-webkit-backdrop-filter': 'blur(12px)',
+          'border-width': '1px',
+          'border-color': 'rgba(148, 163, 184, 0.2)',
         },
         '.glass-subtle': {
-          'background': 'rgba(255, 255, 255, 0.5)',
+          'background-color': 'rgba(255, 255, 255, 0.5)',
           'backdrop-filter': 'blur(8px)',
           '-webkit-backdrop-filter': 'blur(8px)',
-          'border': '1px solid rgba(255, 255, 255, 0.15)',
+          'border-width': '1px',
+          'border-color': 'rgba(255, 255, 255, 0.15)',
         },
+        // Utility for cards to ensure readability
+        '.glass-card': {
+           '@apply glass rounded-xl shadow-sm': {},
+        }
       });
     },
     // Reduced motion variant

@@ -135,7 +135,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
   }, [staffMembers, searchTerm]);
 
   // Mock permissions matrix data
-  const features = ['Members', 'Savings', 'Loans', 'Tokens', 'NFC Operations', 'Reconciliation', 'Reports', 'Settings'];
+  const features = ['Members', 'Savings', 'Loans', 'Reconciliation', 'Reports', 'Settings'];
   const permissions = ['View', 'Create', 'Edit', 'Approve', 'Delete'];
 
   // Mock permission state
@@ -452,8 +452,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                           <div
                             onClick={() => !isDisabled && togglePermission(feature, perm)}
                             className={`w-5 h-5 rounded border mx-auto flex items-center justify-center cursor-pointer transition-colors ${displayChecked
-                                ? 'bg-blue-600 border-blue-600'
-                                : 'bg-white border-slate-300 hover:border-blue-400'
+                              ? 'bg-blue-600 border-blue-600'
+                              : 'bg-white border-slate-300 hover:border-blue-400'
                               } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             {displayChecked && <Check size={12} className="text-white" />}
@@ -597,8 +597,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                       type="button"
                       onClick={() => setNewStaffData({ ...newStaffData, onboardingMethod: 'invite' })}
                       className={`p-3 border rounded-lg text-left transition-all ${newStaffData.onboardingMethod === 'invite'
-                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                          : 'border-slate-200 hover:bg-slate-50'
+                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                        : 'border-slate-200 hover:bg-slate-50'
                         }`}
                     >
                       <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 mb-1">
@@ -611,8 +611,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                       type="button"
                       onClick={() => setNewStaffData({ ...newStaffData, onboardingMethod: 'password' })}
                       className={`p-3 border rounded-lg text-left transition-all ${newStaffData.onboardingMethod === 'password'
-                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                          : 'border-slate-200 hover:bg-slate-50'
+                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                        : 'border-slate-200 hover:bg-slate-50'
                         }`}
                     >
                       <div className="flex items-center gap-2 font-semibold text-sm text-slate-900 mb-1">

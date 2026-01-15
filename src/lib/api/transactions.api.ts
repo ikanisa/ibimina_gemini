@@ -40,7 +40,7 @@ export async function fetchTransactions(institutionId: string, filters?: {
   return deduplicateRequest(key, async () => {
     let query = supabase
       .from('transactions')
-      .select('*, members(full_name), groups(name)')
+      .select('*, members:members!transactions_member_id_fkey(full_name), groups(name)')
       .eq('institution_id', institutionId);
 
     if (filters?.memberId) {
@@ -279,7 +279,7 @@ export async function allocateTransaction(params: AllocateTransactionParams) {
     const { data: transactionData, error: transactionError } = await safeQuery(
       supabase
         .from('transactions')
-        .select('*, members(full_name), groups(name)')
+        .select('*, members:members!transactions_member_id_fkey(full_name), groups(name)')
         .eq('id', params.transaction_id)
         .single(),
       { errorMessage: 'Failed to retrieve updated transaction' }
@@ -332,7 +332,7 @@ export async function getTransactionById(id: string) {
     .from('transactions')
     .select(`
       *,
-      member:members(id, full_name, phone),
+      member:members!transactions_member_id_fkey(id, full_name, phone),
       group:groups(id, name),
       allocated_by_user:profiles(id, full_name)
     `)

@@ -62,7 +62,7 @@ export const VirtualizedGroupsList: React.FC<VirtualizedGroupsListProps> = ({
             <tr>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Group Name</th>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Cycle</th>
-              <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Meeting Day</th>
+              <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Contribution Day</th>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Members</th>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Fund Balance</th>
               <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Status</th>

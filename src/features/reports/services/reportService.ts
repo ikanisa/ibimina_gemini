@@ -247,7 +247,7 @@ export const reportService = {
      */
     async exportToCSV(filters: ReportFilters): Promise<string> {
         try {
-            const { data, error } = await supabase
+        const { data, error } = await supabase
                 .from('transactions')
                 .select(`
           id,
@@ -257,7 +257,7 @@ export const reportService = {
           status,
           payer_name,
           reference,
-          members(full_name),
+          members:members!transactions_member_id_fkey(full_name),
           groups(name)
         `)
                 .eq('institution_id', filters.institutionId)

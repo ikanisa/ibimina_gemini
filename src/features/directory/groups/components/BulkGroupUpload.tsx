@@ -252,7 +252,7 @@ const BulkGroupUpload: React.FC<BulkGroupUploadProps> = ({ onClose, onSuccess })
                                         <div>
                                             <p className="font-medium text-slate-900">{group.group_name}</p>
                                             <p className="text-sm text-slate-500">
-                                                {group.meeting_day || 'No meeting day'} • {group.expected_amount?.toLocaleString() || 'No amount'} RWF
+                                                {group.meeting_day || 'No contribution day'} • {group.expected_amount?.toLocaleString() || 'No amount'} RWF
                                             </p>
                                         </div>
                                         <span className={`text-xs px-2 py-1 rounded ${frequencyColors[group.frequency || 'Weekly'] || 'bg-slate-100 text-slate-700'}`}>

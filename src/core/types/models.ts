@@ -69,22 +69,10 @@ export interface GroupMember {
     contributionsMissed: number;
 }
 
-export interface Meeting {
-    id: string;
-    groupId: string;
-    date: string;
-    type: 'Regular' | 'Loan Approval' | 'Emergency';
-    attendanceCount: number;
-    totalCollected: number;
-    notes: string;
-    status: 'Scheduled' | 'Completed';
-}
-
 export interface Contribution {
     id: string;
     memberId: string;
     groupId: string;
-    meetingId: string;
     periodLabel: string; // e.g. "Week 1" or "Jan"
     expectedAmount: number;
     paidAmount: number;
@@ -121,10 +109,10 @@ export interface Transaction {
     date: string;
     memberId: string;
     memberName: string;
-    type: 'Deposit' | 'Withdrawal' | 'Loan Repayment' | 'Loan Disbursement' | 'Token Purchase' | 'Token Redeem' | 'Group Contribution';
+    type: 'Deposit' | 'Withdrawal' | 'Loan Repayment' | 'Loan Disbursement' | 'Group Contribution';
     amount: number;
     currency: string;
-    channel: 'Cash' | 'MoMo NFC' | 'MoMo USSD' | 'Token' | 'System';
+    channel: 'Cash' | 'MoMo USSD' | 'Bank Transfer' | 'System';
     status: TransactionStatus;
     reference: string;
     groupId?: string;

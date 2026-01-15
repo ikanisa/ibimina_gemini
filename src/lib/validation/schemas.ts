@@ -136,8 +136,8 @@ export const transactionCreateSchema = z.object({
     groupId: uuidSchema.optional(),
     institutionId: uuidSchema,
     amount: z.number().positive('Amount must be positive').max(100000000, 'Amount exceeds maximum limit'),
-    type: z.enum(['DEPOSIT', 'WITHDRAWAL', 'TRANSFER', 'LOAN_REPAYMENT', 'GROUP_CONTRIBUTION', 'TOKEN_PURCHASE', 'TOKEN_REDEEM']),
-    channel: z.enum(['CASH', 'MOMO_NFC', 'MOMO_USSD', 'BANK_TRANSFER', 'TOKEN', 'SYSTEM']),
+    type: z.enum(['DEPOSIT', 'WITHDRAWAL', 'TRANSFER', 'LOAN_REPAYMENT', 'GROUP_CONTRIBUTION']),
+    channel: z.enum(['CASH', 'MOMO_USSD', 'BANK_TRANSFER', 'SYSTEM']),
     currency: currencySchema.default('RWF'),
     reference: z.string().max(100).optional(),
     description: z.string().max(500).optional(),
@@ -146,9 +146,9 @@ export const transactionCreateSchema = z.object({
 export const transactionFilterSchema = z.object({
     memberId: uuidSchema.optional(),
     groupId: uuidSchema.optional(),
-    type: z.enum(['DEPOSIT', 'WITHDRAWAL', 'TRANSFER', 'LOAN_REPAYMENT', 'GROUP_CONTRIBUTION', 'TOKEN_PURCHASE', 'TOKEN_REDEEM']).optional(),
+    type: z.enum(['DEPOSIT', 'WITHDRAWAL', 'TRANSFER', 'LOAN_REPAYMENT', 'GROUP_CONTRIBUTION']).optional(),
     status: z.enum(['COMPLETED', 'PENDING', 'FAILED', 'REVERSED']).optional(),
-    channel: z.enum(['CASH', 'MOMO_NFC', 'MOMO_USSD', 'BANK_TRANSFER', 'TOKEN', 'SYSTEM']).optional(),
+    channel: z.enum(['CASH', 'MOMO_USSD', 'BANK_TRANSFER', 'SYSTEM']).optional(),
     minAmount: z.number().positive().optional(),
     maxAmount: z.number().positive().optional(),
     ...dateRangeSchema.shape,
@@ -174,14 +174,14 @@ export const contributionCreateSchema = z.object({
 export const staffCreateSchema = z.object({
     email: emailSchema,
     fullName: z.string().min(2).max(100),
-    role: z.enum(['PLATFORM_ADMIN', 'INSTITUTION_ADMIN', 'INSTITUTION_STAFF', 'INSTITUTION_TREASURER', 'INSTITUTION_AUDITOR']),
+    role: z.enum(['ADMIN', 'STAFF']),
     institutionId: uuidSchema.optional(),
     branch: z.string().max(100).optional(),
 });
 
 export const staffUpdateSchema = z.object({
     fullName: z.string().min(2).max(100).optional(),
-    role: z.enum(['PLATFORM_ADMIN', 'INSTITUTION_ADMIN', 'INSTITUTION_STAFF', 'INSTITUTION_TREASURER', 'INSTITUTION_AUDITOR']).optional(),
+    role: z.enum(['ADMIN', 'STAFF']).optional(),
     branch: z.string().max(100).optional(),
     status: z.enum(['ACTIVE', 'SUSPENDED']).optional(),
 });

@@ -1,6 +1,8 @@
 /**
  * RBAC (Role-Based Access Control) for Edge Functions
  * Server-side enforcement - never trust the client
+ * 
+ * Only 2 roles: ADMIN and STAFF
  */
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -11,14 +13,7 @@ import { RequestContext, getRequestId, createLogger, Logger } from './request-co
 // TYPES
 // ============================================================================
 
-export type UserRole =
-    | 'PLATFORM_ADMIN'
-    | 'INSTITUTION_ADMIN'
-    | 'INSTITUTION_STAFF'
-    | 'INSTITUTION_TREASURER'
-    | 'INSTITUTION_AUDITOR'
-    | 'ADMIN'  // Simplified role
-    | 'STAFF'; // Simplified role
+export type UserRole = 'ADMIN' | 'STAFF';
 
 export interface AuthenticatedUser {
     userId: string;
@@ -37,13 +32,8 @@ export interface RbacResult {
 
 // Role hierarchy (higher can do what lower can)
 const ROLE_HIERARCHY: Record<UserRole, number> = {
-    'PLATFORM_ADMIN': 100,
-    'INSTITUTION_ADMIN': 80,
-    'ADMIN': 80, // Same as INSTITUTION_ADMIN
-    'INSTITUTION_TREASURER': 60,
-    'INSTITUTION_STAFF': 40,
-    'STAFF': 40, // Same as INSTITUTION_STAFF
-    'INSTITUTION_AUDITOR': 20, // Read-only
+    'ADMIN': 100,
+    'STAFF': 40,
 };
 
 // ============================================================================
@@ -132,16 +122,19 @@ export async function requireAuth(
         };
     }
 
+    // Normalize role to ADMIN or STAFF
+    const normalizedRole = normalizeRole(profile.role);
+
     const authenticatedUser: AuthenticatedUser = {
         userId: user.id,
         email: user.email || null,
-        role: profile.role as UserRole,
+        role: normalizedRole,
         institutionId: profile.institution_id,
     };
 
     logger.info('User authenticated', {
         userId: user.id,
-        role: profile.role,
+        role: normalizedRole,
         institution: profile.institution_id,
     });
 
@@ -151,6 +144,17 @@ export async function requireAuth(
         requestId,
         logger,
     };
+}
+
+/**
+ * Normalize any legacy role to ADMIN or STAFF
+ */
+function normalizeRole(role: string): UserRole {
+    const r = role?.toUpperCase() || '';
+    if (r === 'ADMIN' || r === 'PLATFORM_ADMIN' || r === 'INSTITUTION_ADMIN') {
+        return 'ADMIN';
+    }
+    return 'STAFF';
 }
 
 // ============================================================================
@@ -230,8 +234,8 @@ export function requireInstitution(
     requestId: string,
     logger: Logger
 ): Response | null {
-    // Platform admins can access any institution
-    if (user.role === 'PLATFORM_ADMIN') {
+    // Admins can access any institution
+    if (user.role === 'ADMIN') {
         return null;
     }
 
@@ -289,32 +293,21 @@ export async function requireAuthAndRole(
 }
 
 /**
- * Admin-only access (ADMIN, INSTITUTION_ADMIN, PLATFORM_ADMIN)
+ * Admin-only access
  */
 export async function requireAdmin(
     req: Request,
     functionName: string
 ): Promise<RbacResult> {
-    return requireAuthAndRole(req, functionName, [
-        'ADMIN',
-        'INSTITUTION_ADMIN',
-        'PLATFORM_ADMIN',
-    ]);
+    return requireAuthAndRole(req, functionName, ['ADMIN']);
 }
 
 /**
- * Staff-or-above access (STAFF+)
+ * Staff-or-above access (STAFF or ADMIN)
  */
 export async function requireStaff(
     req: Request,
     functionName: string
 ): Promise<RbacResult> {
-    return requireAuthAndRole(req, functionName, [
-        'STAFF',
-        'INSTITUTION_STAFF',
-        'INSTITUTION_TREASURER',
-        'ADMIN',
-        'INSTITUTION_ADMIN',
-        'PLATFORM_ADMIN',
-    ]);
+    return requireAuthAndRole(req, functionName, ['STAFF', 'ADMIN']);
 }

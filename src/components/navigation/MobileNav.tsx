@@ -10,6 +10,7 @@ import {
     Receipt,
     FolderOpen,
     Settings,
+    HandCoins,
     LucideIcon
 } from 'lucide-react';
 import { ViewState } from '../../types';
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
     { id: ViewState.DASHBOARD, label: 'Home', icon: LayoutDashboard },
     { id: ViewState.GROUPS, label: 'Groups', icon: FolderOpen },
     { id: ViewState.TRANSACTIONS, label: 'Transactions', icon: Receipt },
+    { id: ViewState.LOANS, label: 'Loans', icon: HandCoins },
     { id: ViewState.MEMBERS, label: 'Members', icon: Users },
     { id: ViewState.SETTINGS, label: 'Settings', icon: Settings },
 ];

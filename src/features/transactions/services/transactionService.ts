@@ -70,7 +70,7 @@ export const transactionService = {
 
             let query = supabase
                 .from('transactions')
-                .select('*, members(full_name), groups(name)')
+                .select('*, members:members!transactions_member_id_fkey(full_name), groups(name)')
                 .eq('institution_id', filters.institutionId);
 
             // Apply filters
@@ -134,7 +134,7 @@ export const transactionService = {
                 .from('transactions')
                 .select(`
           *,
-          members(id, full_name, phone),
+          members:members!transactions_member_id_fkey(id, full_name, phone),
           groups(id, name)
         `)
                 .eq('id', id)
@@ -259,7 +259,7 @@ export const transactionService = {
             // Fetch updated transaction
             const { data, error } = await supabase
                 .from('transactions')
-                .select('*, members(full_name), groups(name)')
+                .select('*, members:members!transactions_member_id_fkey(full_name), groups(name)')
                 .eq('id', input.transactionId)
                 .single();
 
@@ -335,6 +335,88 @@ export const transactionService = {
             throw createAppError(error, 'transactionService.getUnallocatedCount');
         }
     },
+
+    /**
+     * Get suggested member for a transaction based on phone matching
+     */
+    async getSuggestedMember(transactionId: string): Promise<{
+        suggestedMember: {
+            id: string;
+            full_name: string;
+            phone: string;
+            savings_balance: number;
+            group_id: string | null;
+            group_name: string | null;
+        } | null;
+        matchType: string | null;
+        reason?: string;
+    }> {
+        try {
+            if (!transactionId) {
+                throw new ValidationError('Transaction ID is required');
+            }
+
+            const { data, error } = await supabase.rpc('suggest_member_for_transaction', {
+                p_transaction_id: transactionId,
+            });
+
+            if (error) {
+                throw new SupabaseError(error.message, error.code, error.hint);
+            }
+
+            if (!data?.success) {
+                return { suggestedMember: null, matchType: null, reason: data?.error || 'Unknown error' };
+            }
+
+            return {
+                suggestedMember: data.suggested_member || null,
+                matchType: data.match_type || null,
+                reason: data.reason,
+            };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw createAppError(error, 'transactionService.getSuggestedMember');
+        }
+    },
+
+    /**
+     * Get consolidated transactions with SMS and allocation details
+     */
+    async getConsolidated(
+        institutionId: string,
+        allocationStatus?: 'unallocated' | 'allocated' | 'flagged' | 'duplicate',
+        limit: number = 50,
+        offset: number = 0
+    ): Promise<{
+        data: ConsolidatedTransaction[];
+        total: number;
+    }> {
+        try {
+            if (!institutionId) {
+                throw new ValidationError('Institution ID is required');
+            }
+
+            const { data, error } = await supabase.rpc('get_consolidated_transactions', {
+                p_institution_id: institutionId,
+                p_allocation_status: allocationStatus || null,
+                p_limit: limit,
+                p_offset: offset,
+            });
+
+            if (error) {
+                throw new SupabaseError(error.message, error.code, error.hint);
+            }
+
+            return {
+                data: data?.data || [],
+                total: data?.total || 0,
+            };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw createAppError(error, 'transactionService.getConsolidated');
+        }
+    },
 };
 
 export default transactionService;
+

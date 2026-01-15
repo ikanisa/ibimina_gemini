@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Calendar, DollarSign, Phone, Hash, FileText, CheckCircle2, Search, AlertCircle, MapPin, Clock, MessageSquare, Loader2 } from 'lucide-react';
+import { X, User, Calendar, DollarSign, Phone, Hash, FileText, CheckCircle2, Search, AlertCircle, MapPin, Clock, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/core/auth';
 import { Button, Badge, SearchInput, LoadingSpinner, EmptyState } from '@/shared/components/ui';
 import { drawerSlide, transitions } from '@/lib/animations/framer-motion';
 import { useTransactions } from '@/hooks/useTransactions';
 import { DragDropAllocation, DraggableTransaction } from './DragDropAllocation';
+import { transactionService } from '../services/transactionService';
 
 interface TransactionDetails {
   id: string;
@@ -90,6 +91,17 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   const [allocations, setAllocations] = useState<AllocationHistory[]>([]);
   const [allocatedByUser, setAllocatedByUser] = useState<AllocatedByUser | null>(null);
 
+  // Suggested member state (phone-based match)
+  const [suggestedMember, setSuggestedMember] = useState<{
+    id: string;
+    full_name: string;
+    phone: string;
+    savings_balance: number;
+    group_id: string | null;
+    group_name: string | null;
+  } | null>(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+
   // Allocation state
   const [showMemberSearch, setShowMemberSearch] = useState(false);
   const [members, setMembers] = useState<(Member & { group?: Group })[]>([]);
@@ -128,6 +140,30 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
     loadDetails();
   }, [transactionId, isOpen]);
+
+  // Load suggested member for unallocated transactions
+  useEffect(() => {
+    if (!transactionId || !isOpen || !transaction) return;
+    if (transaction.allocation_status !== 'unallocated') {
+      setSuggestedMember(null);
+      return;
+    }
+
+    const loadSuggestion = async () => {
+      setLoadingSuggestion(true);
+      try {
+        const result = await transactionService.getSuggestedMember(transactionId);
+        setSuggestedMember(result.suggestedMember);
+      } catch (err) {
+        console.error('Error loading suggested member:', err);
+        setSuggestedMember(null);
+      } finally {
+        setLoadingSuggestion(false);
+      }
+    };
+
+    loadSuggestion();
+  }, [transactionId, isOpen, transaction?.allocation_status]);
 
   // Load members for allocation
   useEffect(() => {
@@ -348,6 +384,49 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                     {transaction.allocation_status === 'unallocated' ? (
                       <div className="space-y-3">
+                        {/* Suggested Member Card */}
+                        {loadingSuggestion ? (
+                          <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 animate-pulse">
+                            <div className="flex items-center gap-2">
+                              <Loader2 size={16} className="animate-spin text-purple-600" />
+                              <span className="text-sm text-purple-700">Finding matching member...</span>
+                            </div>
+                          </div>
+                        ) : suggestedMember ? (
+                          <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Sparkles size={16} className="text-purple-600" />
+                              <span className="text-sm font-semibold text-purple-800">Suggested Match (Phone)</span>
+                            </div>
+                            <button
+                              onClick={() => handleAllocate(suggestedMember.id)}
+                              disabled={allocating}
+                              className="w-full text-left p-3 bg-white rounded-lg border-2 border-purple-300 hover:border-purple-500 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold text-slate-900">{suggestedMember.full_name}</p>
+                                  <p className="text-sm text-slate-600 font-mono">{suggestedMember.phone}</p>
+                                  {suggestedMember.group_name && (
+                                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                      <MapPin size={10} />
+                                      {suggestedMember.group_name}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-green-600 mt-1">
+                                    Balance: {suggestedMember.savings_balance?.toLocaleString() || 0} RWF
+                                  </p>
+                                </div>
+                                {allocating ? (
+                                  <Loader2 size={18} className="animate-spin text-purple-600" />
+                                ) : (
+                                  <CheckCircle2 size={18} className="text-purple-600" />
+                                )}
+                              </div>
+                            </button>
+                          </div>
+                        ) : null}
+
                         {!showMemberSearch ? (
                           <Button
                             variant="primary"
@@ -355,7 +434,7 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                             onClick={() => setShowMemberSearch(true)}
                             leftIcon={<User size={16} />}
                           >
-                            Allocate to Member
+                            {suggestedMember ? 'Search Other Members' : 'Allocate to Member'}
                           </Button>
                         ) : (
                           <div className="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-200">

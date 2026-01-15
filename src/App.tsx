@@ -15,10 +15,10 @@ import { useAuth } from '@/core/auth';
 
 // Shared UI and component imports
 import { buildInitialsAvatar } from './lib/avatars';
-import { Sidebar, Header, MobileBottomNav } from './components/navigation';
+import { AppShell } from '@/shared/components/layout/AppShell';
 import { AnimatedPage, SkipLink } from '@/shared/components/ui';
 import { RouteErrorBoundary } from './components/RouteErrorBoundary';
-import { useSessionTimeout, SessionWarningModal } from './hooks/useSessionTimeout';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 import { OfflineIndicator } from './components/OfflineIndicator';
 
 // Lazy-loaded feature components
@@ -33,6 +33,7 @@ const Staff = lazy(() => import('./components/Staff'));
 const Profile = lazy(() => import('./components/Profile'));
 const SettingsPage = lazy(() => import('@/features/settings/components/Settings'));
 const SmsGatewayDevices = lazy(() => import('./components/sms-gateway/SmsGatewayDevices'));
+const Loans = lazy(() => import('@/features/loans/components/Loans'));
 const Login = lazy(() => import('@/features/auth/components/Login'));
 const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
 const AppBoot = lazy(() => import('./components/AppBoot'));
@@ -124,7 +125,7 @@ import {
   MembersSkeleton,
   GroupsSkeleton,
   ReportsSkeleton
-} from './components/ui/PageSkeletons';
+} from '@/shared/components/ui/PageSkeletons';
 
 // Map view names to skeleton components
 const SKELETONS: Partial<Record<string, React.FC>> = {
@@ -278,7 +279,7 @@ const AccountNotProvisioned: React.FC<{ email?: string; userId: string }> = ({ e
 const App: React.FC = () => {
   const { user, profile, role, institutionId, loading, signOut, isConfigured, error } = useAuth();
 
-  // Session timeout: 30 min idle, 8 hour absolute
+
   const sessionTimeout = useSessionTimeout({
     idleTimeoutMinutes: 30,
     absoluteTimeoutHours: 8,
@@ -305,9 +306,8 @@ const App: React.FC = () => {
   const isImpersonating = Boolean(viewingAsUser);
 
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // isMobileMenuOpen and isChangePasswordOpen moved to AppShell
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleSignOut = async () => {
     setViewingAsUser(null);
@@ -358,12 +358,11 @@ const App: React.FC = () => {
   }
 
   // SECURITY: If user is logged in but has no profile/institution and is NOT a platform admin, they need provisioning
-  // This ensures only invited staff (with profiles) can access the portal
   const isPlatformAdmin = role === 'Admin' || role?.toUpperCase() === 'ADMIN';
   const hasValidAccess = isPlatformAdmin || (institutionId && profile);
 
   if (!hasValidAccess) {
-    // User is authenticated but doesn't have a profile - they weren't invited as staff
+    // User is authenticated but doesn't have a profile
     console.warn('[Security] Authenticated user without profile/institution access:', {
       userId: user.id,
       email: user.email,
@@ -397,8 +396,8 @@ const App: React.FC = () => {
     if (!effectiveRole) return false;
 
     const roleUpper = effectiveRole.toUpperCase();
-    const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN';
-    const isStaff = roleUpper === 'STAFF' || roleUpper === 'INSTITUTION_STAFF';
+    const isAdmin = roleUpper === 'ADMIN';
+    const isStaff = roleUpper === 'STAFF';
 
     // Admin has unrestricted access to everything
     if (isAdmin) {
@@ -412,14 +411,15 @@ const App: React.FC = () => {
       case ViewState.PROFILE:
       case ViewState.MEMBERS:
       case ViewState.TRANSACTIONS:
+      case ViewState.LOANS:
         return true;
 
-      // Admin-only views (Admin already returned true above)
+      // Admin-only views
       case ViewState.INSTITUTIONS:
       case ViewState.STAFF:
       case ViewState.SETTINGS:
       case ViewState.SMS_GATEWAY_DEVICES:
-        return false; // Only Admin
+        return false;
 
       // Staff can view reports
       case ViewState.REPORTS:
@@ -433,187 +433,111 @@ const App: React.FC = () => {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <AppBoot>
-        <SkipLink targetId="main-content" />
-        <OfflineIndicator position="top" />
-        <div className="flex h-screen bg-slate-50 overflow-hidden font-inter">
-          {/* Sidebar */}
-          <Sidebar
-            currentUser={currentUser}
-            currentView={currentView}
-            onNavigate={setCurrentView}
-            onMobileMenuClose={() => setIsMobileMenuOpen(false)}
-            canAccess={canAccess}
-            originalUser={baseUser}
-            isImpersonating={isImpersonating}
-            onSignOut={handleSignOut}
-            isMobileMenuOpen={isMobileMenuOpen}
-            onRoleSwitch={(staff) => setViewingAsUser(staff)}
-            onRoleReset={() => setViewingAsUser(null)}
-          />
+        <AppShell
+          currentUser={currentUser}
+          currentView={currentView}
+          onNavigate={setCurrentView}
+          canAccess={canAccess}
+          onSignOut={handleSignOut}
+          isImpersonating={isImpersonating}
+          baseUser={baseUser}
+          onStopImpersonating={() => setViewingAsUser(null)}
+          onStartImpersonating={(staff) => setViewingAsUser(staff)}
+          isOffline={isOffline}
+          sessionTimeout={sessionTimeout}
+        >
+          <RouteErrorBoundary routeName="main-view">
+            <Suspense fallback={<SectionLoading />}>
+              <AnimatePresence mode="wait">
+                {currentView === ViewState.DASHBOARD && (
+                  <AnimatedPage key="dashboard" initial="fade">
+                    {showMinimalistDashboard ? (
+                      <MinimalistDashboard onNavigate={setCurrentView} />
+                    ) : (
+                      <Dashboard
+                        stats={dashboardStats}
+                        recentTransactions={dashboardTransactions}
+                        onNavigate={setCurrentView}
+                      />
+                    )}
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
+                  <AnimatedPage key="groups" initial="slide">
+                    <Groups onNavigate={setCurrentView} institutionId={institutionId} />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.INSTITUTIONS && canAccess(ViewState.INSTITUTIONS) && (
+                  <AnimatedPage key="institutions" initial="slide">
+                    <Institutions onNavigate={setCurrentView} />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
+                  <AnimatedPage key="members" initial="slide">
+                    <Members onNavigate={setCurrentView} />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
+                  <AnimatedPage key="transactions" initial="slide">
+                    <Transactions onNavigate={setCurrentView} />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && (
+                  <AnimatedPage key="reports" initial="slide">
+                    <Reports />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.LOANS && canAccess(ViewState.LOANS) && (
+                  <AnimatedPage key="loans" initial="slide">
+                    <Loans />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
+                  <AnimatedPage key="staff" initial="slide">
+                    <Staff
+                      currentUser={currentUser}
+                      onImpersonate={(staff) => {
+                        setViewingAsUser(staff);
+                        setCurrentView(ViewState.DASHBOARD);
+                      }}
+                    />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && (
+                  <AnimatedPage key="settings" initial="slide">
+                    <SettingsPage />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.SMS_GATEWAY_DEVICES && canAccess(ViewState.SMS_GATEWAY_DEVICES) && (
+                  <AnimatedPage key="sms-gateway" initial="slide">
+                    <SmsGatewayDevices />
+                  </AnimatedPage>
+                )}
+                {currentView === ViewState.PROFILE && (
+                  <AnimatedPage key="profile" initial="fade">
+                    <Profile user={currentUser} />
+                  </AnimatedPage>
+                )}
 
-          {/* Main Content */}
-          <main id="main-content" className="flex-1 flex flex-col h-screen overflow-hidden relative" tabIndex={-1}>
-            {isImpersonating && (
-              <div className="bg-orange-600 text-white px-4 py-2 text-sm flex items-center justify-between shadow-md z-50">
-                <div className="flex items-center gap-2">
-                  <Eye size={16} />
-                  <span>
-                    You are viewing the portal as <strong>{currentUser.name}</strong> ({currentUser.role}).
-                  </span>
-                </div>
-                <button
-                  onClick={() => setViewingAsUser(null)}
-                  className="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-xs font-bold transition-colors"
-                >
-                  Exit View
-                </button>
-              </div>
-            )}
-
-            {/* Demo mode banner */}
-            {false && (
-              <div
-                className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${import.meta.env.PROD
-                  ? 'bg-red-600 text-white'
-                  : 'bg-amber-100 text-amber-800'
-                  }`}
-              >
-                <span>
-                  {import.meta.env.PROD
-                    ? '⚠️ DANGER: Mock data mode in production! Authentication is bypassed.'
-                    : 'Demo mode enabled: showing mock data and roles.'}
-                </span>
-              </div>
-            )}
-
-            {/* Header */}
-            <Header
-              currentView={currentView}
-              currentUser={currentUser}
-              isOffline={isOffline}
-              isImpersonating={isImpersonating}
-              onNavigate={setCurrentView}
-              onSignOut={handleSignOut}
-              onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              isMobileMenuOpen={isMobileMenuOpen}
-              onChangePassword={() => setIsChangePasswordOpen(true)}
-            />
-
-            {/* View Area with Page Transitions */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth pb-20 md:pb-6">
-              <RouteErrorBoundary routeName="main-view">
-                <Suspense fallback={<SectionLoading />}>
-                  <AnimatePresence mode="wait">
-                    {currentView === ViewState.DASHBOARD && (
-                      <AnimatedPage key="dashboard" initial="fade">
-                        {showMinimalistDashboard ? (
-                          <MinimalistDashboard onNavigate={setCurrentView} />
-                        ) : (
-                          <Dashboard
-                            stats={dashboardStats}
-                            recentTransactions={dashboardTransactions}
-                            onNavigate={setCurrentView}
-                          />
-                        )}
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.GROUPS && canAccess(ViewState.GROUPS) && (
-                      <AnimatedPage key="groups" initial="slide">
-                        <Groups onNavigate={setCurrentView} institutionId={institutionId} />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.INSTITUTIONS && canAccess(ViewState.INSTITUTIONS) && (
-                      <AnimatedPage key="institutions" initial="slide">
-                        <Institutions onNavigate={setCurrentView} />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.MEMBERS && canAccess(ViewState.MEMBERS) && (
-                      <AnimatedPage key="members" initial="slide">
-                        <Members onNavigate={setCurrentView} />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.TRANSACTIONS && canAccess(ViewState.TRANSACTIONS) && (
-                      <AnimatedPage key="transactions" initial="slide">
-                        <Transactions onNavigate={setCurrentView} />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.REPORTS && canAccess(ViewState.REPORTS) && (
-                      <AnimatedPage key="reports" initial="slide">
-                        <Reports />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.STAFF && canAccess(ViewState.STAFF) && (
-                      <AnimatedPage key="staff" initial="slide">
-                        <Staff
-                          currentUser={currentUser}
-                          onImpersonate={(staff) => {
-                            setViewingAsUser(staff);
-                            setCurrentView(ViewState.DASHBOARD);
-                          }}
-                        />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.SETTINGS && canAccess(ViewState.SETTINGS) && (
-                      <AnimatedPage key="settings" initial="slide">
-                        <SettingsPage />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.SMS_GATEWAY_DEVICES && canAccess(ViewState.SMS_GATEWAY_DEVICES) && (
-                      <AnimatedPage key="sms-gateway" initial="slide">
-                        <SmsGatewayDevices />
-                      </AnimatedPage>
-                    )}
-                    {currentView === ViewState.PROFILE && (
-                      <AnimatedPage key="profile" initial="fade">
-                        <Profile user={currentUser} />
-                      </AnimatedPage>
-                    )}
-
-                    {!canAccess(currentView) &&
-                      currentView !== ViewState.PROFILE &&
-                      currentView !== ViewState.DASHBOARD && (
-                        <AnimatedPage key="access-denied" initial="scale">
-                          <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                            <div className="bg-red-50 p-6 rounded-full mb-4 text-red-500">
-                              <Eye size={48} />
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-700">Access Denied</h3>
-                            <p className="max-w-sm text-center mt-2">
-                              Your role as <strong>{currentUser.role}</strong> does not have permission to view this section.
-                            </p>
-                          </div>
-                        </AnimatedPage>
-                      )}
-                  </AnimatePresence>
-                </Suspense>
-              </RouteErrorBoundary>
-            </div>
-
-            {isMobileMenuOpen && (
-              <div
-                className="fixed inset-0 bg-black/50 z-40 md:hidden"
-                onClick={() => setIsMobileMenuOpen(false)}
-              ></div>
-            )}
-          </main>
-
-          {/* Session Timeout Warning Modal */}
-          <SessionWarningModal
-            isOpen={sessionTimeout.isWarning}
-            remainingSeconds={sessionTimeout.remainingSeconds}
-            timeoutType={sessionTimeout.timeoutType}
-            onExtend={sessionTimeout.extendSession}
-            onLogout={sessionTimeout.logout}
-          />
-
-          {/* Change Password Modal */}
-          <Suspense fallback={null}>
-            <ChangePasswordModal
-              isOpen={isChangePasswordOpen}
-              onClose={() => setIsChangePasswordOpen(false)}
-            />
-          </Suspense>
-        </div>
+                {!canAccess(currentView) &&
+                  currentView !== ViewState.PROFILE &&
+                  currentView !== ViewState.DASHBOARD && (
+                    <AnimatedPage key="access-denied" initial="scale">
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                        <div className="bg-red-50 p-6 rounded-full mb-4 text-red-500">
+                          <Eye size={48} />
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-700">Access Denied</h3>
+                        <p className="max-w-sm text-center mt-2">
+                          Your role as <strong>{currentUser.role}</strong> does not have permission to view this section.
+                        </p>
+                      </div>
+                    </AnimatedPage>
+                  )}
+              </AnimatePresence>
+            </Suspense>
+          </RouteErrorBoundary>
+        </AppShell>
       </AppBoot>
     </Suspense>
   );

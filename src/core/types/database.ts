@@ -10,7 +10,7 @@
 // ============================================================================
 
 export type UserRole = 'ADMIN' | 'STAFF';
-export type InstitutionType = 'BANK' | 'MFI' | 'SACCO';
+export type InstitutionType = 'BANK' | 'MFI' | 'SACCO' | 'VC';
 export type GroupStatus = 'ACTIVE' | 'PAUSED' | 'CLOSED';
 export type ContributionStatus = 'RECORDED' | 'RECONCILED' | 'FLAGGED';
 export type PaymentStatus = 'UNRECONCILED' | 'RECONCILED' | 'FLAGGED';
@@ -60,6 +60,18 @@ export interface Institution {
     code?: string | null;
     supervisor?: string | null;
     total_assets?: number | null;
+    // Contact & location fields
+    logo_url?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    region?: string | null;
+    // MoMo fields
+    momo_code?: string | null;
+    momo_ussd_code?: string | null;
+    additional_momo_codes?: Record<string, unknown>[] | null;
     // Settings fields (consolidated from institution_settings table)
     parsing_mode?: 'deterministic' | 'ai_fallback' | null;
     confidence_threshold?: number | null;
@@ -280,10 +292,14 @@ export interface ConsolidatedTransaction {
     transaction_type: string;
     channel: string;
     transaction_status: string;
-    allocation_status: 'unallocated' | 'allocated' | 'error' | 'duplicate' | 'reversed';
+    allocation_status: 'unallocated' | 'allocated' | 'error' | 'duplicate' | 'reversed' | 'flagged';
     member_id: string | null;
     group_id: string | null;
     parse_confidence: number | null;
+    // Allocation tracking
+    allocated_by: string | null;
+    allocated_at: string | null;
+    allocation_note: string | null;
     // SMS info
     sms_id: string | null;
     sms_text: string | null;
@@ -295,6 +311,9 @@ export interface ConsolidatedTransaction {
     // Allocation info
     member_name: string | null;
     member_phone: string | null;
+    member_balance: number | null;
     group_name: string | null;
-    institution_name: string | null;
+    group_balance: number | null;
+    allocated_by_name: string | null;
 }
+

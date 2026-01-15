@@ -45,10 +45,10 @@ export function validateGroupData(data: {
     errors.frequency = 'Frequency must be either "Weekly" or "Monthly"';
   }
 
-  // Validate meeting day (optional but if provided, should be valid)
+  // Validate contribution day (optional but if provided, should be valid)
   const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   if (data.meeting_day && !validDays.includes(data.meeting_day)) {
-    errors.meeting_day = `Meeting day must be one of: ${validDays.join(', ')}`;
+    errors.meeting_day = `Contribution day must be one of: ${validDays.join(', ')}`;
   }
 
   return {
@@ -57,4 +57,3 @@ export function validateGroupData(data: {
   };
 
 }
-

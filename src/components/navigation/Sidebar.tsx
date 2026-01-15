@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
+  HandCoins,
   Settings,
   Building,
   ShieldCheck,
@@ -114,6 +115,15 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
           onNavigate={onNavigate}
           onMobileMenuClose={onMobileMenuClose}
           canAccess={canAccess(ViewState.TRANSACTIONS)}
+        />
+        <NavigationItem
+          view={ViewState.LOANS}
+          icon={<HandCoins size={18} />}
+          label="Loans"
+          currentView={currentView}
+          onNavigate={onNavigate}
+          onMobileMenuClose={onMobileMenuClose}
+          canAccess={canAccess(ViewState.LOANS)}
         />
         <NavigationItem
           view={ViewState.REPORTS}

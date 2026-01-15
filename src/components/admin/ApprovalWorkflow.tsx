@@ -72,7 +72,7 @@ export const ApprovalWorkflow: React.FC<ApprovalWorkflowProps> = ({ institutionI
           created_by,
           notes,
           requires_approval,
-          member:members(id, full_name)
+          member:members!transactions_member_id_fkey(id, full_name)
         `)
                 .eq('requires_approval', true)
                 .order('created_at', { ascending: false });

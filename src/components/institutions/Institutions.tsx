@@ -109,7 +109,7 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
     try {
       // Use deduplication to prevent duplicate requests
       const key = `loadInstitutions:${isPlatformAdmin ? 'all' : userInstitutionId}:${offsetRef.current}:${debouncedSearch}:${typeFilter}:${statusFilter}`;
-      
+
       const fetchedInstitutions = await deduplicateRequest(key, async () => {
         let query = supabase
           .from('institutions')
@@ -148,7 +148,7 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
 
       // Fetch counts for each institution
       const institutionIds = fetchedInstitutions.map(i => i.id);
-      
+
       if (institutionIds.length > 0) {
         // Fetch staff counts
         const { data: staffCounts } = await supabase
@@ -270,6 +270,8 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
         return 'bg-purple-100 text-purple-700';
       case 'SACCO':
         return 'bg-teal-100 text-teal-700';
+      case 'VC':
+        return 'bg-orange-100 text-orange-700';
       default:
         return 'bg-slate-100 text-slate-600';
     }
@@ -347,6 +349,7 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
             <option value="BANK">Bank</option>
             <option value="MFI">MFI</option>
             <option value="SACCO">SACCO</option>
+            <option value="VC">VC</option>
           </select>
 
           {/* Status Filter */}

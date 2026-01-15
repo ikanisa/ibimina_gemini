@@ -11,7 +11,7 @@ export { MemberDetail } from './components/MemberDetail';
 export { default as MemberWizard } from './components/MemberWizard';
 export { AddMemberModal } from './components/AddMemberModal';
 export { default as BulkMemberImport } from './components/BulkMemberImport';
-export { MembersSkeleton } from './components/MembersSkeleton';
+
 export { VirtualizedMembersList } from './components/VirtualizedMembersList';
 
 // Hooks (legacy)

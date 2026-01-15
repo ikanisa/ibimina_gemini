@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 // TYPES
 // ============================================================================
 
-type UserRole = 'Super Admin' | 'Branch Manager' | 'Loan Officer' | 'Teller' | 'Auditor';
+type UserRole = 'Admin' | 'Staff';
 type UserStatus = 'active' | 'suspended' | 'inactive';
 
 interface UserProfile {
@@ -33,11 +33,8 @@ interface RoleManagementProps {
 // ============================================================================
 
 const ROLES: { value: UserRole; label: string; description: string }[] = [
-    { value: 'Super Admin', label: 'Super Admin', description: 'Full system access' },
-    { value: 'Branch Manager', label: 'Branch Manager', description: 'Manage branch operations' },
-    { value: 'Loan Officer', label: 'Loan Officer', description: 'Process loans and applications' },
-    { value: 'Teller', label: 'Teller', description: 'Handle transactions' },
-    { value: 'Auditor', label: 'Auditor', description: 'View-only audit access' },
+    { value: 'Admin', label: 'Admin', description: 'Full system access' },
+    { value: 'Staff', label: 'Staff', description: 'Standard staff access' },
 ];
 
 const STATUSES: { value: UserStatus; label: string; color: string }[] = [

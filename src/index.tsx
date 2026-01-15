@@ -1,6 +1,7 @@
 /// <reference types="./types/global" />
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { initSentry } from './lib/sentry';
 import { registerSW } from 'virtual:pwa-register';
 
@@ -9,6 +10,7 @@ import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { clearLegacyPwaCaches } from './lib/pwa';
+import { queryClient } from './lib/query-client';
 import './index.css';
 
 // Initialize Sentry error tracking (before React renders)
@@ -28,11 +30,13 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <GlobalErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </GlobalErrorBoundary>
   </React.StrictMode>
 );

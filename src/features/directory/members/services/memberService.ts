@@ -186,11 +186,11 @@ export const memberService = {
                 throw new ValidationError('Full name is required', { fullName: 'Required' });
             }
 
+            // Create the member first
             const { data, error } = await supabase
                 .from('members')
                 .insert({
                     institution_id: input.institutionId,
-                    group_id: input.groupId,
                     full_name: input.fullName.trim(),
                     phone: input.phone?.trim(),
                     email: input.email?.trim()?.toLowerCase(),
@@ -213,6 +213,25 @@ export const memberService = {
                     throw new ConflictError('A member with these details already exists');
                 }
                 throw new SupabaseError(error.message, error.code, error.hint);
+            }
+
+            // If groupId is provided, create the group_members relationship
+            if (input.groupId && data) {
+                const { error: groupMemberError } = await supabase
+                    .from('group_members')
+                    .insert({
+                        institution_id: input.institutionId,
+                        group_id: input.groupId,
+                        member_id: data.id,
+                        role: 'MEMBER',
+                        status: 'GOOD_STANDING',
+                    });
+
+                if (groupMemberError) {
+                    console.error('Error linking member to group:', groupMemberError);
+                    // Don't fail the whole operation, just log the error
+                    // The member is created, group link can be fixed later
+                }
             }
 
             return data as SupabaseMember;

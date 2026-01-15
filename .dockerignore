@@ -1,0 +1,12 @@
+.git
+.github
+.agent
+node_modules
+dist
+playwright-report
+test-results
+lighthouse-report.html
+.DS_Store
+*.log
+.env*
+!.env.production

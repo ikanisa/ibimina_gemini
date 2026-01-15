@@ -180,7 +180,7 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
         supabase.from('groups').select('id', { count: 'exact', head: true }).eq('institution_id', institution.id),
         supabase.from('members').select('id', { count: 'exact', head: true }).eq('institution_id', institution.id)
       ]);
-      
+
       setCounts({
         groups: groupsRes.count || 0,
         members: membersRes.count || 0
@@ -313,18 +313,11 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
   };
 
   const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'PLATFORM_ADMIN':
-        return 'bg-purple-100 text-purple-700';
-      case 'INSTITUTION_ADMIN':
-        return 'bg-blue-100 text-blue-700';
-      case 'INSTITUTION_TREASURER':
-        return 'bg-emerald-100 text-emerald-700';
-      case 'INSTITUTION_AUDITOR':
-        return 'bg-amber-100 text-amber-700';
-      default:
-        return 'bg-slate-100 text-slate-600';
+    const roleUpper = role.toUpperCase();
+    if (roleUpper === 'ADMIN') {
+      return 'bg-blue-100 text-blue-700';
     }
+    return 'bg-slate-100 text-slate-600'; // STAFF and all others
   };
 
   const tabs = [
@@ -368,11 +361,10 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               <tab.icon size={16} />
               {tab.label}
@@ -474,19 +466,17 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-500">Type</span>
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                      institution.type === 'BANK' ? 'bg-blue-100 text-blue-700' :
-                      institution.type === 'MFI' ? 'bg-purple-100 text-purple-700' :
-                      'bg-teal-100 text-teal-700'
-                    }`}>{institution.type}</span>
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${institution.type === 'BANK' ? 'bg-blue-100 text-blue-700' :
+                        institution.type === 'MFI' ? 'bg-purple-100 text-purple-700' :
+                          'bg-teal-100 text-teal-700'
+                      }`}>{institution.type}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-500">Status</span>
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                      institution.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' :
-                      institution.status === 'SUSPENDED' ? 'bg-red-100 text-red-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>{institution.status}</span>
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${institution.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' :
+                        institution.status === 'SUSPENDED' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                      }`}>{institution.status}</span>
                   </div>
                   {institution.supervisor && (
                     <div className="flex items-center justify-between">
@@ -566,9 +556,8 @@ export const InstitutionDrawer: React.FC<InstitutionDrawerProps> = ({
                       {momoCodes.map(code => (
                         <div
                           key={code.id}
-                          className={`flex items-center justify-between p-4 rounded-lg border ${
-                            code.is_primary ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white'
-                          }`}
+                          className={`flex items-center justify-between p-4 rounded-lg border ${code.is_primary ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white'
+                            }`}
                         >
                           <div className="flex items-center gap-3">
                             <CreditCard className={code.is_primary ? 'text-blue-600' : 'text-slate-400'} size={18} />

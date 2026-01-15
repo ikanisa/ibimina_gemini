@@ -7,23 +7,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Briefcase,
-  Calendar,
-  DollarSign,
   Filter,
   Plus,
   Upload,
+  PiggyBank,
+  Users,
 } from 'lucide-react';
 import BulkGroupUpload from './BulkGroupUpload';
 import {
   Contribution,
   Group,
   GroupMember,
-  Meeting,
   SmsMessage,
   SupabaseGroupMember,
-  SupabaseMeeting,
   SupabaseMember,
-  SupabaseSmsMessage,
   SupabaseTransaction,
   Transaction,
   ViewState,
@@ -34,7 +31,7 @@ import { useGroups } from '../hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { transformGroups } from '../lib/transformers/groupTransformer';
 import { PageLayout, Section } from './layout';
-import { Button, SearchInput, ErrorDisplay, LoadingSpinner } from './ui';
+import { Button, SearchInput, ErrorDisplay } from './ui';
 import { GroupsList } from './groups/GroupsList';
 import { GroupDetail } from './groups/GroupDetail';
 import { CreateGroupModal } from './groups/CreateGroupModal';
@@ -73,7 +70,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
-  const [groupMeetings, setGroupMeetings] = useState<Meeting[]>([]);
   const [groupContributions, setGroupContributions] = useState<Contribution[]>([]);
   const [groupTransactions, setGroupTransactions] = useState<Transaction[]>([]);
   const [groupSms, setGroupSms] = useState<SmsMessage[]>([]);
@@ -83,20 +79,17 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   // Calculate stats for header (memoized)
-  const { totalGroupFunds, meetingTodayGroups, expectedCollection, totalActiveLoans } = useMemo(() => {
-    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    const meetingToday = groups.filter((group) =>
-      group.meetingDay.toLowerCase().startsWith(todayName.toLowerCase())
-    );
+  const stats = useMemo(() => {
+    const totalGroups = groups.length;
+    const activeGroups = groups.filter(group => group.status === 'Active').length;
+    const totalSavings = groups.reduce((sum, group) => sum + group.fundBalance, 0);
+    const totalMembers = groups.reduce((sum, group) => sum + group.memberCount, 0);
 
     return {
-      totalGroupFunds: groups.reduce((sum, group) => sum + group.fundBalance, 0),
-      meetingTodayGroups: meetingToday,
-      expectedCollection: meetingToday.reduce(
-        (sum, group) => sum + group.contributionAmount * group.memberCount,
-        0
-      ),
-      totalActiveLoans: groups.reduce((sum, group) => sum + group.activeLoansCount, 0),
+      totalGroups,
+      activeGroups,
+      totalSavings,
+      totalMembers,
     };
   }, [groups]);
 
@@ -104,7 +97,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
   useEffect(() => {
     if (!selectedGroup || !institutionId) {
       setGroupMembers([]);
-      setGroupMeetings([]);
       setGroupContributions([]);
       setGroupTransactions([]);
       setGroupSms([]);
@@ -140,7 +132,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           .single(),
         supabase
           .from('transactions')
-          .select('*, members(full_name)')
+          .select('*, members:members!transactions_member_id_fkey(full_name)')
           .eq('group_id', selectedGroup.id)
           .eq('type', 'CONTRIBUTION')
           .order('occurred_at', { ascending: false }),
@@ -173,7 +165,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
       }
 
       const membersResponse = { data: membersWithNames, error: null };
-      const meetingsResponse = { data: [], error: null }; // Meetings table deleted
 
       // Map transactions to contributions format for compatibility
       const transactions = (transactionsResponse.data || []) as any[];
@@ -211,7 +202,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           id: contribution.id,
           memberId: contribution.member_id,
           groupId: contribution.group_id,
-          meetingId: '', // Meetings table deleted
           periodLabel: buildPeriodLabel(contribution.date, selectedGroup.contributionFrequency),
           expectedAmount,
           paidAmount,
@@ -257,19 +247,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         };
       });
 
-      const mappedMeetings: Meeting[] = (
-        (meetingsResponse.data as SupabaseMeeting[] | null) ?? []
-      ).map((meeting) => ({
-        id: meeting.id,
-        groupId: meeting.group_id,
-        date: meeting.date,
-        type: meeting.type as Meeting['type'],
-        attendanceCount: meeting.attendance_count,
-        totalCollected: Number(meeting.total_collected),
-        notes: meeting.notes ?? '',
-        status: meeting.status === 'COMPLETED' ? 'Completed' : 'Scheduled',
-      }));
-
       const mappedTransactions: Transaction[] = (
         (transactionsResponse.data as (SupabaseTransaction & { members?: SupabaseMember | null })[] | null) ?? []
       ).map((tx) => {
@@ -295,7 +272,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
       const mappedSms: SmsMessage[] = [];
 
       setGroupMembers(mappedMembers);
-      setGroupMeetings(mappedMeetings);
       setGroupContributions(mappedContributions);
       setGroupTransactions(mappedTransactions);
       setGroupSms(mappedSms);
@@ -313,7 +289,6 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         onBack={() => setSelectedGroup(null)}
         onNavigate={onNavigate}
         members={groupMembers}
-        meetings={groupMeetings}
         contributions={groupContributions}
         transactions={groupTransactions}
         sms={groupSms}
@@ -360,42 +335,40 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         <div className="bg-blue-600 text-white p-5 rounded-xl">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-blue-100 text-xs font-semibold uppercase">Total Group Funds</p>
-              <h3 className="text-2xl font-bold mt-1">{totalGroupFunds.toLocaleString()} RWF</h3>
+              <p className="text-blue-100 text-xs font-semibold uppercase">Total Groups</p>
+              <h3 className="text-2xl font-bold mt-1">{stats.totalGroups}</h3>
             </div>
             <div className="p-2 bg-white/20 rounded-lg">
               <Briefcase size={20} />
             </div>
           </div>
-          <p className="text-sm text-blue-100 mt-2">Across {groups.length} active groups</p>
+          <p className="text-sm text-blue-100 mt-2">{stats.activeGroups} active groups</p>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-xs font-semibold uppercase">Meeting Today</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{meetingTodayGroups.length} Groups</h3>
-            </div>
-            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
-              <Calendar size={20} />
-            </div>
-          </div>
-          <p className="text-sm text-slate-500 mt-2">
-            Expected collection: {expectedCollection.toLocaleString()} RWF
-          </p>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-500 text-xs font-semibold uppercase">Active Loans</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{totalActiveLoans}</h3>
+              <p className="text-slate-500 text-xs font-semibold uppercase">Total Savings</p>
+              <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.totalSavings.toLocaleString()} RWF</h3>
             </div>
             <div className="p-2 bg-green-50 text-green-600 rounded-lg">
-              <DollarSign size={20} />
+              <PiggyBank size={20} />
             </div>
           </div>
-          <p className="text-sm text-slate-500 mt-2">Backed by group funds</p>
+          <p className="text-sm text-slate-500 mt-2">Combined group funds</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-500 text-xs font-semibold uppercase">Total Members</p>
+              <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.totalMembers}</h3>
+            </div>
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+              <Users size={20} />
+            </div>
+          </div>
+          <p className="text-sm text-slate-500 mt-2">Across all groups</p>
         </div>
       </div>
 
@@ -421,7 +394,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
             </div>
             <h3 className="text-lg font-semibold text-slate-900 mb-2">No groups yet</h3>
             <p className="text-sm text-slate-500 max-w-md mb-4">
-              Create your first savings group to start managing contributions and meetings.
+              Create your first savings group to start managing contributions.
             </p>
             <Button
               variant="primary"

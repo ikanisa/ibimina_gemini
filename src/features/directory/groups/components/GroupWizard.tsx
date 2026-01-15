@@ -152,7 +152,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
             </FormField>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Meeting Day">
+              <FormField label="Contribution Day">
                 <select
                   value={formData.meeting_day}
                   onChange={(e) => setFormData(prev => ({ ...prev, meeting_day: e.target.value }))}
@@ -204,7 +204,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-500">Meeting Day:</span>
+                  <span className="text-slate-500">Contribution Day:</span>
                   <span className="ml-2 font-medium text-slate-900">{formData.meeting_day}</span>
                 </div>
                 <div>
@@ -260,4 +260,3 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
 };
 
 export default GroupWizard;
-

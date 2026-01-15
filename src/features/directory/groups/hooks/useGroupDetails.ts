@@ -2,18 +2,17 @@
  * Custom hook for group detail data
  * 
  * Fetches and manages all data related to a specific group:
- * members, meetings, contributions, transactions, SMS messages
+ * members, contributions, transactions, SMS messages
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import * as groupsApi from '@/lib/api/groups.api';
 import * as transactionsApi from '@/lib/api/transactions.api';
 import * as smsApi from '@/lib/api/sms.api';
-import type { SupabaseGroupMember, SupabaseMeeting, SupabaseContribution, SupabaseTransaction, SupabaseSmsMessage } from '@/core/types';
+import type { SupabaseGroupMember, SupabaseContribution, SupabaseTransaction, SupabaseSmsMessage } from '@/core/types';
 
 export interface GroupDetails {
   members: Array<SupabaseGroupMember & { members?: { full_name?: string | null } }>;
-  meetings: SupabaseMeeting[];
   contributions: SupabaseContribution[];
   transactions: Array<SupabaseTransaction & { members?: { full_name?: string | null } }>;
   smsMessages: SupabaseSmsMessage[];
@@ -41,7 +40,7 @@ export function useGroupDetails(groupId: string | null): UseGroupDetailsReturn {
     setError(null);
 
     try {
-      // Fetch group details (members, meetings, contributions)
+      // Fetch group details (members, contributions)
       const groupDetails = await groupsApi.fetchGroupDetails(groupId);
 
       // Fetch transactions for this group
@@ -53,7 +52,6 @@ export function useGroupDetails(groupId: string | null): UseGroupDetailsReturn {
 
       setDetails({
         members: Array.isArray(groupDetails.members) ? groupDetails.members : [],
-        meetings: Array.isArray(groupDetails.meetings) ? groupDetails.meetings : [],
         contributions: Array.isArray(groupDetails.contributions) ? groupDetails.contributions : [],
         transactions: Array.isArray(transactions) ? transactions : [],
         smsMessages
@@ -78,4 +76,3 @@ export function useGroupDetails(groupId: string | null): UseGroupDetailsReturn {
     refetch: fetchDetails
   };
 }
-

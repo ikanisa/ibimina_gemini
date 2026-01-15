@@ -16,6 +16,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { KpiStats, SupabaseTransaction, ViewState } from '@/core/types';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { DashboardSkeleton } from '@/shared/components/ui/PageSkeletons';
 
 interface DashboardProps {
   stats?: KpiStats; // Optional now, hook handles it
@@ -122,11 +123,7 @@ const Dashboard: React.FC<DashboardProps> = memo(({ onNavigate }) => {
   const isLoading = txLoading || statsLoading;
 
   if (isLoading && !stats.totalMembers) {
-    return (
-      <div className="grid place-items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

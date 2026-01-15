@@ -27,9 +27,9 @@ interface MemberData {
   group_id: string | null;
 }
 
-const MemberWizard: React.FC<MemberWizardProps> = ({ 
-  isOpen, 
-  onClose, 
+const MemberWizard: React.FC<MemberWizardProps> = ({
+  isOpen,
+  onClose,
   onSuccess,
   prefilledPhone,
   prefilledGroupId,
@@ -40,7 +40,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupSearch, setGroupSearch] = useState('');
-  
+
   const [formData, setFormData] = useState<MemberData>({
     full_name: '',
     member_code: '',
@@ -66,7 +66,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
         .eq('institution_id', institutionId)
         .eq('status', 'ACTIVE')
         .order('group_name');
-      
+
       if (data) setGroups(data);
     };
 
@@ -74,7 +74,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
   }, [institutionId, isOpen]);
 
   // Filter groups by search
-  const filteredGroups = groups.filter(g => 
+  const filteredGroups = groups.filter(g =>
     g.group_name.toLowerCase().includes(groupSearch.toLowerCase()) ||
     (g.group_code || '').toLowerCase().includes(groupSearch.toLowerCase())
   );
@@ -196,7 +196,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
                 value={formData.full_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                 placeholder="e.g., Jean Pierre Habimana"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 autoFocus
               />
             </FormField>
@@ -207,7 +207,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
                 value={formData.member_code}
                 onChange={(e) => setFormData(prev => ({ ...prev, member_code: e.target.value.toUpperCase() }))}
                 placeholder="e.g., M-JP001"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
               />
             </FormField>
 
@@ -217,7 +217,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
                 value={formData.phone_primary}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone_primary: e.target.value }))}
                 placeholder="e.g., 0788123456"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </FormField>
 
@@ -227,7 +227,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
                 value={formData.phone_alt}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone_alt: e.target.value }))}
                 placeholder="e.g., 0788654321"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </FormField>
           </div>
@@ -244,7 +244,7 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
                   value={groupSearch}
                   onChange={(e) => setGroupSearch(e.target.value)}
                   placeholder="Search by name or code..."
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </FormField>
@@ -255,9 +255,8 @@ const MemberWizard: React.FC<MemberWizardProps> = ({
                   <button
                     key={group.id}
                     onClick={() => setFormData(prev => ({ ...prev, group_id: group.id }))}
-                    className={`w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                      formData.group_id === group.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                    }`}
+                    className={`w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors ${formData.group_id === group.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                      }`}
                   >
                     <div>
                       <p className="font-medium text-slate-900">{group.group_name}</p>

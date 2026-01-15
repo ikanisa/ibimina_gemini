@@ -22,8 +22,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   const access = useRoleAccess();
 
   const visibleItems = SETTINGS_NAV_ITEMS.filter(item => {
-    if (item.platformOnly && !access.isPlatformAdmin) return false;
-    if (item.adminOnly && !access.isInstitutionAdmin) return false;
+    if (item.platformOnly && !access.isAdmin) return false;
+    if (item.adminOnly && !access.isAdmin) return false;
     return true;
   });
 
@@ -46,11 +46,10 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === item.id
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <item.icon size={18} />
                 {item.label}
@@ -66,11 +65,10 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              activeTab === item.id
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeTab === item.id
                 ? 'bg-blue-600 text-white'
                 : 'bg-white border border-slate-200 text-slate-600'
-            }`}
+              }`}
           >
             <item.icon size={16} />
             {item.label}

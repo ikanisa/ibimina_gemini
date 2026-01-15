@@ -60,29 +60,26 @@ body {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
 }
 
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    #f3f4f6 0%,
-    #e5e7eb 50%,
-    #f3f4f6 100%
-  );
+  background: linear-gradient(90deg,
+      #f3f4f6 0%,
+      #e5e7eb 50%,
+      #f3f4f6 100%);
   background-size: 2000px 100%;
   animation: shimmer 2s linear infinite;
 }
 
 .dark .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    #374151 0%,
-    #4b5563 50%,
-    #374151 100%
-  );
+  background: linear-gradient(90deg,
+      #374151 0%,
+      #4b5563 50%,
+      #374151 100%);
   background-size: 2000px 100%;
 }
 
@@ -108,7 +105,12 @@ html {
 }
 
 /* Typography improvements */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 600;
   line-height: 1.25;
 }
@@ -118,6 +120,21 @@ input:focus,
 select:focus,
 textarea:focus {
   --tw-ring-color: rgb(59 130 246 / 0.2);
+}
+
+/* Ensure input text is always visible */
+input,
+select,
+textarea {
+  color: #111827;
+  caret-color: #111827;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  color: #f9fafb;
+  caret-color: #f9fafb;
 }
 
 /* Mobile tap highlight */
@@ -133,7 +150,7 @@ textarea:focus {
     background-color: white;
     color: black;
   }
-  
+
   .no-print {
     display: none !important;
   }
@@ -141,6 +158,7 @@ textarea:focus {
 
 /* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -152,23 +170,4 @@ textarea:focus {
 }
 
 /* Glass layer utilities */
-@layer utilities {
-  .glass-bg {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-  
-  .dark .glass-bg {
-    background: rgba(30, 41, 59, 0.7);
-  }
-  
-  .glass-border {
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .dark .glass-border {
-    border: 1px solid rgba(148, 163, 184, 0.2);
-  }
-}
-
+/* Glass layer utilities moved to tailwind.config.js */

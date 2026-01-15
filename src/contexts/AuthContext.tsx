@@ -23,30 +23,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const normalizeStaffRole = (value: unknown): StaffRole | null => {
   if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  const staffRoles: StaffRole[] = ['Admin', 'Staff'];
-  if (staffRoles.includes(trimmed as StaffRole)) {
-    return trimmed as StaffRole;
-  }
-
-  const normalized = trimmed.toUpperCase();
-  switch (normalized) {
-    case 'ADMIN':
-    case 'PLATFORM_ADMIN':
-    case 'INSTITUTION_ADMIN':
-    case 'SUPER ADMIN':
-    case 'BRANCH MANAGER':
-      return 'Admin';
-    case 'STAFF':
-    case 'INSTITUTION_STAFF':
-    case 'INSTITUTION_TREASURER':
-    case 'INSTITUTION_AUDITOR':
-    case 'LOAN OFFICER':
-    case 'TELLER':
-    case 'AUDITOR':
-    default:
-      return 'Staff';
-  }
+  const normalized = value.trim().toUpperCase();
+  return normalized === 'ADMIN' ? 'Admin' : 'Staff';
 };
 
 const extractInstitutionId = (user: User | null): string | null => {

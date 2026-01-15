@@ -48,9 +48,8 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col shadow-xl md:shadow-none ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}
+      className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col shadow-xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
     >
       <div className="p-6 flex items-center gap-3">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white">
@@ -114,6 +113,15 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
           onNavigate={onNavigate}
           onMobileMenuClose={onMobileMenuClose}
           canAccess={canAccess(ViewState.TRANSACTIONS)}
+        />
+        <NavigationItem
+          view={ViewState.LOANS}
+          icon={<Briefcase size={18} />}
+          label="Loans"
+          currentView={currentView}
+          onNavigate={onNavigate}
+          onMobileMenuClose={onMobileMenuClose}
+          canAccess={canAccess(ViewState.LOANS)}
         />
         <NavigationItem
           view={ViewState.REPORTS}

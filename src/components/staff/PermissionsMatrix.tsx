@@ -13,7 +13,7 @@ interface PermissionsMatrixProps {
     onRoleChange: (role: StaffRole) => void;
 }
 
-const FEATURES = ['Members', 'Savings', 'Loans', 'Tokens', 'NFC Operations', 'Reconciliation', 'Reports', 'Settings'];
+const FEATURES = ['Members', 'Savings', 'Loans', 'Reconciliation', 'Reports', 'Settings'];
 const PERMISSIONS = ['View', 'Create', 'Edit', 'Approve', 'Delete'];
 
 const DEFAULT_PERMISSIONS: Record<string, boolean> = {
@@ -87,8 +87,8 @@ export const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                                                 onClick={() => !isDisabled && togglePermission(feature, perm)}
                                                 disabled={isDisabled}
                                                 className={`w-5 h-5 rounded border mx-auto flex items-center justify-center transition-colors ${displayChecked
-                                                        ? 'bg-blue-600 border-blue-600'
-                                                        : 'bg-white border-slate-300 hover:border-blue-400'
+                                                    ? 'bg-blue-600 border-blue-600'
+                                                    : 'bg-white border-slate-300 hover:border-blue-400'
                                                     } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                 aria-label={`${displayChecked ? 'Revoke' : 'Grant'} ${perm} permission for ${feature}`}
                                                 aria-pressed={displayChecked}

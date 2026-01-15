@@ -2,9 +2,9 @@
  * Types for Groups module components
  */
 
-import { Group, GroupMember, Meeting, Contribution, Transaction, SmsMessage, ViewState } from '../../types';
+import { Group, GroupMember, Contribution, Transaction, SmsMessage, ViewState } from '../../types';
 
-export type DetailTab = 'Overview' | 'Members' | 'Contributions' | 'Loans' | 'Meetings' | 'MoMo' | 'Settings';
+export type DetailTab = 'Overview' | 'Members' | 'Contributions' | 'Loans' | 'MoMo' | 'Settings';
 
 export interface GroupsListProps {
   groups: Group[];
@@ -22,7 +22,6 @@ export interface GroupDetailProps {
 export interface GroupTabProps {
   group: Group;
   members?: GroupMember[];
-  meetings?: Meeting[];
   contributions?: Contribution[];
   transactions?: Transaction[];
   sms?: SmsMessage[];

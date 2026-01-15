@@ -46,16 +46,9 @@ export default defineConfig(({ mode }) => {
 
   console.log('[Vite Build] Env defines count:', Object.keys(envDefines).length);
 
-  return {
-    server: {
-      port: 3000,
-      host: '0.0.0.0',
-    },
-    // Load env from process.env for Cloudflare Pages compatibility
-    envPrefix: 'VITE_',
-    plugins: [
-      react(),
-      VitePWA({
+  const plugins = [
+    react(),
+    VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
@@ -168,14 +161,27 @@ export default defineConfig(({ mode }) => {
         exclude: [/\.(br)$/, /\.(gz)$/],
         threshold: 1024, // Only compress files > 1KB
       }),
-      // Bundle analyzer (development only)
+  ];
+
+  if (!isProduction) {
+    plugins.push(
       visualizer({
         filename: 'dist/stats.html',
         open: false,
         gzipSize: true,
         brotliSize: true,
       })
-    ],
+    );
+  }
+
+  return {
+    server: {
+      port: 3000,
+      host: '0.0.0.0',
+    },
+    // Load env from process.env for Cloudflare Pages compatibility
+    envPrefix: 'VITE_',
+    plugins,
     // Explicitly define env vars for Cloudflare Pages compatibility
     define: envDefines,
     build: {

@@ -19,8 +19,6 @@ export type AuditAction =
     | 'auth.password_reset_complete'
     | 'auth.password_change'
     | 'auth.session_expired'
-    | 'auth.2fa_enabled'
-    | 'auth.2fa_disabled'
 
     // Member operations
     | 'member.create'

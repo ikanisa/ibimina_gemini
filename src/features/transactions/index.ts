@@ -13,7 +13,7 @@ export { BulkAllocationModal } from './components/BulkAllocationModal';
 export { DragDropAllocation } from './components/DragDropAllocation';
 export { PrintReceiptButton } from './components/PrintReceiptButton';
 export { TransactionExport } from './components/TransactionExport';
-export { TransactionsSkeleton } from './components/TransactionsSkeleton';
+
 export { UnallocatedQueue } from './components/UnallocatedQueue';
 export { VirtualizedTransactionTable } from './components/VirtualizedTransactionTable';
 

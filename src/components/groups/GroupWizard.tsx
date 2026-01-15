@@ -24,7 +24,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<GroupData>({
     name: '',
     group_code: '',
@@ -136,7 +136,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Ibimina y'Urubyiruko"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 autoFocus
               />
             </FormField>
@@ -147,16 +147,16 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
                 value={formData.group_code}
                 onChange={(e) => setFormData(prev => ({ ...prev, group_code: e.target.value.toUpperCase() }))}
                 placeholder="e.g., IBY-001"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
               />
             </FormField>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Meeting Day">
+              <FormField label="Contribution Day">
                 <select
                   value={formData.meeting_day}
                   onChange={(e) => setFormData(prev => ({ ...prev, meeting_day: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                     <option key={day} value={day}>{day}</option>
@@ -168,7 +168,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
                 <select
                   value={formData.frequency}
                   onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as 'Weekly' | 'Monthly' }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="Weekly">Weekly</option>
                   <option value="Monthly">Monthly</option>
@@ -182,7 +182,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
                 value={formData.expected_amount}
                 onChange={(e) => setFormData(prev => ({ ...prev, expected_amount: Number(e.target.value) }))}
                 placeholder="5000"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </FormField>
           </div>
@@ -204,7 +204,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-500">Meeting Day:</span>
+                  <span className="text-slate-500">Contribution Day:</span>
                   <span className="ml-2 font-medium text-slate-900">{formData.meeting_day}</span>
                 </div>
                 <div>
@@ -260,4 +260,3 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
 };
 
 export default GroupWizard;
-

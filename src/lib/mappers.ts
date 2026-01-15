@@ -55,12 +55,6 @@ export const mapTransactionType = (value?: string | null): Transaction['type'] =
     case 'Loan Disbursement':
     case 'LOAN_DISBURSEMENT':
       return 'Loan Disbursement';
-    case 'Token Purchase':
-    case 'TOKEN_PURCHASE':
-      return 'Token Purchase';
-    case 'Token Redeem':
-    case 'TOKEN_REDEEM':
-      return 'Token Redeem';
     case 'Group Contribution':
     case 'CONTRIBUTION':
       return 'Group Contribution';
@@ -76,15 +70,13 @@ export const mapTransactionChannel = (channel?: string | null): Transaction['cha
       return 'Cash';
     case 'MoMo':
     case 'MOMO':
+    case 'MoMo USSD':
+    case 'MOMO_USSD':
       return 'MoMo USSD';
-    case 'MoMo NFC':
-    case 'NFC':
-      return 'MoMo NFC';
-    case 'Token':
-    case 'TOKEN':
-      return 'Token';
     case 'Bank':
     case 'BANK':
+    case 'BANK_TRANSFER':
+      return 'Bank Transfer';
     case 'System':
     case 'SYSTEM':
       return 'System';
@@ -153,16 +145,6 @@ export const mapStaffStatus = (status?: string | null): StaffMember['status'] =>
 };
 
 export const mapStaffRole = (role?: string | null): StaffRole => {
-  switch (role) {
-    case 'ADMIN':
-    case 'PLATFORM_ADMIN':
-    case 'INSTITUTION_ADMIN':
-      return 'Admin';
-    case 'STAFF':
-    case 'INSTITUTION_STAFF':
-    case 'INSTITUTION_TREASURER':
-    case 'INSTITUTION_AUDITOR':
-    default:
-      return 'Staff';
-  }
+  if (!role) return 'Staff';
+  return role.toUpperCase() === 'ADMIN' ? 'Admin' : 'Staff';
 };

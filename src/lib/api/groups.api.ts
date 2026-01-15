@@ -6,7 +6,7 @@
 
 import { supabase } from '../supabase';
 import { deduplicateRequest } from '../utils/requestDeduplication';
-import type { SupabaseGroup, SupabaseGroupMember, SupabaseMeeting, SupabaseContribution } from '../../types';
+import type { SupabaseGroup, SupabaseGroupMember, SupabaseContribution } from '../../types';
 
 export interface CreateGroupParams {
   institution_id: string;
@@ -241,15 +241,6 @@ export async function fetchGroupMembers(groupId: string) {
 }
 
 /**
- * Fetch group meetings (deprecated - meetings table deleted)
- * Returns empty array as meetings are no longer tracked
- */
-export async function fetchGroupMeetings(groupId: string) {
-  // Meetings table has been deleted - return empty array
-  return [] as SupabaseMeeting[];
-}
-
-/**
  * Fetch group contributions (from transactions table)
  */
 export async function fetchGroupContributions(groupId: string) {
@@ -283,24 +274,21 @@ export async function fetchGroupContributions(groupId: string) {
 }
 
 /**
- * Fetch all group details (members, meetings, contributions) in parallel
+ * Fetch all group details (members, contributions) in parallel
  */
 export async function fetchGroupDetails(groupId: string) {
   const key = `fetchGroupDetails:${groupId}`;
   return deduplicateRequest(key, async () => {
-    const [membersResult, meetingsResult, contributionsResult] = await Promise.all([
-    fetchGroupMembers(groupId).catch(err => ({ error: err.message, data: [] })),
-    fetchGroupMeetings(groupId).catch(err => ({ error: err.message, data: [] })),
-    fetchGroupContributions(groupId).catch(err => ({ error: err.message, data: [] }))
-  ]);
+    const [membersResult, contributionsResult] = await Promise.all([
+      fetchGroupMembers(groupId).catch(err => ({ error: err.message, data: [] })),
+      fetchGroupContributions(groupId).catch(err => ({ error: err.message, data: [] }))
+    ]);
 
     return {
       members: Array.isArray(membersResult) ? membersResult : membersResult.data || [],
-      meetings: Array.isArray(meetingsResult) ? meetingsResult : meetingsResult.data || [],
       contributions: Array.isArray(contributionsResult) ? contributionsResult : contributionsResult.data || [],
       errors: {
         members: Array.isArray(membersResult) ? null : membersResult.error,
-        meetings: Array.isArray(meetingsResult) ? null : meetingsResult.error,
         contributions: Array.isArray(contributionsResult) ? null : contributionsResult.error
       }
     };

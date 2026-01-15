@@ -12,12 +12,11 @@ export { default as GroupWizard } from './components/GroupWizard';
 export { CreateGroupModal } from './components/CreateGroupModal';
 export { default as BulkGroupImport } from './components/BulkGroupImport';
 export { GroupContributionsTab } from './components/GroupContributionsTab';
-export { GroupMeetingsTab } from './components/GroupMeetingsTab';
 export { GroupMembersTab } from './components/GroupMembersTab';
 export { GroupMoMoTab } from './components/GroupMoMoTab';
 export { GroupOverviewTab } from './components/GroupOverviewTab';
 export { GroupSettingsTab } from './components/GroupSettingsTab';
-export { GroupsSkeleton } from './components/GroupsSkeleton';
+
 export { VirtualizedGroupsList } from './components/VirtualizedGroupsList';
 
 // Hooks (legacy)

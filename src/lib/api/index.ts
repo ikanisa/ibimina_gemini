@@ -33,7 +33,6 @@ export {
     updateGroup,
     deleteGroup,
     fetchGroupMembers,
-    fetchGroupMeetings,
     fetchGroupContributions,
     fetchGroupDetails,
     searchGroups,

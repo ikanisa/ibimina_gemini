@@ -63,7 +63,7 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
             <TableRow>
               <TableHead>Group Name</TableHead>
               <TableHead>Cycle</TableHead>
-              <TableHead>Meeting Day</TableHead>
+              <TableHead>Contribution Day</TableHead>
               <TableHead>Members</TableHead>
               <TableHead className="text-right">Fund Balance</TableHead>
               <TableHead className="text-center">Status</TableHead>
@@ -157,7 +157,7 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
                   <p className="text-sm text-slate-900">{group.cycleLabel}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase mb-1">Meeting Day</p>
+                  <p className="text-xs text-slate-500 uppercase mb-1">Contribution Day</p>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
                     <Calendar size={12} />
                     {group.meetingDay}

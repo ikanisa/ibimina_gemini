@@ -112,8 +112,8 @@ describe('validateGroupData', () => {
         });
     });
 
-    describe('meeting_day validation', () => {
-        it('should accept valid meeting days', () => {
+    describe('contribution day validation', () => {
+        it('should accept valid contribution days', () => {
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             days.forEach(day => {
                 const result = validateGroupData({
@@ -125,14 +125,14 @@ describe('validateGroupData', () => {
             });
         });
 
-        it('should reject invalid meeting day', () => {
+        it('should reject invalid contribution day', () => {
             const result = validateGroupData({
                 group_name: 'Test',
                 expected_amount: 1000,
                 meeting_day: 'Funday'
             });
             expect(result.isValid).toBe(false);
-            expect(result.errors.meeting_day).toContain('Meeting day must be one of');
+            expect(result.errors.meeting_day).toContain('Contribution day must be one of');
         });
     });
 

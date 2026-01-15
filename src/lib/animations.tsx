@@ -238,7 +238,7 @@ export const HoverScale: React.FC<HoverScaleProps> = ({
 }) => {
     return (
         <div
-            className={`transition-transform duration-150 hover:scale-[${scale}] ${className}`}
+            className={`transition-transform duration-150 hover:scale-[var(--hover-scale)] ${className}`}
             style={{ '--hover-scale': scale } as React.CSSProperties}
         >
             {children}

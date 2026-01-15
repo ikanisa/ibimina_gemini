@@ -83,7 +83,7 @@ export function useTransactionsPaginated(
                 .from('transactions')
                 .select(`
                     *,
-                    members:member_id(full_name),
+                    members:members!transactions_member_id_fkey(full_name),
                     groups:group_id(name)
                 `)
                 .order('occurred_at', { ascending: false })

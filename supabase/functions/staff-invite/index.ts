@@ -10,16 +10,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { requireAdmin } from '../_shared/rbac.ts';
 
-// Map UI-friendly role names to database enum values
+// Map UI-friendly role names to database enum values (ADMIN or STAFF only)
 const mapRoleToEnum = (role: string | null): string => {
   if (!role) return 'STAFF';
   const roleUpper = role.toUpperCase();
-
-  if (roleUpper === 'ADMIN' || roleUpper === 'PLATFORM_ADMIN' || roleUpper === 'INSTITUTION_ADMIN' || roleUpper === 'SUPER ADMIN' || roleUpper === 'BRANCH MANAGER') {
-    return 'ADMIN';
-  }
-
-  return 'STAFF';
+  return roleUpper === 'ADMIN' ? 'ADMIN' : 'STAFF';
 };
 
 interface StaffInviteRequest {
@@ -76,8 +71,8 @@ Deno.serve(async (req) => {
       return errorResponse('Institution ID is required', 400, { 'X-Request-Id': requestId! });
     }
 
-    // Platform admins can invite to any institution; others only to their own
-    if (user!.role !== 'PLATFORM_ADMIN' && institutionId !== user!.institutionId) {
+    // Admins can invite to any institution; staff can only invite to their own
+    if (user!.role !== 'ADMIN' && institutionId !== user!.institutionId) {
       logger!.warn('Cross-institution invite denied', {
         userInstitution: user!.institutionId,
         targetInstitution: institutionId

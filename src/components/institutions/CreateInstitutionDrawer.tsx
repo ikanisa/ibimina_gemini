@@ -36,7 +36,7 @@ export const CreateInstitutionDrawer: React.FC<CreateInstitutionDrawerProps> = (
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       setError('Institution name is required');
       return;
@@ -147,6 +147,7 @@ export const CreateInstitutionDrawer: React.FC<CreateInstitutionDrawerProps> = (
                   <option value="BANK">Bank</option>
                   <option value="MFI">MFI</option>
                   <option value="SACCO">SACCO</option>
+                  <option value="VC">VC</option>
                 </select>
               </div>
               <div>

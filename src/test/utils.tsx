@@ -66,7 +66,7 @@ export const mockUser = {
     email: 'test@example.com',
     user_metadata: {
         institution_id: 'test-institution-id',
-        role: 'INSTITUTION_ADMIN',
+        role: 'ADMIN',
         full_name: 'Test User',
     },
 };
@@ -75,9 +75,10 @@ export const mockUser = {
 export const mockProfile = {
     user_id: 'test-user-id',
     institution_id: 'test-institution-id',
-    role: 'INSTITUTION_ADMIN',
+    role: 'ADMIN',
     email: 'test@example.com',
     full_name: 'Test User',
     branch: 'Main',
     status: 'ACTIVE',
 };
+

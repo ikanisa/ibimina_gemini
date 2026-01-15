@@ -13,24 +13,23 @@ export function getButtonVariantStyles(variant: 'primary' | 'secondary' | 'dange
 
   const variants = {
     primary: {
-      className: `${baseStyles} bg-[${tokens.colors.primary[600]}] text-white hover:bg-[${tokens.colors.primary[700]}] disabled:bg-[${tokens.colors.primary[500]}] focus-visible:ring-[${tokens.colors.primary[600]}]`,
-      // Using Tailwind classes for better compatibility
+      className: `${baseStyles} bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 focus-visible:ring-blue-500`,
       classNameTailwind: `${baseStyles} bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 focus-visible:ring-blue-500`,
     },
     secondary: {
-      className: `${baseStyles} bg-[${tokens.colors.neutral[100]}] text-[${tokens.colors.neutral[700]}] hover:bg-[${tokens.colors.neutral[200]}] disabled:bg-[${tokens.colors.neutral[50]}] focus-visible:ring-[${tokens.colors.neutral[500]}]`,
+      className: `${baseStyles} bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:bg-slate-50 focus-visible:ring-slate-500`,
       classNameTailwind: `${baseStyles} bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:bg-slate-50 focus-visible:ring-slate-500`,
     },
     danger: {
-      className: `${baseStyles} bg-[${tokens.colors.danger[600]}] text-white hover:bg-[${tokens.colors.danger[700]}] disabled:bg-[${tokens.colors.danger[500]}] focus-visible:ring-[${tokens.colors.danger[600]}]`,
+      className: `${baseStyles} bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 focus-visible:ring-red-500`,
       classNameTailwind: `${baseStyles} bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 focus-visible:ring-red-500`,
     },
     ghost: {
-      className: `${baseStyles} bg-transparent text-[${tokens.colors.neutral[700]}] hover:bg-[${tokens.colors.neutral[100]}] disabled:text-[${tokens.colors.neutral[400]}] focus-visible:ring-[${tokens.colors.neutral[500]}]`,
+      className: `${baseStyles} bg-transparent text-slate-700 hover:bg-slate-100 disabled:text-slate-400 focus-visible:ring-slate-500`,
       classNameTailwind: `${baseStyles} bg-transparent text-slate-700 hover:bg-slate-100 disabled:text-slate-400 focus-visible:ring-slate-500`,
     },
     outline: {
-      className: `${baseStyles} bg-white border border-[${tokens.colors.neutral[300]}] text-[${tokens.colors.neutral[700]}] hover:bg-[${tokens.colors.neutral[50]}] disabled:border-[${tokens.colors.neutral[200]}] focus-visible:ring-[${tokens.colors.neutral[500]}]`,
+      className: `${baseStyles} bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:border-slate-200 focus-visible:ring-slate-500`,
       classNameTailwind: `${baseStyles} bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:border-slate-200 focus-visible:ring-slate-500`,
     },
   };

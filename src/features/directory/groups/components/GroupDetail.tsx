@@ -5,13 +5,14 @@
 
 import React, { useState } from 'react';
 import { Group, ViewState } from '@/core/types';
-import { Briefcase, Users, DollarSign, CheckCircle2, Calendar, Smartphone, Settings } from 'lucide-react';
+import { Briefcase, Users, DollarSign, CheckCircle2, Smartphone, Settings } from 'lucide-react';
 import { GroupOverviewTab } from './GroupOverviewTab';
 import { GroupMembersTab } from './GroupMembersTab';
 import { GroupContributionsTab } from './GroupContributionsTab';
-import { GroupMeetingsTab } from './GroupMeetingsTab';
+
 import { GroupSettingsTab } from './GroupSettingsTab';
 import { Breadcrumbs } from '@/shared/components/ui/Breadcrumbs';
+import { Button } from '@/shared/components/ui';
 import type { DetailTab } from './types';
 
 interface GroupDetailProps {
@@ -20,7 +21,7 @@ interface GroupDetailProps {
   onNavigate?: (view: ViewState) => void;
   // Data props
   members?: any[];
-  meetings?: any[];
+
   contributions?: any[];
   transactions?: any[];
   sms?: any[];
@@ -33,7 +34,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
   onBack,
   onNavigate,
   members = [],
-  meetings = [],
+
   contributions = [],
   transactions = [],
   sms = [],
@@ -47,7 +48,6 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
     { id: 'Members' as DetailTab, label: 'Members', icon: Users },
     { id: 'Contributions' as DetailTab, label: 'Contributions', icon: DollarSign },
     { id: 'Loans' as DetailTab, label: 'Loans', icon: CheckCircle2 },
-    { id: 'Meetings' as DetailTab, label: 'Meetings', icon: Calendar },
     { id: 'MoMo' as DetailTab, label: 'MoMo', icon: Smartphone },
     { id: 'Settings' as DetailTab, label: 'Settings', icon: Settings },
   ];
@@ -78,9 +78,6 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
                 <span className="flex items-center gap-1">
                   <Users size={14} /> {group.memberCount} Members
                 </span>
-                <span className="flex items-center gap-1">
-                  <Calendar size={14} /> {group.meetingDay}s
-                </span>
               </div>
             </div>
           </div>
@@ -101,11 +98,10 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg'
-              }`}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg'
+                }`}
             >
               <tab.icon size={16} />
               {tab.label}
@@ -131,7 +127,6 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
           <GroupOverviewTab
             group={group}
             members={members}
-            meetings={meetings}
             onNavigate={onNavigate}
           />
         )}
@@ -145,9 +140,7 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
             members={members}
           />
         )}
-        {activeTab === 'Meetings' && (
-          <GroupMeetingsTab group={group} meetings={meetings} />
-        )}
+
         {activeTab === 'Settings' && (
           <GroupSettingsTab group={group} />
         )}
@@ -155,9 +148,18 @@ export const GroupDetail: React.FC<GroupDetailProps> = ({
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-slate-800">Group-Backed Loans</h3>
+              {onNavigate && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onNavigate(ViewState.LOANS)}
+                >
+                  View All Loans
+                </Button>
+              )}
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-slate-400">
-              <p>Loans feature coming soon</p>
+              <p>Loans are managed on the Loans page. Search by this group name to focus the list.</p>
             </div>
           </div>
         )}
