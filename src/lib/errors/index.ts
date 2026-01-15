@@ -3,14 +3,14 @@
  */
 
 export {
-  AppError,
   handleError,
   getUserFriendlyMessage,
   getUserFriendlyError, // Alias for getUserFriendlyMessage
   withTimeout,
   withRetry,
   withTimeoutAndRetry,
-  type ErrorContext,
 } from './ErrorHandler';
+
+export type { AppError, ErrorContext } from './ErrorHandler';
 
 export * from './retry';

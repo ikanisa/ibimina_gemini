@@ -8,9 +8,9 @@
 export { default as Groups } from './components/Groups';
 export { GroupsList } from './components/GroupsList';
 export { GroupDetail } from './components/GroupDetail';
-export { GroupWizard } from './components/GroupWizard';
+export { default as GroupWizard } from './components/GroupWizard';
 export { CreateGroupModal } from './components/CreateGroupModal';
-export { BulkGroupImport } from './components/BulkGroupImport';
+export { default as BulkGroupImport } from './components/BulkGroupImport';
 export { GroupContributionsTab } from './components/GroupContributionsTab';
 export { GroupMeetingsTab } from './components/GroupMeetingsTab';
 export { GroupMembersTab } from './components/GroupMembersTab';

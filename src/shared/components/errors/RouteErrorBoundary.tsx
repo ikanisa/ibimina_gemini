@@ -6,7 +6,7 @@
 import React from 'react';
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
 import * as Sentry from '@sentry/react';
-import { ErrorPage } from './errors/ErrorPage';
+import { ErrorPage } from './ErrorPage';
 
 // ============================================================================
 // ERROR FALLBACK COMPONENT

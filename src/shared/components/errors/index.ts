@@ -2,6 +2,7 @@
  * Error Boundary Components
  */
 
-export { ErrorBoundary } from './ErrorBoundary';
+export { default as ErrorBoundary } from './ErrorBoundary';
 export { GlobalErrorBoundary } from './GlobalErrorBoundary';
 export { RouteErrorBoundary } from './RouteErrorBoundary';
+export { ErrorPage } from './ErrorPage';
