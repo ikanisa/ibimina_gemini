@@ -82,13 +82,9 @@ export const InstitutionSemanticSearch: React.FC<InstitutionSemanticSearchProps>
 
         setIsLoading(true);
         try {
+            // Use RPC for intelligent fuzzy search (trigrams) + loose status check
             const { data, error } = await supabase
-                .from('institutions')
-                .select('id, name, status')
-                .ilike('name', `%${term}%`)
-                .eq('status', 'ACTIVE')
-                .order('name')
-                .limit(10);
+                .rpc('search_institutions', { search_term: term });
 
             if (error) throw error;
             setInstitutions(data || []);
