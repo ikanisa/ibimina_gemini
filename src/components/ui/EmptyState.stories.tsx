@@ -28,10 +28,10 @@ export const Default: Story = {
     },
 };
 
-// With icon
+// With icon - pass icon component, not rendered element
 export const WithIcon: Story = {
     args: {
-        icon: <Users size={48} className="text-slate-300" />,
+        icon: Users,
         title: 'No members yet',
         description: 'Start by adding your first member to the system.',
     },
@@ -40,7 +40,7 @@ export const WithIcon: Story = {
 // With action
 export const WithAction: Story = {
     args: {
-        icon: <Inbox size={48} className="text-slate-300" />,
+        icon: Inbox,
         title: 'No messages',
         description: 'Your inbox is empty. New messages will appear here.',
         action: <Button size="sm">Compose Message</Button>,
@@ -50,7 +50,7 @@ export const WithAction: Story = {
 // Search empty
 export const SearchEmpty: Story = {
     args: {
-        icon: <FileSearch size={48} className="text-slate-300" />,
+        icon: FileSearch,
         title: 'No matches',
         description: 'We couldn\'t find anything matching your search. Try different keywords.',
         action: <Button variant="secondary" size="sm">Clear Search</Button>,
@@ -62,7 +62,7 @@ export const InContainer: Story = {
     render: () => (
         <div className="w-96 h-64 bg-white border rounded-lg flex items-center justify-center">
             <EmptyState
-                icon={<Users size={40} className="text-slate-300" />}
+                icon={Users}
                 title="No groups"
                 description="Create your first group to get started."
                 action={<Button size="sm">Create Group</Button>}

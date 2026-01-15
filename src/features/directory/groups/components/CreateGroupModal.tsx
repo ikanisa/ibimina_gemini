@@ -7,21 +7,14 @@ import React, { useState } from 'react';
 import { Modal, Button, ErrorDisplay, SimpleInput, SimpleSelect } from '@/shared/components/ui';
 import { validateGroupData } from '@/lib/validation';
 import { Plus } from 'lucide-react';
+import type { CreateGroupInput } from '../services/groupService';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   institutionId: string;
-  createGroup: (data: {
-    institution_id: string;
-    group_name: string;
-    meeting_day: string;
-    expected_amount: number;
-    frequency: 'Weekly' | 'Monthly';
-    cycle_label: string;
-    status: string;
-  }) => Promise<unknown>;
+  createGroup: (input: CreateGroupInput) => Promise<unknown>;
 }
 
 
@@ -61,14 +54,14 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     setFormErrors({});
 
     try {
+      // Map form data to service input format (camelCase)
       await createGroup({
-        institution_id: institutionId,
-        group_name: newGroupData.group_name.trim(),
-        meeting_day: newGroupData.meeting_day,
-        expected_amount: newGroupData.expected_amount,
-        frequency: newGroupData.frequency,
-        cycle_label: newGroupData.cycle_label || `Cycle ${new Date().getFullYear()}`,
-        status: 'ACTIVE',
+        institutionId,
+        name: newGroupData.group_name.trim(),
+        meetingDay: newGroupData.meeting_day,
+        contributionAmount: newGroupData.expected_amount,
+        meetingFrequency: newGroupData.frequency,
+        description: newGroupData.cycle_label || `Cycle ${new Date().getFullYear()}`,
       });
 
       // Reset form and close modal

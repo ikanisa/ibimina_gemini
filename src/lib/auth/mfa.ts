@@ -92,14 +92,25 @@ export async function startMFAEnrollment(friendlyName?: string): Promise<MFASetu
   }
 }
 
-
 /**
  * Verify and complete MFA enrollment
+ * Need to create a challenge first, then verify
  */
 export async function verifyMFAEnrollment(factorId: string, code: string): Promise<boolean> {
   try {
+    // First create a challenge for this factor
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+      factorId,
+    });
+
+    if (challengeError || !challengeData) {
+      throw challengeError || new Error('Failed to create challenge');
+    }
+
+    // Now verify with factorId, challengeId, and code
     const { data, error } = await supabase.auth.mfa.verify({
       factorId,
+      challengeId: challengeData.id,
       code,
     });
 
@@ -157,10 +168,12 @@ export async function challengeMFA(factorId: string): Promise<{ challengeId: str
 
 /**
  * Verify MFA challenge (for login)
+ * Uses the challengeId from challengeMFA and a factorId
  */
-export async function verifyMFAChallenge(challengeId: string, code: string): Promise<{ verified: boolean }> {
+export async function verifyMFAChallenge(factorId: string, challengeId: string, code: string): Promise<{ verified: boolean }> {
   try {
     const { data, error } = await supabase.auth.mfa.verify({
+      factorId,
       challengeId,
       code,
     });

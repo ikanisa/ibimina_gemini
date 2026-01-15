@@ -90,7 +90,7 @@ export function useGroups(options: UseGroupsOptions = {}): UseGroupsReturn {
         const statsPromises = groups.slice(0, 20).map(async (group) => {
           try {
             const stats = await groupService.getStats(group.id);
-            return { id: group.id, count: stats.totalMembers };
+            return { id: group.id, count: stats.memberCount };
           } catch {
             return { id: group.id, count: 0 };
           }

@@ -19,7 +19,7 @@ const pageVariants = {
 
 const pageTransition = {
     duration: 0.3,
-    ease: 'easeOut',
+    ease: 'easeOut' as const,
 };
 
 export const AnimatedPage: React.FC<AnimatedPageProps> = ({ children, className = '' }) => {

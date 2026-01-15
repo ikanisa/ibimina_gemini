@@ -147,19 +147,16 @@ export function initWebVitals() {
   if (typeof window === 'undefined') return;
 
   // Dynamic import to reduce initial bundle size
-  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB, onINP, onFID }) => {
+  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB, onINP }) => {
     // Core Web Vitals (required for Google's ranking)
     onCLS(reportWebVital);
     onFCP(reportWebVital);
     onLCP(reportWebVital);
     onTTFB(reportWebVital);
 
-    // Additional metrics (optional but useful)
+    // INP (Interaction to Next Paint) - replaces FID
     if (onINP) {
-      onINP(reportWebVital); // Interaction to Next Paint (replaces FID)
-    }
-    if (onFID) {
-      onFID(reportWebVital); // First Input Delay (legacy, replaced by INP)
+      onINP(reportWebVital);
     }
   }).catch((error) => {
     console.error('[Web Vitals] Failed to initialize:', error);

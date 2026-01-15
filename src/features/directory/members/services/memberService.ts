@@ -162,7 +162,11 @@ export const memberService = {
                 throw new SupabaseError(error.message, error.code, error.hint);
             }
 
-            return data as MemberWithGroup[];
+            // Transform Supabase response - groups is returned as array from join
+            return (data || []).map((row: any): MemberWithGroup => ({
+                ...row,
+                groups: Array.isArray(row.groups) ? row.groups[0] || null : row.groups || null,
+            }));
         } catch (error) {
             if (error instanceof AppError) throw error;
             throw createAppError(error, 'memberService.search');

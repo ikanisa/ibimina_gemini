@@ -65,14 +65,17 @@ export const TableRow: React.FC<TableRowProps> = ({
 export interface TableHeadProps {
   children?: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
-export const TableHead: React.FC<TableHeadProps> = ({ children, className }) => (
+export const TableHead: React.FC<TableHeadProps> = ({ children, className, onClick }) => (
   <th
     className={cn(
       'px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider',
+      onClick && 'cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700/50',
       className
     )}
+    onClick={onClick}
   >
     {children}
   </th>

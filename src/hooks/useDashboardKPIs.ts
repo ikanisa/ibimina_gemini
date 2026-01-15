@@ -152,10 +152,10 @@ export function useDashboardKPIs(selectedInstitutionId: string | null = null) {
         queryFn: async (): Promise<DashboardData> => {
             try {
                 // Use dashboardService.getSummary
-                const summary = await dashboardService.getSummary({
-                    institutionId: effectiveInstitutionId || undefined,
-                    days: 7,
-                });
+                const summary = await dashboardService.getSummary(
+                    effectiveInstitutionId || null,
+                    7
+                );
 
                 // Map service response to expected DashboardData structure
                 const dashboardData: Partial<DashboardData> = {
@@ -172,7 +172,7 @@ export function useDashboardKPIs(selectedInstitutionId: string | null = null) {
                         },
                         last_days: {
                             days: 7,
-                            received_total: summary.totalDeposits || 0,
+                            received_total: summary.todayDeposits || 0,
                             allocated_count: 0,
                             unallocated_count: summary.pendingTransactions || 0,
                             unallocated_aging_24h: 0,

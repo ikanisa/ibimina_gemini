@@ -69,17 +69,43 @@ export const RouteErrorBoundary: React.FC<RouteErrorBoundaryProps> = ({
     onReset,
 }) => {
     const handleError = (error: Error, info: React.ErrorInfo) => {
-        console.error(`[RouteError] ${routeName || 'Unknown route'}:`, error, info);
+        // Detect if this is a chunk loading error
+        const isChunkError =
+            error.message?.toLowerCase().includes('loading chunk') ||
+            error.message?.toLowerCase().includes('loading css chunk') ||
+            error.message?.toLowerCase().includes('failed to fetch dynamically imported module') ||
+            error.message?.toLowerCase().includes('importing a module script failed') ||
+            error.name === 'ChunkLoadError';
 
-        // Report to Sentry in production
+        const isNetworkError =
+            error.message?.toLowerCase().includes('network') ||
+            error.message?.toLowerCase().includes('fetch');
+
+        // Enhanced logging with error classification
+        console.error(
+            `[RouteError] ${routeName || 'Unknown route'}:`,
+            {
+                errorName: error.name,
+                errorMessage: error.message,
+                errorType: isChunkError ? 'chunk_load' : isNetworkError ? 'network' : 'runtime',
+                stack: error.stack,
+            }
+        );
+        console.error('[RouteError] Component Stack:', info.componentStack);
+
+        // Report to Sentry in production with enhanced context
         if (import.meta.env.PROD) {
             Sentry.captureException(error, {
                 tags: {
                     route: routeName || 'unknown',
-                    errorType: 'route_error',
+                    errorType: isChunkError ? 'chunk_load_error' : isNetworkError ? 'network_error' : 'route_error',
                 },
                 extra: {
                     componentStack: info.componentStack,
+                    isChunkError,
+                    isNetworkError,
+                    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+                    url: typeof window !== 'undefined' ? window.location.href : 'unknown',
                 },
             });
         }

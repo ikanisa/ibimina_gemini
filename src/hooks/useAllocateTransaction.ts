@@ -55,11 +55,10 @@ export function useAllocateTransaction() {
         mutationFn: async ({ transactionIds, memberId, note }: BulkAllocateParams) => {
             if (!user) throw new Error('User not authenticated');
 
-            return transactionService.allocateBatch({
+            return transactionService.allocateBatch(
                 transactionIds,
-                memberId,
-                note,
-            });
+                memberId
+            );
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });

@@ -93,8 +93,8 @@ export function useKeyboardShortcut(
  */
 export function useKeyPress(
   key: string,
-  modifiers?: string[],
   callback: (event: KeyboardEvent) => void,
+  modifiers: string[] = [],
   options: UseKeyboardShortcutsOptions = {}
 ): void {
   const { enabled = true, target } = options;

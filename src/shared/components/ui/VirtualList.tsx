@@ -45,11 +45,12 @@ export function VirtualList<T>({
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: typeof itemHeight === 'number' 
-      ? () => itemHeight 
-      : itemHeight,
+    estimateSize: estimateSize
+      ? () => estimateSize
+      : typeof itemHeight === 'number'
+        ? () => itemHeight
+        : itemHeight,
     overscan,
-    ...(estimateSize && { estimateSize }),
   });
 
   // Handle scroll events

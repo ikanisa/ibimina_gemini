@@ -6,9 +6,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Command } from 'lucide-react';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
-import { formatShortcut, type KeyboardShortcut } from '../../lib/shortcuts/keyboard';
-import { shortcutRegistry } from '../../lib/shortcuts/keyboard';
+import { useKeyboardShortcut } from '@/shared/hooks/useKeyboardShortcuts';
+import { formatShortcut, type KeyboardShortcut } from '@/lib/shortcuts/keyboard';
+import { shortcutRegistry } from '@/lib/shortcuts/keyboard';
 
 export interface CommandPaletteItem {
   id: string;
@@ -205,10 +205,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                               w-full flex items-center gap-3 px-4 py-3
                               text-left
                               transition-colors
-                              ${
-                                isSelected
-                                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
-                                  : 'text-neutral-900 dark:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
+                              ${isSelected
+                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
+                                : 'text-neutral-900 dark:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-700/50'
                               }
                             `}
                           >

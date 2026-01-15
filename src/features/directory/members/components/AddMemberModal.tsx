@@ -7,18 +7,14 @@ import React, { useState } from 'react';
 import { Modal, Button, ErrorDisplay, SimpleInput } from '@/shared/components/ui';
 import { validateMemberData } from '@/lib/validation';
 import { Plus } from 'lucide-react';
+import type { CreateMemberInput } from '../services/memberService';
 
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   institutionId: string;
-  createMember: (data: {
-    institution_id: string;
-    full_name: string;
-    phone: string;
-    branch: string;
-  }) => Promise<unknown>;
+  createMember: (input: CreateMemberInput) => Promise<unknown>;
 }
 
 
@@ -60,11 +56,11 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     setFormErrors({});
 
     try {
+      // Map form data to service input format (camelCase)
       await createMember({
-        institution_id: institutionId,
-        full_name: newMemberData.full_name.trim(),
+        institutionId,
+        fullName: newMemberData.full_name.trim(),
         phone: validation.normalized?.phone || newMemberData.phone,
-        branch: newMemberData.branch || 'HQ',
       });
 
       // Reset form and close modal

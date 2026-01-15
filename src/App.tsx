@@ -315,7 +315,7 @@ const App: React.FC = () => {
   };
 
   const dashboardStats = EMPTY_STATS;
-  const dashboardTransactions: Transaction[] = [];
+  const dashboardTransactions: never[] = [];
   const showMinimalistDashboard = true;
 
   useEffect(() => {

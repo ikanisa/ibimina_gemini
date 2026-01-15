@@ -28,7 +28,8 @@
     "noEmit": true
   },
   "include": [
-    "src"
+    "src",
+    "src/types"
   ],
   "exclude": [
     "supabase/functions"

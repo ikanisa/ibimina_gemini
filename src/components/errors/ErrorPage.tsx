@@ -57,11 +57,24 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({
                     {message}
                 </p>
 
-                {/* Error Details (Only in Dev) */}
+                {/* Error Details (Development - full details) */}
                 {import.meta.env.DEV && error && (
                     <div className="mb-8 text-left bg-red-50/50 p-4 rounded-lg border border-red-100 overflow-auto max-h-48 scrollbar-thin scrollbar-thumb-red-200">
                         <p className="text-xs font-mono text-red-700 font-medium break-all">
                             {error.toString()}
+                        </p>
+                    </div>
+                )}
+
+                {/* Error Hint (Production - sanitized for debugging) */}
+                {import.meta.env.PROD && error && (
+                    <div className="mb-6 text-left bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <p className="text-xs text-slate-600 mb-1">
+                            <span className="font-medium">Error Type:</span>{' '}
+                            <span className="font-mono">{error.name || 'Unknown'}</span>
+                        </p>
+                        <p className="text-xs text-slate-500">
+                            Check browser console (F12) for full details.
                         </p>
                     </div>
                 )}

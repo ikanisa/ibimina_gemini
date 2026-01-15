@@ -47,8 +47,8 @@ export const MFAVerify: React.FC<MFAVerifyProps> = ({ factorId, onVerify, onErro
         throw new Error('MFA challenge not initialized');
       }
 
-      const { verified } = await mfaUtils.verifyMFAChallenge(challengeId, code);
-      
+      const { verified } = await mfaUtils.verifyMFAChallenge(factorId, challengeId, code);
+
       if (verified) {
         await onVerify(code);
       } else {

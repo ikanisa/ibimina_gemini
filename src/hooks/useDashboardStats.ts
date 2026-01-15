@@ -114,11 +114,15 @@ export function useDashboardStats() {
                     // Don't throw, try to show what we have
                 }
 
-                // Calculate sums safely
-                const totalGroupFunds = (groupsFunds.data?.data || []).reduce((sum: number, g: any) => sum + (g.fund_balance || 0), 0);
-                const totalSavings = (membersSavings.data?.data || []).reduce((sum: number, m: any) => sum + (m.savings_balance || 0), 0);
-                const dailyDeposits = (todayDeposits.data?.data || []).reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
-                const issuesCount = reconciliationIssues.data?.count || 0;
+                // Calculate sums safely - safeQuery returns data directly, use type assertions
+                const fundsData = groupsFunds.data as unknown as Array<{ fund_balance?: number }> | null;
+                const savingsData = membersSavings.data as unknown as Array<{ savings_balance?: number }> | null;
+                const depositsData = todayDeposits.data as unknown as Array<{ amount?: number }> | null;
+                const totalGroupFunds = (fundsData || []).reduce((sum, g) => sum + (g.fund_balance || 0), 0);
+                const totalSavings = (savingsData || []).reduce((sum, m) => sum + (m.savings_balance || 0), 0);
+                const dailyDeposits = (depositsData || []).reduce((sum, t) => sum + (t.amount || 0), 0);
+                // For count queries, the count is not in data but may need fallback
+                const issuesCount = (reconciliationIssues as any)?.count || 0;
 
                 setStats({
                     totalMembers: membersCount.data?.count || 0,

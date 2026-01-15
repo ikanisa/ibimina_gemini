@@ -212,11 +212,24 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions: transactionsP
               onClick={async () => {
                 try {
                   const { exportTransactions } = await import('@/lib/csv/export');
-                  exportTransactions(transactions.map(tx => ({
-                    ...tx,
-                    members: undefined,
-                    groups: undefined,
-                  })), {
+                  // Cast transactions to the expected format
+                  const exportData = transactions.map(tx => ({
+                    id: tx.id,
+                    occurred_at: tx.occurred_at,
+                    amount: tx.amount,
+                    currency: tx.currency || 'RWF',
+                    type: tx.type,
+                    channel: tx.channel,
+                    status: tx.status || 'COMPLETED',
+                    allocation_status: tx.allocation_status,
+                    payer_name: tx.payer_name || '',
+                    payer_phone: tx.payer_phone || '',
+                    momo_ref: tx.momo_ref || '',
+                    reference: tx.reference || '',
+                    members: tx.members ? { full_name: tx.members.full_name } : undefined,
+                    groups: tx.groups ? { name: tx.groups.name } : undefined,
+                  }));
+                  exportTransactions(exportData as any, {
                     filename: `transactions_${dateRange.start}_to_${dateRange.end}.csv`,
                   });
                 } catch (err) {

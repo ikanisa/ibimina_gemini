@@ -3,7 +3,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleError, getUserFriendlyMessage, AppError, TimeoutError, NetworkError, withTimeout, withRetry } from './errorHandler';
+import {
+    handleError,
+    getUserFriendlyMessage,
+    AppError,
+    TimeoutError,
+    NetworkError,
+    withTimeout,
+    withRetry,
+    createAppError
+} from './index';
 
 describe('AppError', () => {
     it('should create AppError with all properties', () => {
@@ -21,8 +30,8 @@ describe('AppError', () => {
 
 describe('TimeoutError', () => {
     it('should create TimeoutError', () => {
-        const error = new TimeoutError('Operation timed out');
-        expect(error.message).toBe('Operation timed out');
+        const error = new TimeoutError('test operation', 5000);
+        expect(error.message).toBe('test operation timed out after 5000ms');
         expect(error.code).toBe('TIMEOUT');
         expect(error).toBeInstanceOf(AppError);
     });
@@ -35,33 +44,38 @@ describe('NetworkError', () => {
         expect(error.code).toBe('NETWORK_ERROR');
         expect(error).toBeInstanceOf(AppError);
     });
+
+    it('should use default message if none provided', () => {
+        const error = new NetworkError();
+        expect(error.message).toBe('Network connection error. Please check your internet connection.');
+    });
 });
 
-describe('handleError', () => {
-    it('should handle AppError instances', () => {
+describe('handleError (via createAppError)', () => {
+    it('should return AppError instances unchanged', () => {
         const error = new AppError('Test error', 'TEST_CODE');
-        const result = handleError(error, { operation: 'test' });
+        const result = createAppError(error, 'test');
         expect(result).toBe(error);
     });
 
-    it('should handle Error instances', () => {
+    it('should convert Error instances to AppError', () => {
         const error = new Error('Generic error');
-        const result = handleError(error, { operation: 'test' });
+        const result = createAppError(error, 'test');
         expect(result).toBeInstanceOf(AppError);
         expect(result.message).toBe('Generic error');
     });
 
     it('should handle unknown error types', () => {
         const error = { someProperty: 'value' };
-        const result = handleError(error, { operation: 'test' });
+        const result = createAppError(error, 'test');
         expect(result).toBeInstanceOf(AppError);
         // Message should indicate an unexpected error
         expect(result.message.length).toBeGreaterThan(0);
     });
 
     it('should handle null/undefined', () => {
-        const result1 = handleError(null, { operation: 'test' });
-        const result2 = handleError(undefined, { operation: 'test' });
+        const result1 = createAppError(null, 'test');
+        const result2 = createAppError(undefined, 'test');
         expect(result1).toBeInstanceOf(AppError);
         expect(result2).toBeInstanceOf(AppError);
     });
@@ -69,15 +83,15 @@ describe('handleError', () => {
 
 describe('getUserFriendlyMessage', () => {
     it('should return user-friendly message for TimeoutError', () => {
-        const error = new TimeoutError('Timeout');
+        const error = new TimeoutError('fetch data', 5000);
         const message = getUserFriendlyMessage(error);
-        expect(message).toBe('The request took too long. Please try again.');
+        expect(message).toBe('The operation took too long. Please try again.');
     });
 
     it('should return user-friendly message for NetworkError', () => {
         const error = new NetworkError('Network failed');
         const message = getUserFriendlyMessage(error);
-        expect(message).toBe('Network connection failed. Please check your internet connection.');
+        expect(message).toBe('Unable to connect. Please check your internet connection.');
     });
 
     it('should return user-friendly message for AppError', () => {
@@ -101,15 +115,15 @@ describe('getUserFriendlyMessage', () => {
 describe('withTimeout', () => {
     it('should resolve if promise completes before timeout', async () => {
         const promise = Promise.resolve('success');
-        const result = await withTimeout(promise, 1000, { operation: 'test' });
+        const result = await withTimeout(promise, 1000, 'test');
         expect(result).toBe('success');
     });
 
-    it('should reject with TimeoutError if promise exceeds timeout', async () => {
+    it('should reject if promise exceeds timeout', async () => {
         const promise = new Promise(resolve => setTimeout(() => resolve('slow'), 2000));
         await expect(
-            withTimeout(promise, 100, { operation: 'test' })
-        ).rejects.toThrow(TimeoutError);
+            withTimeout(promise, 100, 'test')
+        ).rejects.toThrow(/timed out/);
     });
 });
 
@@ -157,5 +171,3 @@ describe('withRetry', () => {
         expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
     }, 10000);
 });
-
-

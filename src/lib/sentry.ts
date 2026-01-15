@@ -141,9 +141,10 @@ export function setTag(key: string, value: string) {
  * Start a transaction for performance monitoring
  */
 export function startTransaction(name: string, op: string) {
-    return Sentry.startSpan({
+    return Sentry.startInactiveSpan({
         name,
         op,
+        forceTransaction: true,
     });
 }
 

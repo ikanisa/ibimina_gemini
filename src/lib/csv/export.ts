@@ -149,7 +149,11 @@ export function downloadCSV(csvContent: string, filename: string = 'export.csv')
  * Exports transactions to CSV
  */
 export function exportTransactions(
-  transactions: SupabaseTransaction[],
+  transactions: (SupabaseTransaction & {
+    members?: { full_name?: string } | null;
+    groups?: { name?: string } | null;
+    allocated_at?: string | null;
+  })[],
   options: ExportOptions = {}
 ): void {
   const filename = options.filename || `transactions_${new Date().toISOString().split('T')[0]}.csv`;
@@ -168,8 +172,8 @@ export function exportTransactions(
     payer_phone: tx.payer_phone || '',
     momo_ref: tx.momo_ref || '',
     reference: tx.reference || '',
-    member_name: (tx.members as any)?.full_name || '',
-    group_name: (tx.groups as any)?.name || '',
+    member_name: tx.members?.full_name || '',
+    group_name: tx.groups?.name || '',
     allocated_at: tx.allocated_at || '',
   }));
 
@@ -266,7 +270,7 @@ export function generateCSVTemplate(
   sampleData: Record<string, string>[] = []
 ): string {
   const lines: string[] = [];
-  
+
   // Add headers
   lines.push(escapeCSVLine(headers, ','));
 

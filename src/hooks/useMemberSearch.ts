@@ -9,9 +9,7 @@ export interface MemberSearchResult {
     phone: string;
     member_code: string | null;
     group_id: string;
-    groups?: {
-        name: string;
-    };
+    groups: { name: string } | null;
 }
 
 export function useMemberSearch(searchTerm: string, debounceMs = 300) {
@@ -39,7 +37,17 @@ export function useMemberSearch(searchTerm: string, debounceMs = 300) {
                 .limit(10);
 
             if (error) throw error;
-            return data as MemberSearchResult[];
+
+            // Transform Supabase response to match MemberSearchResult type
+            // Supabase returns groups as array, but we need single object or null
+            return (data || []).map((row: any): MemberSearchResult => ({
+                id: row.id,
+                full_name: row.full_name,
+                phone: row.phone,
+                member_code: row.member_code,
+                group_id: row.group_id,
+                groups: Array.isArray(row.groups) ? row.groups[0] || null : row.groups || null,
+            }));
         },
         enabled: !!institutionId && debouncedTerm.length >= 2,
         staleTime: 60000 // Cache results for 1 minute

@@ -84,12 +84,12 @@ export function downloadCsv(
 /**
  * Export data to CSV and download
  */
-export function exportToCsv<T extends Record<string, unknown>>(
+export function exportToCsv<T extends object>(
     data: T[],
     filename: string = 'export.csv',
     options: CsvExportOptions = {}
 ): void {
-    const csv = objectsToCsv(data, options);
+    const csv = objectsToCsv(data as Record<string, unknown>[], options);
     downloadCsv(csv, filename);
 }
 
@@ -155,7 +155,7 @@ export function exportTransactionsToCsv(
     const dateStr = new Date().toISOString().split('T')[0];
     const exportFilename = filename || `transactions_${dateStr}.csv`;
 
-    exportToCsv(formattedData, exportFilename);
+    exportToCsv(formattedData as unknown as Record<string, unknown>[], exportFilename);
 }
 
 // ============================================================================
@@ -212,7 +212,7 @@ export function exportMembersToCsv(
     const dateStr = new Date().toISOString().split('T')[0];
     const exportFilename = filename || `members_${dateStr}.csv`;
 
-    exportToCsv(formattedData, exportFilename);
+    exportToCsv(formattedData as unknown as Record<string, unknown>[], exportFilename);
 }
 
 // ============================================================================
