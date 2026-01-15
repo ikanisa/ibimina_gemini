@@ -25,3 +25,7 @@ export * from './errors';
 
 // Auth
 export * from './auth';
+
+// Query utilities
+export * from './query';
+

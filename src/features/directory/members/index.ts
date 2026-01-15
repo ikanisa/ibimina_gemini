@@ -14,9 +14,21 @@ export { BulkMemberImport } from './components/BulkMemberImport';
 export { MembersSkeleton } from './components/MembersSkeleton';
 export { VirtualizedMembersList } from './components/VirtualizedMembersList';
 
-// Hooks
+// Hooks (legacy)
 export { useMembers } from './hooks/useMembers';
 export { useMemberSearch } from './hooks/useMemberSearch';
+
+// Hooks (V2 - standardized)
+export {
+    useMembersV2,
+    useMemberDetail,
+    useMemberSearchV2,
+    useMemberBalance,
+    useMemberTransactions,
+    useCreateMember,
+    useUpdateMember,
+    memberKeys,
+} from './hooks/useMembersV2';
 
 // Services
 export { memberService } from './services/memberService';

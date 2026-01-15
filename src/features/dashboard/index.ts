@@ -15,10 +15,19 @@ export { InstitutionSwitcher } from './components/InstitutionSwitcher';
 export { KpiCard } from './components/KpiCard';
 export { PreviewList } from './components/PreviewList';
 
-// Hooks
+// Hooks (legacy)
 export { useDashboardKPIs, DEFAULT_DASHBOARD_DATA } from './hooks/useDashboardKPIs';
 export type { DashboardData } from './hooks/useDashboardKPIs';
 export { useDashboardStats } from './hooks/useDashboardStats';
+
+// Hooks (V2 - standardized)
+export {
+    useDashboardSummary,
+    useDashboardKPIsV2,
+    useRecentActivity,
+    useAttentionItems,
+    dashboardKeys,
+} from './hooks/useDashboardV2';
 
 // Services
 export { dashboardService } from './services/dashboardService';

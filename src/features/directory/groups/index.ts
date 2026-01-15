@@ -20,9 +20,20 @@ export { GroupSettingsTab } from './components/GroupSettingsTab';
 export { GroupsSkeleton } from './components/GroupsSkeleton';
 export { VirtualizedGroupsList } from './components/VirtualizedGroupsList';
 
-// Hooks
+// Hooks (legacy)
 export { useGroups } from './hooks/useGroups';
 export { useGroupDetails } from './hooks/useGroupDetails';
+
+// Hooks (V2 - standardized)
+export {
+    useGroupsV2,
+    useGroupDetail,
+    useGroupStats,
+    useCreateGroup,
+    useUpdateGroup,
+    useDeleteGroup,
+    groupKeys,
+} from './hooks/useGroupsV2';
 
 // Services
 export { groupService } from './services/groupService';

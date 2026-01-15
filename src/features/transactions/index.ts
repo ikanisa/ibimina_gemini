@@ -17,10 +17,22 @@ export { TransactionsSkeleton } from './components/TransactionsSkeleton';
 export { UnallocatedQueue } from './components/UnallocatedQueue';
 export { VirtualizedTransactionTable } from './components/VirtualizedTransactionTable';
 
-// Hooks
+// Hooks (legacy)
 export { useTransactions } from './hooks/useTransactions';
 export { useTransactionsPaginated } from './hooks/useTransactionsPaginated';
 export { useAllocateTransaction } from './hooks/useAllocateTransaction';
+
+// Hooks (V2 - standardized)
+export {
+    useTransactionsV2,
+    useTransactionDetail,
+    useCreateTransaction,
+    useUpdateTransactionStatus,
+    useAllocateTransactionV2,
+    useBatchAllocateTransactions,
+    useUnallocatedCount,
+    transactionKeys,
+} from './hooks/useTransactionsV2';
 
 // Services
 export { transactionService } from './services/transactionService';
