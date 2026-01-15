@@ -1,12 +1,10 @@
-export function requireEnv(name: string): string {
-    const v = (import.meta as any).env?.[name];
-    if (!v || typeof v !== "string" || !v.trim()) {
-        throw new Error(`Missing required env: ${name}`);
-    }
-    return v.trim();
-}
+/**
+ * Environment Utilities - Backward Compatibility Re-export
+ * 
+ * This file re-exports env utilities from core/config for backward compatibility.
+ * New code should import directly from '@/core/config' instead.
+ * 
+ * @deprecated Import from '@/core/config' or '@/core' instead
+ */
 
-export function getOptionalEnv(name: string, fallback = ""): string {
-    const v = (import.meta as any).env?.[name];
-    return (typeof v === "string" && v.trim()) ? v.trim() : fallback;
-}
+export { requireEnv, getOptionalEnv, env } from '../core/config/env';
