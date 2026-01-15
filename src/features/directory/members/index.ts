@@ -18,5 +18,14 @@ export { VirtualizedMembersList } from './components/VirtualizedMembersList';
 export { useMembers } from './hooks/useMembers';
 export { useMemberSearch } from './hooks/useMemberSearch';
 
+// Services
+export { memberService } from './services/memberService';
+export type {
+    MemberFilters,
+    CreateMemberInput,
+    UpdateMemberInput,
+    MemberWithGroup,
+} from './services/memberService';
+
 // Types
 export * from './types';

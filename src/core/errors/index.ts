@@ -1,20 +1,34 @@
 /**
- * Core Errors - Re-export from lib/errors
+ * Core Errors Module
  * 
- * This module provides a stable import path for error handling utilities.
- * The actual implementation remains in lib/errors for backward compatibility.
+ * Provides typed error classes and error handling utilities.
  */
 
+// Typed error classes
 export {
     AppError,
-    handleError,
+    ValidationError,
+    NotFoundError,
+    UnauthorizedError,
+    ForbiddenError,
+    ConflictError,
+    RateLimitError,
+    NetworkError,
+    TimeoutError,
+    SupabaseError,
+    createAppError,
     getUserFriendlyMessage,
+    isRetryableError,
+} from './AppError';
+
+// Legacy error handler (for backward compatibility)
+export {
+    handleError,
     getUserFriendlyError,
     withTimeout,
     withRetry,
     withTimeoutAndRetry,
     type ErrorContext,
-} from '../../lib/errors';
+} from '../../lib/errors/ErrorHandler';
 
-// Re-export RetryOptions from ErrorHandler directly
 export type { RetryOptions } from '../../lib/errors/ErrorHandler';

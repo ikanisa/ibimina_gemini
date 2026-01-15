@@ -24,5 +24,14 @@ export { VirtualizedGroupsList } from './components/VirtualizedGroupsList';
 export { useGroups } from './hooks/useGroups';
 export { useGroupDetails } from './hooks/useGroupDetails';
 
+// Services
+export { groupService } from './services/groupService';
+export type {
+    GroupFilters,
+    CreateGroupInput,
+    UpdateGroupInput,
+    GroupWithMemberCount,
+} from './services/groupService';
+
 // Types
 export * from './types';

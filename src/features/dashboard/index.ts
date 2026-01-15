@@ -19,3 +19,11 @@ export { PreviewList } from './components/PreviewList';
 export { useDashboardKPIs, DEFAULT_DASHBOARD_DATA } from './hooks/useDashboardKPIs';
 export type { DashboardData } from './hooks/useDashboardKPIs';
 export { useDashboardStats } from './hooks/useDashboardStats';
+
+// Services
+export { dashboardService } from './services/dashboardService';
+export type {
+    DashboardSummary,
+    DashboardKPIs,
+    RecentActivity,
+} from './services/dashboardService';

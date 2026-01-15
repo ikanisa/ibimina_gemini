@@ -21,3 +21,12 @@ export { VirtualizedTransactionTable } from './components/VirtualizedTransaction
 export { useTransactions } from './hooks/useTransactions';
 export { useTransactionsPaginated } from './hooks/useTransactionsPaginated';
 export { useAllocateTransaction } from './hooks/useAllocateTransaction';
+
+// Services
+export { transactionService } from './services/transactionService';
+export type {
+    TransactionFilters,
+    CreateTransactionInput,
+    AllocateTransactionInput,
+    TransactionWithRelations,
+} from './services/transactionService';
