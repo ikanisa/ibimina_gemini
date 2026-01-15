@@ -11,7 +11,7 @@ import {
     getQueryErrorMessage,
 } from '@/core/query';
 import { dashboardService } from '../services/dashboardService';
-import { isSuperAdmin } from '@/lib/auth/roles';
+import { isSuperAdmin } from '@/lib/utils/roleHelpers';
 
 // ============================================================================
 // Query Keys

@@ -88,7 +88,7 @@ export const SmsGatewayDevices: React.FC = () => {
     try {
       // Use deduplication to prevent duplicate requests
       const key = `loadDevices:${isPlatformAdmin ? 'all' : userInstitutionId}:${institutionFilter}:${statusFilter}`;
-      
+
       const devicesData = await deduplicateRequest(key, async () => {
         let query = supabase
           .from('sms_gateway_devices')
@@ -418,3 +418,5 @@ export const SmsGatewayDevices: React.FC = () => {
     </div>
   );
 };
+
+export default SmsGatewayDevices;

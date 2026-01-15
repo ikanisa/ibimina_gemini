@@ -3,7 +3,7 @@ import { useRoleAccess } from '@/features/settings/hooks/useRoleAccess';
 import { SettingsCard } from '../SettingsCard';
 import { HealthBanner } from '../HealthBanner';
 import { SETTINGS_NAV_ITEMS } from '@/features/settings/constants';
-import { SettingsTab } from '@/core/types';
+import type { SettingsTab } from '@/features/settings/types';
 
 interface SettingsHomeProps {
   onNavigate: (tab: SettingsTab) => void;
@@ -12,15 +12,15 @@ interface SettingsHomeProps {
 export const SettingsHome: React.FC<SettingsHomeProps> = ({ onNavigate }) => {
   const access = useRoleAccess();
 
-  const mainTiles = SETTINGS_NAV_ITEMS.filter(item => 
+  const mainTiles = SETTINGS_NAV_ITEMS.filter(item =>
     !item.adminOnly && !item.platformOnly
   );
 
-  const adminTiles = SETTINGS_NAV_ITEMS.filter(item => 
+  const adminTiles = SETTINGS_NAV_ITEMS.filter(item =>
     item.adminOnly && !item.platformOnly
   );
 
-  const platformTiles = SETTINGS_NAV_ITEMS.filter(item => 
+  const platformTiles = SETTINGS_NAV_ITEMS.filter(item =>
     item.platformOnly
   );
 

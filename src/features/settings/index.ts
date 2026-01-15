@@ -15,17 +15,21 @@ export { SettingsPage } from './components/SettingsPage';
 export { SettingsRow } from './components/SettingsRow';
 
 // Settings pages
-export { GeneralSettingsPage } from './components/pages/GeneralSettingsPage';
-export { SecuritySettingsPage } from './components/pages/SecuritySettingsPage';
-export { SmsGatewaySettingsPage } from './components/pages/SmsGatewaySettingsPage';
-export { StaffSettingsPage } from './components/pages/StaffSettingsPage';
-export { NotificationsSettingsPage } from './components/pages/NotificationsSettingsPage';
-export { ProfilePage } from './components/pages/ProfilePage';
+export {
+    SettingsHome,
+    InstitutionSettings,
+    ParsingSettings,
+    SmsSourcesSettings,
+    NotificationsSettings,
+    StaffSettings,
+    AuditLogSettings,
+    SystemSettings,
+} from './components/pages';
 
 // Services
 export { settingsService } from './services/settingsService';
 export type {
-    InstitutionSettings,
+    InstitutionSettings as InstitutionSettingsData,
     StaffMember,
     SmsSource,
     AuditLogEntry,

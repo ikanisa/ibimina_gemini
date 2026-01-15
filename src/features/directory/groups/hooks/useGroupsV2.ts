@@ -17,7 +17,7 @@ import {
     type GroupFilters,
     type CreateGroupInput,
     type UpdateGroupInput
-} from './services/groupService';
+} from '../services/groupService';
 
 // ============================================================================
 // Query Keys

@@ -6,7 +6,7 @@
 
 // Components
 export { default as Transactions } from './components/Transactions';
-export { TransactionDrawer } from './components/TransactionDrawer';
+export { default as TransactionDrawer } from './components/TransactionDrawer';
 export { AllocationModal } from './components/AllocationModal';
 export { BulkActions } from './components/BulkActions';
 export { BulkAllocationModal } from './components/BulkAllocationModal';

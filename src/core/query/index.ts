@@ -49,7 +49,7 @@ export function createQueryKeys<T extends string>(domain: T) {
     return {
         all: [domain] as const,
         lists: () => [domain, 'list'] as const,
-        list: (filters: Record<string, unknown>) => [domain, 'list', filters] as const,
+        list: (filters: object) => [domain, 'list', filters] as const,
         details: () => [domain, 'detail'] as const,
         detail: (id: string) => [domain, 'detail', id] as const,
     };
@@ -107,7 +107,7 @@ export function useServiceQuery<TData>(
         enabled,
         staleTime: cacheConfig.staleTime,
         gcTime: cacheConfig.gcTime,
-        placeholderData: keepPreviousData ? (prev: TData | undefined) => prev : undefined,
+        placeholderData: keepPreviousData ? (previousData) => previousData : undefined,
         select,
         retry: (failureCount, error) => {
             if (failureCount >= 3) return false;

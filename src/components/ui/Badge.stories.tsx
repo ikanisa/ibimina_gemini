@@ -16,7 +16,7 @@ const meta: Meta<typeof Badge> = {
     argTypes: {
         variant: {
             control: 'select',
-            options: ['default', 'success', 'warning', 'error', 'info'],
+            options: ['default', 'success', 'warning', 'danger', 'info'],
         },
         size: {
             control: 'select',
@@ -55,7 +55,7 @@ export const Warning: Story = {
 export const Error: Story = {
     args: {
         children: 'Failed',
-        variant: 'error',
+        variant: 'danger',
     },
 };
 
@@ -82,7 +82,7 @@ export const AllVariants: Story = {
             <Badge>Default</Badge>
             <Badge variant="success">Success</Badge>
             <Badge variant="warning">Warning</Badge>
-            <Badge variant="error">Error</Badge>
+            <Badge variant="danger">Error</Badge>
             <Badge variant="info">Info</Badge>
         </div>
     ),
@@ -109,7 +109,7 @@ export const UseCases: Story = {
             </div>
             <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Loan:</span>
-                <Badge variant="error">Defaulted</Badge>
+                <Badge variant="danger">Defaulted</Badge>
             </div>
         </div>
     ),
