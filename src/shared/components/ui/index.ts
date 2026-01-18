@@ -29,3 +29,6 @@ export * from './AnimatedPage';
 
 export * from './WizardProgress';
 export * from './GroupSearchSelect';
+
+// Re-export from components/ui for backwards compatibility
+export { InstitutionSemanticSearch } from '../../../components/ui/InstitutionSemanticSearch';
