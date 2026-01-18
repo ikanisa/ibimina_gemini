@@ -82,12 +82,24 @@ export const InstitutionSemanticSearch: React.FC<InstitutionSemanticSearchProps>
 
         setIsLoading(true);
         try {
-            // Use RPC for intelligent fuzzy search (trigrams) + loose status check
+            // Try RPC for intelligent fuzzy search (trigrams)
             const { data, error } = await supabase
                 .rpc('search_institutions', { search_term: term });
 
-            if (error) throw error;
-            setInstitutions(data || []);
+            if (error) {
+                console.warn('RPC search_institutions failed, falling back to direct query:', error.message);
+                // Fallback: direct ILIKE query if RPC doesn't exist or fails
+                const { data: fallbackData, error: fallbackError } = await supabase
+                    .from('institutions')
+                    .select('id, name, status')
+                    .ilike('name', `%${term}%`)
+                    .limit(20);
+
+                if (fallbackError) throw fallbackError;
+                setInstitutions(fallbackData || []);
+            } else {
+                setInstitutions(data || []);
+            }
         } catch (err) {
             console.error('Error searching institutions:', err);
             setInstitutions([]);
