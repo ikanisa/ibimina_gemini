@@ -47,8 +47,16 @@ export interface UpdateMemberInput {
     nationalId?: string;
 }
 
+export interface GroupMembership {
+    group_id: string;
+    role: string;
+    status: string;
+    groups: { id: string; group_name: string } | null;
+}
+
 export type MemberWithGroup = SupabaseMember & {
-    groups?: { id: string; name: string };
+    groups?: { id: string; name: string }; // Legacy, kept for compatibility
+    group_memberships?: GroupMembership[];
 };
 
 // ============================================================================
@@ -65,13 +73,23 @@ export const memberService = {
                 throw new ValidationError('Institution ID is required');
             }
 
+            // Join through group_members to get all groups a member belongs to
             let query = supabase
                 .from('members')
-                .select('*, groups(id, name)')
+                .select(`
+                    *,
+                    group_memberships:group_members(
+                        group_id,
+                        role,
+                        status,
+                        groups(id, group_name)
+                    )
+                `)
                 .eq('institution_id', filters.institutionId);
 
             if (filters.groupId) {
-                query = query.eq('group_id', filters.groupId);
+                // Filter by group via the junction table
+                query = query.eq('group_memberships.group_id', filters.groupId);
             }
             if (filters.status) {
                 query = query.eq('status', filters.status);
@@ -104,6 +122,7 @@ export const memberService = {
             throw createAppError(error, 'memberService.getAll');
         }
     },
+
 
     /**
      * Get a single member by ID

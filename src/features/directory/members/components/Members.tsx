@@ -46,15 +46,33 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
     if (membersProp) return membersProp;
     if (!supabaseMembers.length) return [];
 
-    // Transform using the transformer utility
+    // Build groupsMap and groupRolesMap from group_memberships
     const groupsMap = new Map<string, string[]>();
+    const groupRolesMap = new Map<string, Record<string, string>>();
+
     supabaseMembers.forEach((member: any) => {
-      if (member.groups && Array.isArray(member.groups)) {
-        groupsMap.set(member.id, member.groups);
+      const memberships = member.group_memberships || [];
+      const groupNames: string[] = [];
+      const roles: Record<string, string> = {};
+
+      memberships.forEach((gm: any) => {
+        if (gm.groups?.group_name) {
+          groupNames.push(gm.groups.group_name);
+          roles[gm.groups.group_name] = gm.role || 'MEMBER';
+        }
+      });
+
+      if (groupNames.length > 0) {
+        groupsMap.set(member.id, groupNames);
+        groupRolesMap.set(member.id, roles);
       }
     });
 
-    return transformMembers(supabaseMembers, groupsMap);
+    // Transform using the transformer utility with group info
+    return transformMembers(supabaseMembers, groupsMap).map(m => ({
+      ...m,
+      groupRoles: groupRolesMap.get(m.id) || {},
+    }));
   }, [membersProp, supabaseMembers]);
 
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
