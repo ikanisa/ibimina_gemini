@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Filter, Plus, Upload, Users, TrendingUp, Wallet } from 'lucide-react';
+import { Filter, Plus, Upload, Users, TrendingUp, DollarSign } from 'lucide-react';
 import { Member, ViewState } from '@/core/types';
 import { useAuth } from '@/core/auth';
 import { useMembers } from '@/hooks';
@@ -110,7 +110,7 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
           <StatCard
             label="Total Savings"
             value={`${(stats.totalSavings / 1000000).toFixed(1)}M RWF`}
-            icon={Wallet}
+            icon={DollarSign}
             color="indigo"
           />
           <StatCard

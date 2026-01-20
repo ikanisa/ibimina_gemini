@@ -26,7 +26,6 @@ export interface UpdateMemberParams {
   kyc_status?: 'VERIFIED' | 'PENDING' | 'REJECTED';
   savings_balance?: number;
   loan_balance?: number;
-  token_balance?: number;
 }
 
 export interface PaginationOptions {

@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Group, Contribution, GroupMember } from '../../types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { LayoutGrid, List, ChevronLeft, ChevronRight, Smartphone, DollarSign, Wallet, Check } from 'lucide-react';
+import { LayoutGrid, List, ChevronLeft, ChevronRight, Smartphone, DollarSign, Check } from 'lucide-react';
 
 interface GroupContributionsTabProps {
   group: Group;
@@ -45,21 +45,19 @@ export const GroupContributionsTab: React.FC<GroupContributionsTabProps> = ({
               <div className="flex bg-slate-100 p-1 rounded-lg">
                 <button
                   onClick={() => setViewMode('Matrix')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${
-                    viewMode === 'Matrix'
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${viewMode === 'Matrix'
                       ? 'bg-white text-blue-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                    }`}
                 >
                   <LayoutGrid size={14} /> Cycle Matrix
                 </button>
                 <button
                   onClick={() => setViewMode('Period')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${
-                    viewMode === 'Period'
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-2 transition-all ${viewMode === 'Period'
                       ? 'bg-white text-blue-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                    }`}
                 >
                   <List size={14} /> Period Detail
                 </button>
@@ -132,9 +130,8 @@ export const GroupContributionsTab: React.FC<GroupContributionsTabProps> = ({
                               <div className="w-8 h-8 mx-auto rounded bg-slate-100"></div>
                             ) : (
                               <div
-                                className={`w-8 h-8 mx-auto rounded flex items-center justify-center text-[10px] font-bold text-white cursor-pointer hover:opacity-80 ${
-                                  status === 'Paid' ? 'bg-green-500' : 'bg-red-500'
-                                }`}
+                                className={`w-8 h-8 mx-auto rounded flex items-center justify-center text-[10px] font-bold text-white cursor-pointer hover:opacity-80 ${status === 'Paid' ? 'bg-green-500' : 'bg-red-500'
+                                  }`}
                                 title={`${label}: ${status}`}
                               >
                                 {status === 'Paid' ? 'P' : 'M'}
@@ -187,7 +184,6 @@ export const GroupContributionsTab: React.FC<GroupContributionsTabProps> = ({
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-700">
                           {contribution.channel === 'MoMo' && <Smartphone size={10} />}
                           {contribution.channel === 'Cash' && <DollarSign size={10} />}
-                          {contribution.channel === 'Token' && <Wallet size={10} />}
                           {contribution.channel}
                         </span>
                       ) : (
@@ -196,13 +192,12 @@ export const GroupContributionsTab: React.FC<GroupContributionsTabProps> = ({
                     </div>
                     <div className="col-span-1 text-center">
                       <span
-                        className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium border ${
-                          status === 'Paid'
+                        className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium border ${status === 'Paid'
                             ? 'bg-green-50 text-green-700 border-green-100'
                             : status === 'Missed'
-                            ? 'bg-red-50 text-red-700 border-red-100'
-                            : 'bg-slate-100 text-slate-600 border-slate-200'
-                        }`}
+                              ? 'bg-red-50 text-red-700 border-red-100'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}
                       >
                         {status === 'Paid' && <Check size={10} className="mr-1" />}
                         {status}

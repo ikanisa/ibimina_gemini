@@ -194,9 +194,9 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         const channel =
           channelValue.includes('momo')
             ? 'MoMo'
-            : channelValue.includes('token')
-              ? 'Token'
-              : 'Cash';
+            : channelValue.includes('cash')
+              ? 'Cash'
+              : 'MoMo';
 
         return {
           id: contribution.id,

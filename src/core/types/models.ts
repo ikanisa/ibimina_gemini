@@ -77,7 +77,7 @@ export interface Contribution {
     expectedAmount: number;
     paidAmount: number;
     status: 'Paid' | 'Partial' | 'Missed' | 'Excused';
-    channel: 'Cash' | 'MoMo' | 'Token';
+    channel: 'Cash' | 'MoMo';
 }
 
 // ============================================================================
@@ -93,7 +93,6 @@ export interface Member {
     kycStatus: KycStatus;
     savingsBalance: number;
     loanBalance: number;
-    tokenBalance: number;
     joinDate: string;
     avatarUrl: string;
     groups: string[]; // IDs or names of groups they belong to
@@ -151,7 +150,6 @@ export interface KpiStats {
     totalLoans: number;
     outstandingLoans: number;
     unallocatedCount: number;
-    tokenSupply: number;
     dailyDeposits: number;
     reconciliationStatus: 'Balanced' | 'Pending' | 'Issues';
 }

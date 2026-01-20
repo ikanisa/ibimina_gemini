@@ -96,7 +96,7 @@ describe('formatTransactionsForExport', () => {
                 group_name: 'Savings A',
                 amount: 50000,
                 currency: 'RWF',
-                channel: 'MOMO_NFC',
+                channel: 'MOMO_USSD',
                 transaction_status: 'COMPLETED',
             },
         ];

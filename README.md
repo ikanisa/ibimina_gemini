@@ -109,7 +109,7 @@ node scripts/verify-supabase-config.js
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | React 19, TypeScript 5.8, Vite 6 |
-| **Styling** | TailwindCSS 3, Framer Motion 12 |
+| **Styling** | TailwindCSS 3, Framer Motion 12, Glass Morphism Design System |
 | **State** | TanStack Query 5 (React Query) |
 | **Backend** | Supabase (PostgreSQL + Auth + Edge Functions) |
 | **Hosting** | Cloudflare Pages |
@@ -134,8 +134,8 @@ node scripts/verify-supabase-config.js
 │   ├── lib/                  # Utilities & API clients
 │   └── App.tsx               # Main entry
 ├── supabase/
-│   ├── migrations/           # 69 SQL migrations
-│   ├── functions/            # 15 Edge Functions
+│   ├── migrations/           # SQL migrations
+│   ├── functions/            # Edge Functions
 │   └── seed/                 # Development seed data
 ├── e2e/                      # Playwright E2E tests
 ├── docs/                     # Comprehensive documentation
@@ -159,18 +159,16 @@ import { Button } from '@/shared/components/ui';
 
 | Role | Access Level |
 |------|--------------|
-| **PLATFORM_ADMIN** | Full access across all institutions |
-| **INSTITUTION_ADMIN** | Manages staff + directory for their institution |
-| **INSTITUTION_STAFF** | Daily operations (transactions, allocation) |
-| **INSTITUTION_AUDITOR** | Read-only (ledger + reports + audit log) |
-
-> Every staff user belongs to exactly **one institution**, except Platform Admins.
+| **ADMIN** | Full platform access: manage staff, institutions, settings, all directory operations |
+| **STAFF** | Daily operations: view dashboard, manage groups/members, transactions, reports |
 
 ### RBAC Enforcement
 
-- **UI Layer**: Route guards, conditional rendering
+- **UI Layer**: Route guards + conditional navigation (Admin-only sections hidden from Staff)
 - **API Layer**: Edge Function auth checks
-- **Database Layer**: PostgreSQL RLS policies
+- **Database Layer**: PostgreSQL RLS policies with `institution_id` scoping
+
+> Every staff user belongs to exactly **one institution**. Admins can manage all institution data.
 
 ---
 

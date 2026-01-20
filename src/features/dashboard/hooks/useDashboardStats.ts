@@ -15,7 +15,6 @@ const EMPTY_STATS: KpiStats = {
     totalLoans: 0,
     outstandingLoans: 0,
     unallocatedCount: 0,
-    tokenSupply: 0,
     dailyDeposits: 0,
     reconciliationStatus: 'Pending',
 };
@@ -137,7 +136,6 @@ export function useDashboardStats() {
                     totalLoans: 0,
                     outstandingLoans: 0,
                     unallocatedCount: issuesCount,
-                    tokenSupply: 0,
                     dailyDeposits,
                     reconciliationStatus: issuesCount > 0 ? 'Issues' : 'Balanced',
                 });

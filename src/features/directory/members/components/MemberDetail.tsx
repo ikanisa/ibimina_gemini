@@ -21,7 +21,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 
-type Tab = 'Profile' | 'Accounts' | 'Transactions' | 'Documents' | 'Tokens';
+type Tab = 'Profile' | 'Accounts' | 'Transactions' | 'Documents';
 
 interface MemberDetailProps {
   member: Member;
@@ -40,7 +40,6 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({
     { id: 'Profile' as Tab, label: 'Profile', icon: User },
     { id: 'Accounts' as Tab, label: 'Accounts', icon: CreditCard },
     { id: 'Transactions' as Tab, label: 'Transactions', icon: History },
-    { id: 'Tokens' as Tab, label: 'Tokens', icon: ShieldCheck },
     { id: 'Documents' as Tab, label: 'Documents', icon: FileText },
   ];
 
@@ -80,11 +79,10 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === tab.id
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
+              }`}
           >
             <tab.icon size={16} />
             {tab.label}
@@ -214,7 +212,7 @@ export const MemberDetail: React.FC<MemberDetailProps> = ({
           </div>
         )}
 
-        {(activeTab === 'Transactions' || activeTab === 'Documents' || activeTab === 'Tokens') && (
+        {(activeTab === 'Transactions' || activeTab === 'Documents') && (
           <div className="flex flex-col items-center justify-center h-48 text-slate-400">
             <p className="text-sm">No recent items found.</p>
           </div>

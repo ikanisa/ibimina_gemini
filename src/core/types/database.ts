@@ -130,7 +130,6 @@ export interface SupabaseMember {
     kyc_status?: 'Verified' | 'Pending' | 'Rejected';
     savings_balance?: number | null;
     loan_balance?: number | null;
-    token_balance?: number | null;
     avatar_url?: string | null;
     join_date?: string | null;
     created_at: string;

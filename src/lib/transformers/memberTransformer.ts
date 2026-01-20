@@ -21,7 +21,6 @@ export function transformMember(member: SupabaseMember, groups: string[] = []): 
     kycStatus: mapKycStatus(member.kyc_status),
     savingsBalance: member.savings_balance ?? 0,
     loanBalance: member.loan_balance ?? 0,
-    tokenBalance: member.token_balance ?? 0,
     joinDate: member.join_date ?? member.created_at.split('T')[0],
     avatarUrl: member.avatar_url || buildInitialsAvatar(member.full_name),
     groups

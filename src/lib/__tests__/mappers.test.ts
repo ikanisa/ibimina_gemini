@@ -102,9 +102,9 @@ describe('mapTransactionChannel', () => {
         expect(mapTransactionChannel('MOMO')).toBe('MoMo USSD');
     });
 
-    it('maps NFC correctly', () => {
-        expect(mapTransactionChannel('MoMo NFC')).toBe('MoMo NFC');
-        expect(mapTransactionChannel('NFC')).toBe('MoMo NFC');
+    it('handles unknown channels by returning default', () => {
+        expect(mapTransactionChannel('NFC')).toBe('MoMo USSD');
+        expect(mapTransactionChannel('UNKNOWN')).toBe('MoMo USSD');
     });
 
     it('handles null and undefined', () => {

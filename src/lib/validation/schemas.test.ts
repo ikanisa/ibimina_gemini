@@ -185,7 +185,7 @@ describe('transactionCreateSchema', () => {
             institutionId: '123e4567-e89b-12d3-a456-426614174000',
             amount: 10000,
             type: 'DEPOSIT',
-            channel: 'MOMO_NFC',
+            channel: 'MOMO_USSD',
         });
         expect(result.success).toBe(true);
     });
