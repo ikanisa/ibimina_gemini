@@ -512,30 +512,30 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
           <p className="text-sm text-blue-100 mt-2">{stats.activeGroups} active groups</p>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200">
+        <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl border border-slate-200 dark:border-neutral-700">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-xs font-semibold uppercase">Total Savings</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.totalSavings.toLocaleString()} RWF</h3>
+              <p className="text-slate-500 dark:text-neutral-400 text-xs font-semibold uppercase">Total Savings</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-neutral-100 mt-1">{stats.totalSavings.toLocaleString()} RWF</h3>
             </div>
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+            <div className="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
               <PiggyBank size={20} />
             </div>
           </div>
-          <p className="text-sm text-slate-500 mt-2">Combined group funds</p>
+          <p className="text-sm text-slate-500 dark:text-neutral-400 mt-2">Combined group funds</p>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200">
+        <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl border border-slate-200 dark:border-neutral-700">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-xs font-semibold uppercase">Total Members</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.totalMembers}</h3>
+              <p className="text-slate-500 dark:text-neutral-400 text-xs font-semibold uppercase">Total Members</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-neutral-100 mt-1">{stats.totalMembers}</h3>
             </div>
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+            <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
               <Users size={20} />
             </div>
           </div>
-          <p className="text-sm text-slate-500 mt-2">Across all groups</p>
+          <p className="text-sm text-slate-500 dark:text-neutral-400 mt-2">Across all groups</p>
         </div>
       </div>
 
@@ -561,7 +561,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                 <ChevronDown size={14} className="ml-1" />
               </Button>
               {showFilterMenu && (
-                <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
                   {(['all', 'Active', 'Suspended', 'Completed'] as FilterStatus[]).map((status) => (
                     <button
                       key={status}
@@ -569,7 +569,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                         setFilterStatus(status);
                         setShowFilterMenu(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${filterStatus === status ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${filterStatus === status ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
                         }`}
                     >
                       {status === 'all' ? 'All Statuses' : status}
@@ -596,7 +596,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                 <ChevronDown size={14} className="ml-1" />
               </Button>
               {showFrequencyMenu && (
-                <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
                   {(['all', 'Weekly', 'Monthly'] as FrequencyFilter[]).map((frequency) => (
                     <button
                       key={frequency}
@@ -604,7 +604,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                         setFrequencyFilter(frequency);
                         setShowFrequencyMenu(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${frequencyFilter === frequency ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${frequencyFilter === frequency ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
                         }`}
                     >
                       {frequency === 'all' ? 'All Frequencies' : frequency}
@@ -631,7 +631,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                 <ChevronDown size={14} className="ml-1" />
               </Button>
               {showSmartMenu && (
-                <div className="absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-1 w-64 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
                   {([
                     { value: 'all', label: 'All Groups' },
                     { value: 'high-savings', label: `High Savings (>= ${medianSavingsLabel})` },
@@ -647,7 +647,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                         setSmartFilter(option.value);
                         setShowSmartMenu(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${smartFilter === option.value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${smartFilter === option.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
                         }`}
                     >
                       {option.label}
@@ -674,7 +674,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                 <ChevronDown size={14} className="ml-1" />
               </Button>
               {showSortMenu && (
-                <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-1 w-56 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
                   {[
                     { value: 'name-asc', label: 'Name (A-Z)' },
                     { value: 'name-desc', label: 'Name (Z-A)' },
@@ -693,7 +693,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
                         setSortBy(option.value as SortOption);
                         setShowSortMenu(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${sortBy === option.value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${sortBy === option.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
                         }`}
                     >
                       {option.label}
@@ -733,13 +733,13 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         {error && <ErrorDisplay error={error} variant="banner" onRetry={refetch} />}
         {!loading && !error && filteredAndSortedGroups.length === 0 && (
           <div className="flex flex-col items-center justify-center p-12 text-center">
-            <div className="mb-4 p-4 bg-slate-100 rounded-full">
-              <Briefcase size={48} className="text-slate-400" />
+            <div className="mb-4 p-4 bg-slate-100 dark:bg-neutral-700 rounded-full">
+              <Briefcase size={48} className="text-slate-400 dark:text-neutral-500" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-neutral-100 mb-2">
               {groups.length === 0 ? 'No groups yet' : 'No groups match your filters'}
             </h3>
-            <p className="text-sm text-slate-500 max-w-md mb-4">
+            <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-md mb-4">
               {groups.length === 0
                 ? 'Create your first savings group to start managing contributions.'
                 : 'Try adjusting your filters or search term.'}

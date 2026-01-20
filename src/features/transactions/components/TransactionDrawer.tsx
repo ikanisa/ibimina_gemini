@@ -270,7 +270,7 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
           {/* Drawer */}
           <motion.div
-            className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-xl z-50 flex flex-col"
+            className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-neutral-800 shadow-xl z-50 flex flex-col"
             variants={drawerSlide}
             initial="initial"
             animate="animate"
@@ -278,13 +278,13 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
             transition={transitions.spring}
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Transaction Details</h2>
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-neutral-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-100">Transaction Details</h2>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
               >
-                <X size={20} className="text-slate-500" />
+                <X size={20} className="text-slate-500 dark:text-neutral-400" />
               </button>
             </div>
 
@@ -296,28 +296,28 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                 <div className="p-6 space-y-6">
                   {/* Summary Section */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Summary</h3>
+                    <h3 className="text-sm font-semibold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Summary</h3>
 
                     {/* Amount */}
-                    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-                      <div className="p-3 bg-green-100 rounded-lg text-green-600">
+                    <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-neutral-900 rounded-xl">
+                      <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400">
                         <DollarSign size={24} />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-slate-900">
+                        <p className="text-2xl font-bold text-slate-900 dark:text-neutral-100">
                           {transaction.amount.toLocaleString()} {transaction.currency || 'RWF'}
                         </p>
-                        <p className="text-sm text-slate-500">{transaction.type} via {transaction.channel}</p>
+                        <p className="text-sm text-slate-500 dark:text-neutral-400">{transaction.type} via {transaction.channel}</p>
                       </div>
                     </div>
 
                     {/* Details Grid */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-start gap-2">
-                        <Calendar size={16} className="text-slate-400 mt-0.5" />
+                        <Calendar size={16} className="text-slate-400 dark:text-neutral-500 mt-0.5" />
                         <div>
-                          <p className="text-xs text-slate-500">Date & Time</p>
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="text-xs text-slate-500 dark:text-neutral-400">Date & Time</p>
+                          <p className="text-sm font-medium text-slate-900 dark:text-neutral-100">
                             {formatDateTime(transaction.occurred_at)}
                           </p>
                         </div>
@@ -325,10 +325,10 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                       {transaction.payer_phone && (
                         <div className="flex items-start gap-2">
-                          <Phone size={16} className="text-slate-400 mt-0.5" />
+                          <Phone size={16} className="text-slate-400 dark:text-neutral-500 mt-0.5" />
                           <div>
-                            <p className="text-xs text-slate-500">Payer Phone</p>
-                            <p className="text-sm font-medium text-slate-900 font-mono">
+                            <p className="text-xs text-slate-500 dark:text-neutral-400">Payer Phone</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-neutral-100 font-mono">
                               {transaction.payer_phone}
                             </p>
                           </div>
@@ -337,10 +337,10 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                       {transaction.payer_name && (
                         <div className="flex items-start gap-2">
-                          <User size={16} className="text-slate-400 mt-0.5" />
+                          <User size={16} className="text-slate-400 dark:text-neutral-500 mt-0.5" />
                           <div>
-                            <p className="text-xs text-slate-500">Payer Name</p>
-                            <p className="text-sm font-medium text-slate-900">
+                            <p className="text-xs text-slate-500 dark:text-neutral-400">Payer Name</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-neutral-100">
                               {transaction.payer_name}
                             </p>
                           </div>
@@ -349,10 +349,10 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                       {transaction.momo_ref && (
                         <div className="flex items-start gap-2">
-                          <Hash size={16} className="text-slate-400 mt-0.5" />
+                          <Hash size={16} className="text-slate-400 dark:text-neutral-500 mt-0.5" />
                           <div>
-                            <p className="text-xs text-slate-500">MoMo Reference</p>
-                            <p className="text-sm font-medium text-slate-900 font-mono">
+                            <p className="text-xs text-slate-500 dark:text-neutral-400">MoMo Reference</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-neutral-100 font-mono">
                               {transaction.momo_ref}
                             </p>
                           </div>
@@ -362,7 +362,7 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                     {/* Status */}
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-500">Status:</span>
+                      <span className="text-sm text-slate-500 dark:text-neutral-400">Status:</span>
                       <Badge variant={
                         transaction.allocation_status === 'allocated' ? 'success' :
                           transaction.allocation_status === 'unallocated' ? 'warning' :
@@ -371,7 +371,7 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                         {transaction.allocation_status}
                       </Badge>
                       {transaction.parse_confidence !== null && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-400 dark:text-neutral-500">
                           ({Math.round(transaction.parse_confidence * 100)}% confidence)
                         </span>
                       )}
@@ -380,47 +380,47 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                   {/* Allocation Section */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Allocation</h3>
+                    <h3 className="text-sm font-semibold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Allocation</h3>
 
                     {transaction.allocation_status === 'unallocated' ? (
                       <div className="space-y-3">
                         {/* Suggested Member Card */}
                         {loadingSuggestion ? (
-                          <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 animate-pulse">
+                          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800 animate-pulse">
                             <div className="flex items-center gap-2">
-                              <Loader2 size={16} className="animate-spin text-purple-600" />
-                              <span className="text-sm text-purple-700">Finding matching member...</span>
+                              <Loader2 size={16} className="animate-spin text-purple-600 dark:text-purple-400" />
+                              <span className="text-sm text-purple-700 dark:text-purple-300">Finding matching member...</span>
                             </div>
                           </div>
                         ) : suggestedMember ? (
-                          <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
                             <div className="flex items-center gap-2 mb-3">
-                              <Sparkles size={16} className="text-purple-600" />
-                              <span className="text-sm font-semibold text-purple-800">Suggested Match (Phone)</span>
+                              <Sparkles size={16} className="text-purple-600 dark:text-purple-400" />
+                              <span className="text-sm font-semibold text-purple-800 dark:text-purple-300">Suggested Match (Phone)</span>
                             </div>
                             <button
                               onClick={() => handleAllocate(suggestedMember.id)}
                               disabled={allocating}
-                              className="w-full text-left p-3 bg-white rounded-lg border-2 border-purple-300 hover:border-purple-500 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                              className="w-full text-left p-3 bg-white dark:bg-neutral-800 rounded-lg border-2 border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="font-semibold text-slate-900">{suggestedMember.full_name}</p>
-                                  <p className="text-sm text-slate-600 font-mono">{suggestedMember.phone}</p>
+                                  <p className="font-semibold text-slate-900 dark:text-neutral-100">{suggestedMember.full_name}</p>
+                                  <p className="text-sm text-slate-600 dark:text-neutral-400 font-mono">{suggestedMember.phone}</p>
                                   {suggestedMember.group_name && (
-                                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                    <p className="text-xs text-slate-500 dark:text-neutral-500 flex items-center gap-1 mt-1">
                                       <MapPin size={10} />
                                       {suggestedMember.group_name}
                                     </p>
                                   )}
-                                  <p className="text-xs text-green-600 mt-1">
+                                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                                     Balance: {suggestedMember.savings_balance?.toLocaleString() || 0} RWF
                                   </p>
                                 </div>
                                 {allocating ? (
-                                  <Loader2 size={18} className="animate-spin text-purple-600" />
+                                  <Loader2 size={18} className="animate-spin text-purple-600 dark:text-purple-400" />
                                 ) : (
-                                  <CheckCircle2 size={18} className="text-purple-600" />
+                                  <CheckCircle2 size={18} className="text-purple-600 dark:text-purple-400" />
                                 )}
                               </div>
                             </button>
@@ -437,7 +437,7 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                             {suggestedMember ? 'Search Other Members' : 'Allocate to Member'}
                           </Button>
                         ) : (
-                          <div className="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                          <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                             <SearchInput
                               placeholder="Search by name, phone, or code"
                               value={memberSearch}
@@ -447,13 +447,13 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                             {/* Optional note */}
                             <div>
-                              <label className="text-xs text-slate-600 mb-1 block">Note (optional)</label>
+                              <label className="text-xs text-slate-600 dark:text-neutral-400 mb-1 block">Note (optional)</label>
                               <input
                                 type="text"
                                 value={allocationNote}
                                 onChange={(e) => setAllocationNote(e.target.value)}
                                 placeholder="e.g., Phone mismatch verified"
-                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-neutral-600 bg-white dark:bg-neutral-900 text-slate-900 dark:text-neutral-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
                             </div>
 
@@ -466,14 +466,14 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                                     key={m.id}
                                     onClick={() => handleAllocate(m.id)}
                                     disabled={allocating}
-                                    className="w-full text-left p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-white transition-colors disabled:opacity-50"
+                                    className="w-full text-left p-3 bg-white dark:bg-neutral-800 rounded-lg border border-slate-200 dark:border-neutral-600 hover:border-blue-500 hover:bg-white dark:hover:bg-neutral-700 transition-colors disabled:opacity-50"
                                   >
                                     <div className="flex items-center justify-between">
                                       <div>
-                                        <p className="font-semibold text-slate-900">{m.full_name}</p>
-                                        <p className="text-sm text-slate-600 font-mono">{m.phone}</p>
+                                        <p className="font-semibold text-slate-900 dark:text-neutral-100">{m.full_name}</p>
+                                        <p className="text-sm text-slate-600 dark:text-neutral-400 font-mono">{m.phone}</p>
                                         {m.group && (
-                                          <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                          <p className="text-xs text-slate-500 dark:text-neutral-500 flex items-center gap-1 mt-1">
                                             <MapPin size={10} />
                                             {m.group.name}
                                           </p>
@@ -481,15 +481,15 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
                                       </div>
                                       {allocating ? (
-                                        <Loader2 size={18} className="animate-spin text-blue-600" />
+                                        <Loader2 size={18} className="animate-spin text-blue-600 dark:text-blue-400" />
                                       ) : (
-                                        <CheckCircle2 size={18} className="text-blue-600" />
+                                        <CheckCircle2 size={18} className="text-blue-600 dark:text-blue-400" />
                                       )}
                                     </div>
                                   </button>
                                 ))}
                                 {filteredMembers.length === 0 && (
-                                  <p className="text-sm text-slate-500 text-center py-4">
+                                  <p className="text-sm text-slate-500 dark:text-neutral-400 text-center py-4">
                                     No members found
                                   </p>
                                 )}
@@ -511,31 +511,31 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                         )}
                       </div>
                     ) : (
-                      <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                      <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
                         <div className="flex items-start gap-3">
-                          <CheckCircle2 size={20} className="text-green-600 mt-0.5" />
+                          <CheckCircle2 size={20} className="text-green-600 dark:text-green-400 mt-0.5" />
                           <div className="flex-1">
-                            <p className="font-semibold text-green-900">Allocated</p>
+                            <p className="font-semibold text-green-900 dark:text-green-300">Allocated</p>
                             {member && (
-                              <p className="text-sm text-green-800 mt-1">
+                              <p className="text-sm text-green-800 dark:text-green-400 mt-1">
                                 <span className="font-medium">{member.full_name}</span>
-                                <span className="text-green-600"> ({member.phone})</span>
+                                <span className="text-green-600 dark:text-green-500"> ({member.phone})</span>
                               </p>
                             )}
                             {group && (
-                              <p className="text-xs text-green-700 mt-0.5">
+                              <p className="text-xs text-green-700 dark:text-green-500 mt-0.5">
                                 Group: {group.name}
                               </p>
                             )}
                             {transaction.allocated_at && (
-                              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                              <p className="text-xs text-green-600 dark:text-green-500 mt-2 flex items-center gap-1">
                                 <Clock size={12} />
                                 {formatDateTime(transaction.allocated_at)}
                                 {allocatedByUser && ` by ${allocatedByUser.full_name || allocatedByUser.email}`}
                               </p>
                             )}
                             {transaction.allocation_note && (
-                              <p className="text-xs text-green-700 mt-1 italic">
+                              <p className="text-xs text-green-700 dark:text-green-500 mt-1 italic">
                                 "{transaction.allocation_note}"
                               </p>
                             )}
@@ -548,15 +548,15 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                   {/* Source SMS Section */}
                   {sourceSms && (
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Source SMS</h3>
-                      <div className="p-4 bg-slate-50 rounded-xl">
+                      <h3 className="text-sm font-semibold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Source SMS</h3>
+                      <div className="p-4 bg-slate-50 dark:bg-neutral-900 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
-                          <MessageSquare size={16} className="text-slate-400" />
-                          <span className="text-xs text-slate-500">
+                          <MessageSquare size={16} className="text-slate-400 dark:text-neutral-500" />
+                          <span className="text-xs text-slate-500 dark:text-neutral-400">
                             From: {sourceSms.sender_phone} • {formatDateTime(sourceSms.received_at)}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-700 font-mono bg-white p-3 rounded-lg border border-slate-200 whitespace-pre-wrap">
+                        <p className="text-sm text-slate-700 dark:text-neutral-300 font-mono bg-white dark:bg-neutral-800 p-3 rounded-lg border border-slate-200 dark:border-neutral-700 whitespace-pre-wrap">
                           {sourceSms.sms_text}
                         </p>
                         <div className="mt-2 flex items-center gap-2">
@@ -564,7 +564,7 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                             {sourceSms.parse_status}
                           </Badge>
                           {sourceSms.parse_error && (
-                            <span className="text-xs text-red-600">{sourceSms.parse_error}</span>
+                            <span className="text-xs text-red-600 dark:text-red-400">{sourceSms.parse_error}</span>
                           )}
                         </div>
                       </div>
@@ -574,16 +574,16 @@ const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                   {/* Audit Trail Section */}
                   {allocations.length > 0 && (
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Audit Trail</h3>
+                      <h3 className="text-sm font-semibold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Audit Trail</h3>
                       <div className="space-y-2">
                         {allocations.map((a) => (
-                          <div key={a.id} className="p-3 bg-slate-50 rounded-lg text-sm">
+                          <div key={a.id} className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg text-sm">
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-slate-900">Allocated</span>
-                              <span className="text-xs text-slate-500">{formatDateTime(a.allocated_at)}</span>
+                              <span className="font-medium text-slate-900 dark:text-neutral-100">Allocated</span>
+                              <span className="text-xs text-slate-500 dark:text-neutral-400">{formatDateTime(a.allocated_at)}</span>
                             </div>
                             {a.notes && (
-                              <p className="text-xs text-slate-600 mt-1 italic">"{a.notes}"</p>
+                              <p className="text-xs text-slate-600 dark:text-neutral-400 mt-1 italic">"{a.notes}"</p>
                             )}
                           </div>
                         ))}

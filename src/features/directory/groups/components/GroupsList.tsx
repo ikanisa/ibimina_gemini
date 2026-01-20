@@ -79,20 +79,20 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
               >
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
                       {group.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-900">{group.name}</p>
-                      <p className="text-xs text-slate-500 font-mono">{group.code}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-neutral-100">{group.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-neutral-400 font-mono">{group.code}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-sm text-slate-600">
+                <TableCell className="text-sm text-slate-600 dark:text-neutral-400">
                   {group.cycleLabel}
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-neutral-700 text-slate-700 dark:text-neutral-300">
                     <Calendar size={12} />
                     {group.meetingDay}
                   </span>
@@ -102,16 +102,16 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
                     {[1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white"
+                        className="w-6 h-6 rounded-full bg-slate-200 dark:bg-neutral-600 border-2 border-white dark:border-neutral-800"
                       />
                     ))}
-                    <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-medium text-slate-600">
+                    <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-neutral-700 border-2 border-white dark:border-neutral-800 flex items-center justify-center text-[10px] font-medium text-slate-600 dark:text-neutral-300">
                       +{Math.max(group.memberCount - 3, 0)}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="text-sm font-bold text-slate-900">
+                  <span className="text-sm font-bold text-slate-900 dark:text-neutral-100">
                     {group.fundBalance.toLocaleString()} RWF
                   </span>
                 </TableCell>
@@ -122,7 +122,7 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
                     size="sm"
                   />
                 </TableCell>
-                <TableCell className="text-center text-slate-400">
+                <TableCell className="text-center text-slate-400 dark:text-neutral-500">
                   <ChevronRight size={20} />
                 </TableCell>
               </TableRow>
@@ -138,40 +138,40 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
             <div
               key={group.id}
               onClick={() => onSelectGroup(group)}
-              className="bg-white rounded-lg border border-slate-200 p-4 space-y-3 cursor-pointer active:bg-slate-50 transition-all"
+              className="bg-white dark:bg-neutral-800 rounded-lg border border-slate-200 dark:border-neutral-700 p-4 space-y-3 cursor-pointer active:bg-slate-50 dark:active:bg-neutral-700 transition-all"
             >
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xl shrink-0">
                   {group.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate">{group.name}</p>
-                  <p className="text-xs text-slate-500 font-mono truncate">{group.code}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-neutral-100 truncate">{group.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 font-mono truncate">{group.code}</p>
                 </div>
-                <ChevronRight size={20} className="text-slate-400 shrink-0" />
+                <ChevronRight size={20} className="text-slate-400 dark:text-neutral-500 shrink-0" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-neutral-700">
                 <div>
-                  <p className="text-xs text-slate-500 uppercase mb-1">Cycle</p>
-                  <p className="text-sm text-slate-900">{group.cycleLabel}</p>
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase mb-1">Cycle</p>
+                  <p className="text-sm text-slate-900 dark:text-neutral-100">{group.cycleLabel}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase mb-1">Contribution Day</p>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase mb-1">Contribution Day</p>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-neutral-700 text-slate-700 dark:text-neutral-300">
                     <Calendar size={12} />
                     {group.meetingDay}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-neutral-700">
                 <div>
-                  <p className="text-xs text-slate-500 uppercase mb-1">Members</p>
-                  <p className="text-sm font-medium text-slate-900">{group.memberCount} members</p>
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase mb-1">Members</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-neutral-100">{group.memberCount} members</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase mb-1">Status</p>
+                  <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase mb-1">Status</p>
                   <StatusIndicator
                     status={group.status === 'Active' ? 'active' : 'inactive'}
                     label={group.status}
@@ -180,9 +180,9 @@ export const GroupsList: React.FC<GroupsListProps> = React.memo(({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-xs text-slate-500 uppercase mb-1">Fund Balance</p>
-                <p className="text-lg font-bold text-slate-900">{group.fundBalance.toLocaleString()} RWF</p>
+              <div className="pt-2 border-t border-slate-100 dark:border-neutral-700">
+                <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase mb-1">Fund Balance</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-neutral-100">{group.fundBalance.toLocaleString()} RWF</p>
               </div>
             </div>
           ))}

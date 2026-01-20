@@ -121,12 +121,12 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-        <AlertCircle className="mx-auto mb-3 text-red-500" size={32} />
-        <p className="text-red-800 font-medium">{error}</p>
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+        <AlertCircle className="mx-auto mb-3 text-red-500 dark:text-red-400" size={32} />
+        <p className="text-red-800 dark:text-red-300 font-medium">{error}</p>
         <button
           onClick={() => loadDashboard()}
-          className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+          className="mt-4 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50"
         >
           Try Again
         </button>
@@ -165,8 +165,8 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
       {/* Header with Institution Switcher */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Dashboard</h1>
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
             {data.is_global ? 'All institutions' : 'Your institution'} • Last {data.kpis.last_days.days} days
           </p>
         </div>
@@ -179,7 +179,7 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
           <button
             onClick={() => loadDashboard(true)}
             disabled={refreshing}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200 hover:bg-slate-100 dark:hover:bg-neutral-700 rounded-lg transition-colors disabled:opacity-50"
             aria-label="Refresh"
           >
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
@@ -228,7 +228,7 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
       {/* Needs Attention */}
       {data.attention.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">
             Needs Attention
           </h2>
           <div className="space-y-2">

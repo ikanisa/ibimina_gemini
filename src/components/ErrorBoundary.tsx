@@ -76,27 +76,27 @@ class ErrorBoundary extends React.Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 max-w-md w-full p-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-              <AlertTriangle className="text-red-600" size={32} />
+        <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg border border-slate-200 dark:border-neutral-700 max-w-md w-full p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+              <AlertTriangle className="text-red-600 dark:text-red-400" size={32} />
             </div>
 
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100 mb-2">
               Something went wrong
             </h1>
 
-            <p className="text-slate-600 mb-6">
+            <p className="text-slate-600 dark:text-neutral-400 mb-6">
               An unexpected error occurred. Please try refreshing the page or contact support if the problem persists.
             </p>
 
             {import.meta.env.DEV && this.state.error && (
-              <div className="bg-slate-100 rounded-lg p-4 mb-6 text-left">
-                <p className="text-sm font-mono text-red-600 break-all">
+              <div className="bg-slate-100 dark:bg-neutral-900 rounded-lg p-4 mb-6 text-left">
+                <p className="text-sm font-mono text-red-600 dark:text-red-400 break-all">
                   {this.state.error.toString()}
                 </p>
                 {this.state.errorInfo && (
-                  <pre className="text-xs text-slate-500 mt-2 overflow-auto max-h-32">
+                  <pre className="text-xs text-slate-500 dark:text-neutral-500 mt-2 overflow-auto max-h-32">
                     {this.state.errorInfo.componentStack}
                   </pre>
                 )}
@@ -114,14 +114,14 @@ class ErrorBoundary extends React.Component<Props, State> {
 
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                className="px-4 py-2 bg-slate-100 dark:bg-neutral-700 text-slate-700 dark:text-neutral-300 rounded-lg hover:bg-slate-200 dark:hover:bg-neutral-600 transition-colors font-medium"
               >
                 Reload Page
               </button>
 
               <button
                 onClick={() => clearAllAppCachesAndReload()}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                className="px-4 py-2 bg-slate-100 dark:bg-neutral-700 text-slate-700 dark:text-neutral-300 rounded-lg hover:bg-slate-200 dark:hover:bg-neutral-600 transition-colors font-medium"
               >
                 Clear cache
               </button>

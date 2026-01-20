@@ -314,16 +314,16 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
     <div className="space-y-6 relative">
       {/* Tab Switcher */}
       <div className="flex justify-between items-center">
-        <div className="flex border-b border-slate-200">
+        <div className="flex border-b border-slate-200 dark:border-neutral-700">
           <button
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'Staff List' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'Staff List' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'}`}
             onClick={() => setActiveTab('Staff List')}
           >
             <Users size={16} />
             Staff List
           </button>
           <button
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'Roles & Permissions' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'Roles & Permissions' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'}`}
             onClick={() => setActiveTab('Roles & Permissions')}
           >
             <Shield size={16} />
@@ -354,7 +354,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
       </div>
 
       {activeTab === 'Staff List' ? (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 shadow-sm overflow-hidden">
           {/* Error Display */}
           {error && (
             <ErrorDisplay error={error} variant="banner" />
@@ -364,7 +364,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
             <LoadingSpinner size="lg" text="Loading staff..." className="h-32" />
           )}
           {/* Toolbar */}
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <div className="p-4 border-b border-slate-100 dark:border-neutral-700 flex justify-between items-center bg-slate-50 dark:bg-neutral-900">
             <div className="relative w-72">
               <SearchInput
                 placeholder="Search staff by name, email, or role..."
@@ -377,55 +377,55 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
 
           {/* Staff Table */}
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-700">
               <tr>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Staff Member</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Institution</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Last Login</th>
-                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase">Staff Member</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase">Role</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase">Institution</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase">Status</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase">Last Login</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-neutral-700">
               {filteredStaff.map((staff) => (
-                <tr key={staff.id} className="hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 touch-manipulation">
+                <tr key={staff.id} className="hover:bg-slate-50 dark:hover:bg-neutral-700 active:bg-slate-100 dark:active:bg-neutral-600 transition-all duration-150 touch-manipulation">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <img src={staff.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
                       <div>
-                        <p className="text-sm font-medium text-slate-900">{staff.name}</p>
-                        <p className="text-xs text-slate-500">{staff.email}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-neutral-100">{staff.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-neutral-400">{staff.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-sm text-slate-700 bg-slate-100 w-fit px-2 py-1 rounded">
-                      {staff.role === 'Admin' && <KeyRound size={12} className="text-purple-600" />}
-                      {staff.role === 'Staff' && <UserCog size={12} className="text-blue-600" />}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-neutral-300 bg-slate-100 dark:bg-neutral-700 w-fit px-2 py-1 rounded">
+                      {staff.role === 'Admin' && <KeyRound size={12} className="text-purple-600 dark:text-purple-400" />}
+                      {staff.role === 'Staff' && <UserCog size={12} className="text-blue-600 dark:text-blue-400" />}
                       {staff.role}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{staff.branch}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-neutral-400">{staff.branch}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${staff.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${staff.status === 'Active' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                       }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${staff.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></span>
                       {staff.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{staff.lastLogin}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-neutral-400">{staff.lastLogin}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right flex items-center justify-end gap-2">
                     {currentUser.role === 'Admin' && staff.id !== currentUser.id && (
                       <button
                         onClick={() => onImpersonate(staff)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded flex items-center gap-1"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs font-medium px-2 py-1 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded flex items-center gap-1"
                         title={`View portal as ${staff.name}`}
                       >
                         <Eye size={14} /> View As
                       </button>
                     )}
-                    <button className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100">
+                    <button className="text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-neutral-700">
                       <MoreHorizontal size={18} />
                     </button>
                   </td>
@@ -434,19 +434,19 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
             </tbody>
           </table>
           {filteredStaff.length === 0 && (
-            <div className="p-10 text-center text-slate-400 text-sm">
+            <div className="p-10 text-center text-slate-400 dark:text-neutral-500 text-sm">
               No staff found.
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 shadow-sm overflow-hidden">
           {/* Roles & Permissions Content */}
-          <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center gap-4">
+          <div className="p-5 border-b border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-900 flex items-center gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Configuring Permissions For:</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-neutral-400 uppercase mb-1">Configuring Permissions For:</label>
               <select
-                className="bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 p-2.5"
+                className="bg-white dark:bg-neutral-800 border border-slate-300 dark:border-neutral-600 text-slate-900 dark:text-neutral-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 p-2.5"
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value as StaffRole)}
               >
@@ -455,7 +455,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
               </select>
             </div>
             <div className="flex-1"></div>
-            <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2 max-w-md">
+            <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-lg text-sm flex items-start gap-2 max-w-md">
               <Shield size={16} className="shrink-0 mt-0.5" />
               <p>Permissions update immediately. Be careful when granting 'Delete' or 'Approve' rights to lower-level roles.</p>
             </div>
@@ -464,18 +464,18 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
           {/* Permissions Matrix */}
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-700">
                 <tr>
-                  <th className="px-6 py-4 text-sm font-bold text-slate-700 w-1/4">Feature Access</th>
+                  <th className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-neutral-300 w-1/4">Feature Access</th>
                   {permissions.map(perm => (
-                    <th key={perm} className="px-4 py-3 text-xs font-bold text-slate-500 uppercase text-center">{perm}</th>
+                    <th key={perm} className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase text-center">{perm}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-neutral-700">
                 {features.map(feature => (
-                  <tr key={feature} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-800">{feature}</td>
+                  <tr key={feature} className="hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-800 dark:text-neutral-200">{feature}</td>
                     {permissions.map(perm => {
                       const isChecked = rolePermissions[`${feature}-${perm}`];
                       const isDisabled = selectedRole === 'Admin';
@@ -487,7 +487,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                             onClick={() => !isDisabled && togglePermission(feature, perm)}
                             className={`w-5 h-5 rounded border mx-auto flex items-center justify-center cursor-pointer transition-colors ${displayChecked
                               ? 'bg-blue-600 border-blue-600'
-                              : 'bg-white border-slate-300 hover:border-blue-400'
+                              : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400'
                               } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             {displayChecked && <Check size={12} className="text-white" />}
@@ -501,8 +501,8 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
             </table>
           </div>
 
-          <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-            <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 mr-3">
+          <div className="p-4 border-t border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-900 flex justify-end">
+            <button className="px-4 py-2 bg-white dark:bg-neutral-800 border border-slate-300 dark:border-neutral-600 rounded-lg text-sm font-medium text-slate-700 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-700 mr-3">
               Reset to Default
             </button>
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">

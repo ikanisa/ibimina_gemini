@@ -45,7 +45,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         <>
             <SkipLink targetId="main-content" />
             <OfflineIndicator position="top" />
-            <div className="flex h-screen bg-slate-50 overflow-hidden font-inter">
+            <div className="flex h-screen bg-slate-50 dark:bg-neutral-900 overflow-hidden font-inter">
                 {/* Sidebar */}
                 <Sidebar
                     currentUser={currentUser}

@@ -28,63 +28,63 @@ export const BreakdownTable = memo<BreakdownTableProps>(({
 }) => {
   if (rows.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4">{title}</h3>
-        <p className="text-sm text-slate-500 text-center py-8">{emptyMessage}</p>
+      <div className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 p-6">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-neutral-300 mb-4">{title}</h3>
+        <p className="text-sm text-slate-500 dark:text-neutral-400 text-center py-8">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100">
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+    <div className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100 dark:border-neutral-700">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-neutral-300">{title}</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50 dark:bg-neutral-900">
             <tr>
-              <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-              <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Transactions</th>
-              <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Total Amount</th>
+              <th className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">Name</th>
+              <th className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider text-right">Transactions</th>
+              <th className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider text-right">Total Amount</th>
               {rows.some(r => r.unallocatedCount !== undefined) && (
-                <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Unallocated</th>
+                <th className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider text-right">Unallocated</th>
               )}
               {onRowClick && <th className="px-4 py-2 w-10"></th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-neutral-700">
             {rows.map((row) => (
               <tr
                 key={row.id}
                 onClick={() => onRowClick?.(row.id)}
-                className={onRowClick ? 'hover:bg-slate-50 cursor-pointer transition-colors' : ''}
+                className={onRowClick ? 'hover:bg-slate-50 dark:hover:bg-neutral-700 cursor-pointer transition-colors' : ''}
               >
                 <td className="px-4 py-3">
-                  <div className="text-sm font-medium text-slate-900">{row.name}</div>
+                  <div className="text-sm font-medium text-slate-900 dark:text-neutral-100">{row.name}</div>
                   {row.code && (
-                    <div className="text-xs text-slate-500 font-mono">{row.code}</div>
+                    <div className="text-xs text-slate-500 dark:text-neutral-400 font-mono">{row.code}</div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-600 text-right tabular-nums">
+                <td className="px-4 py-3 text-sm text-slate-600 dark:text-neutral-400 text-right tabular-nums">
                   {row.transactionCount.toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-sm font-medium text-slate-900 text-right tabular-nums">
+                <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-neutral-100 text-right tabular-nums">
                   {row.totalAmount.toLocaleString()} {currency}
                 </td>
                 {row.unallocatedCount !== undefined && (
                   <td className="px-4 py-3 text-right">
                     {row.unallocatedCount > 0 ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
                         {row.unallocatedCount}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">—</span>
+                      <span className="text-xs text-slate-400 dark:text-neutral-500">—</span>
                     )}
                   </td>
                 )}
                 {onRowClick && (
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-4 py-3 text-slate-400 dark:text-neutral-500">
                     <ChevronRight size={16} />
                   </td>
                 )}

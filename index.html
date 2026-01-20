@@ -26,6 +26,17 @@
     <title>SACCO+ Admin Portal</title>
   </head>
   <body>
+    <!-- Theme initialization to prevent FOUC (Flash of Unstyled Content) -->
+    <script>
+      (function() {
+        try {
+          const stored = localStorage.getItem('ibimina-theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const isDark = stored === 'dark' || (stored === 'system' && prefersDark) || (!stored && prefersDark);
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch (e) { /* localStorage may be unavailable */ }
+      })();
+    </script>
     <div id="root"></div>
     <!-- Service Worker Update Check -->
     <script>

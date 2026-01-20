@@ -224,43 +224,43 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             <Modal isOpen={isOpen} onClose={handleClose} title="Staff Created Successfully" size="lg">
                 <div className="p-6">
                     <div className="text-center mb-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                            <CheckCircle className="text-green-600" size={32} />
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+                            <CheckCircle className="text-green-600 dark:text-green-400" size={32} />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-neutral-100">
                             {createdCredentials.name} has been added
                         </h3>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1">
                             Share these credentials with the staff member
                         </p>
                     </div>
 
-                    <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+                    <div className="bg-slate-50 dark:bg-neutral-900 rounded-xl p-4 space-y-3">
                         {/* Email */}
-                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-slate-200 dark:border-neutral-700">
                             <div>
-                                <p className="text-xs text-slate-500 uppercase font-medium">Email</p>
-                                <p className="text-sm font-mono text-slate-900">{createdCredentials.email}</p>
+                                <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase font-medium">Email</p>
+                                <p className="text-sm font-mono text-slate-900 dark:text-neutral-100">{createdCredentials.email}</p>
                             </div>
                             <button
                                 onClick={() => copyToClipboard(createdCredentials.email, 'email')}
-                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                className="p-2 text-slate-400 dark:text-neutral-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                             >
-                                {copiedField === 'email' ? <Check size={18} className="text-green-600" /> : <Copy size={18} />}
+                                {copiedField === 'email' ? <Check size={18} className="text-green-600 dark:text-green-400" /> : <Copy size={18} />}
                             </button>
                         </div>
 
                         {/* Password */}
-                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-slate-200 dark:border-neutral-700">
                             <div>
-                                <p className="text-xs text-slate-500 uppercase font-medium">Password</p>
-                                <p className="text-sm font-mono text-slate-900">{createdCredentials.password}</p>
+                                <p className="text-xs text-slate-500 dark:text-neutral-400 uppercase font-medium">Password</p>
+                                <p className="text-sm font-mono text-slate-900 dark:text-neutral-100">{createdCredentials.password}</p>
                             </div>
                             <button
                                 onClick={() => copyToClipboard(createdCredentials.password, 'password')}
-                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                className="p-2 text-slate-400 dark:text-neutral-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                             >
-                                {copiedField === 'password' ? <Check size={18} className="text-green-600" /> : <Copy size={18} />}
+                                {copiedField === 'password' ? <Check size={18} className="text-green-600 dark:text-green-400" /> : <Copy size={18} />}
                             </button>
                         </div>
                     </div>
@@ -281,15 +281,15 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                         )}
                     </button>
 
-                    <p className="text-xs text-slate-500 text-center mt-4">
+                    <p className="text-xs text-slate-500 dark:text-neutral-400 text-center mt-4">
                         Staff should change their password after first login.
                     </p>
                 </div>
 
-                <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <div className="p-5 border-t border-slate-100 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-900 flex justify-end">
                     <button
                         onClick={handleClose}
-                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+                        className="px-4 py-2 bg-slate-200 dark:bg-neutral-700 text-slate-700 dark:text-neutral-200 rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-neutral-600 transition-colors"
                     >
                         Done
                     </button>
@@ -304,14 +304,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                 <div className="p-6 space-y-4">
                     {/* Name */}
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-neutral-400 uppercase mb-1.5">
                             Full Name <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" size={16} />
                             <input
                                 type="text"
-                                className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${formErrors.name ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                className={`w-full pl-10 pr-3 py-2.5 bg-white dark:bg-neutral-900 border rounded-lg text-sm text-slate-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${formErrors.name ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-neutral-600'
                                     }`}
                                 placeholder="e.g. John Mugisha"
                                 value={formData.name}
@@ -323,14 +323,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
                     {/* Email */}
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-neutral-400 uppercase mb-1.5">
                             Email Address <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" size={16} />
                             <input
                                 type="email"
-                                className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${formErrors.email ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                className={`w-full pl-10 pr-3 py-2.5 bg-white dark:bg-neutral-900 border rounded-lg text-sm text-slate-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${formErrors.email ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-neutral-600'
                                     }`}
                                 placeholder="john.m@saccoplus.rw"
                                 value={formData.email}
@@ -342,14 +342,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
                     {/* Password */}
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-neutral-400 uppercase mb-1.5">
                             Password <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" size={16} />
                             <input
                                 type={showPassword ? 'text' : 'password'}
-                                className={`w-full pl-10 pr-10 py-2.5 bg-white border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${formErrors.password ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                className={`w-full pl-10 pr-10 py-2.5 bg-white dark:bg-neutral-900 border rounded-lg text-sm text-slate-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${formErrors.password ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-neutral-600'
                                     }`}
                                 placeholder="Enter password for staff"
                                 value={formData.password}
@@ -358,7 +358,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 transition-colors"
                             >
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -368,20 +368,20 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                         {/* Password strength indicators */}
                         {formData.password && (
                             <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
-                                <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-green-600' : 'text-slate-400'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${hasMinLength ? 'bg-green-500' : 'bg-slate-300'}`} />
+                                <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${hasMinLength ? 'bg-green-500' : 'bg-slate-300 dark:bg-neutral-600'}`} />
                                     8+ characters
                                 </div>
-                                <div className={`flex items-center gap-1.5 ${hasUppercase ? 'text-green-600' : 'text-slate-400'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${hasUppercase ? 'bg-green-500' : 'bg-slate-300'}`} />
+                                <div className={`flex items-center gap-1.5 ${hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${hasUppercase ? 'bg-green-500' : 'bg-slate-300 dark:bg-neutral-600'}`} />
                                     Uppercase
                                 </div>
-                                <div className={`flex items-center gap-1.5 ${hasLowercase ? 'text-green-600' : 'text-slate-400'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${hasLowercase ? 'bg-green-500' : 'bg-slate-300'}`} />
+                                <div className={`flex items-center gap-1.5 ${hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${hasLowercase ? 'bg-green-500' : 'bg-slate-300 dark:bg-neutral-600'}`} />
                                     Lowercase
                                 </div>
-                                <div className={`flex items-center gap-1.5 ${hasNumber ? 'text-green-600' : 'text-slate-400'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${hasNumber ? 'bg-green-500' : 'bg-slate-300'}`} />
+                                <div className={`flex items-center gap-1.5 ${hasNumber ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${hasNumber ? 'bg-green-500' : 'bg-slate-300 dark:bg-neutral-600'}`} />
                                     Number
                                 </div>
                             </div>
@@ -391,11 +391,11 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                     {/* Role & Institution */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-neutral-400 uppercase mb-1.5">
                                 Role <span className="text-red-500">*</span>
                             </label>
                             <select
-                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-600 rounded-lg text-sm text-slate-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 value={formData.role}
                                 onChange={e => setFormData({ ...formData, role: e.target.value as StaffRole })}
                             >
@@ -404,14 +404,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-neutral-400 uppercase mb-1.5">
                                 Institution <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
-                                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" size={16} />
                                 {isPlatformAdmin ? (
                                     <select
-                                        className={`w-full pl-10 pr-3 py-2.5 bg-white border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.institution_id ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                        className={`w-full pl-10 pr-3 py-2.5 bg-white dark:bg-neutral-900 border rounded-lg text-sm text-slate-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.institution_id ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-neutral-600'
                                             }`}
                                         value={formData.institution_id}
                                         onChange={e => setFormData({ ...formData, institution_id: e.target.value })}
@@ -425,7 +425,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                                 ) : (
                                     <input
                                         type="text"
-                                        className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm cursor-not-allowed"
+                                        className="w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-700 border border-slate-200 dark:border-neutral-600 rounded-lg text-sm text-slate-500 dark:text-neutral-400 cursor-not-allowed"
                                         value={userInstitutionId ? 'Your Institution' : 'No Institution'}
                                         disabled
                                     />
@@ -437,7 +437,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
                     {/* Status */}
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Initial Status</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-neutral-400 uppercase mb-1.5">Initial Status</label>
                         <div className="flex gap-4">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -447,7 +447,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                                     onChange={() => setFormData({ ...formData, status: 'Active' })}
                                     className="text-blue-600 focus:ring-blue-500"
                                 />
-                                <span className="text-sm text-slate-700">Active</span>
+                                <span className="text-sm text-slate-700 dark:text-neutral-300">Active</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -457,24 +457,24 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                                     onChange={() => setFormData({ ...formData, status: 'Suspended' })}
                                     className="text-blue-600 focus:ring-blue-500"
                                 />
-                                <span className="text-sm text-slate-700">Suspended</span>
+                                <span className="text-sm text-slate-700 dark:text-neutral-300">Suspended</span>
                             </label>
                         </div>
                     </div>
                 </div>
 
                 {formErrors.submit && (
-                    <div className="px-6 pb-2 text-sm text-red-600">
+                    <div className="px-6 pb-2 text-sm text-red-600 dark:text-red-400">
                         {formErrors.submit}
                     </div>
                 )}
 
                 {/* Footer */}
-                <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <div className="p-5 border-t border-slate-100 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-900 flex justify-end gap-3">
                     <button
                         type="button"
                         onClick={handleClose}
-                        className="px-4 py-2 text-slate-600 text-sm font-medium hover:bg-slate-200 rounded-lg transition-colors"
+                        className="px-4 py-2 text-slate-600 dark:text-neutral-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-neutral-700 rounded-lg transition-colors"
                     >
                         Cancel
                     </button>

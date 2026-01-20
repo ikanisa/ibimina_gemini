@@ -105,14 +105,14 @@ const LoadingScreen: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center gap-3 text-slate-500">
-        <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin"></div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-900">
+      <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-neutral-400">
+        <div className="h-10 w-10 rounded-full border-4 border-slate-200 dark:border-neutral-700 border-t-blue-600 dark:border-t-primary-500 animate-spin"></div>
         <p className="text-sm font-medium">Loading session...</p>
         {showHelp && (
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 text-xs font-medium text-blue-700 hover:text-blue-800 underline underline-offset-2"
+            className="mt-2 text-xs font-medium text-blue-700 dark:text-primary-400 hover:text-blue-800 dark:hover:text-primary-300 underline underline-offset-2"
           >
             Stuck loading? Reload
           </button>
@@ -150,13 +150,13 @@ const SectionLoading: React.FC = () => {
     <div className="flex items-center justify-center p-8 animate-in fade-in duration-200">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex space-x-4 mb-8">
-          <div className="h-8 w-48 bg-slate-100 rounded-lg animate-pulse"></div>
-          <div className="h-8 w-24 bg-slate-100 rounded-lg animate-pulse"></div>
+          <div className="h-8 w-48 bg-slate-100 dark:bg-neutral-800 rounded-lg animate-pulse"></div>
+          <div className="h-8 w-24 bg-slate-100 dark:bg-neutral-800 rounded-lg animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="h-64 bg-slate-100 rounded-xl animate-pulse"></div>
-          <div className="h-64 bg-slate-100 rounded-xl animate-pulse"></div>
-          <div className="h-64 bg-slate-100 rounded-xl animate-pulse"></div>
+          <div className="h-64 bg-slate-100 dark:bg-neutral-800 rounded-xl animate-pulse"></div>
+          <div className="h-64 bg-slate-100 dark:bg-neutral-800 rounded-xl animate-pulse"></div>
+          <div className="h-64 bg-slate-100 dark:bg-neutral-800 rounded-xl animate-pulse"></div>
         </div>
       </div>
     </div>
@@ -182,23 +182,23 @@ const MissingConfig: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
-        <h1 className="text-2xl font-bold text-slate-900">Supabase configuration required</h1>
-        <p className="text-sm text-slate-600">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-900 p-6">
+      <div className="bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Supabase configuration required</h1>
+        <p className="text-sm text-slate-600 dark:text-neutral-400">
           Set <span className="font-mono">VITE_SUPABASE_URL</span> and{' '}
           <span className="font-mono">VITE_SUPABASE_ANON_KEY</span> in{' '}
           <span className="font-mono">.env.local</span> to continue.
         </p>
-        <div className="text-left text-xs bg-slate-100 border border-slate-200 rounded-lg p-3 font-mono text-slate-600">
+        <div className="text-left text-xs bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg p-3 font-mono text-slate-600 dark:text-neutral-400">
           VITE_SUPABASE_URL=https://your-project.supabase.co<br />
           VITE_SUPABASE_ANON_KEY=your-anon-key
         </div>
 
         {/* Diagnostic info */}
-        <div className="text-left text-xs bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
-          <p className="font-medium text-amber-800">Troubleshooting:</p>
-          <ul className="list-disc list-inside text-amber-700 space-y-0.5">
+        <div className="text-left text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 space-y-1">
+          <p className="font-medium text-amber-800 dark:text-amber-400">Troubleshooting:</p>
+          <ul className="list-disc list-inside text-amber-700 dark:text-amber-500 space-y-0.5">
             <li>Check browser DevTools console for <code>[Supabase Config]</code> log</li>
             <li>Restart dev server after changing .env.local</li>
             <li>For Cloudflare: Set env vars in Pages → Settings</li>
@@ -208,13 +208,13 @@ const MissingConfig: React.FC = () => {
         <div className="flex gap-2 pt-2">
           <button
             onClick={() => window.location.reload()}
-            className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
+            className="flex-1 px-4 py-2 bg-slate-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:bg-slate-800 dark:hover:bg-neutral-200 transition-colors text-sm font-medium"
           >
             Reload
           </button>
           <button
             onClick={handleClearAndReload}
-            className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+            className="flex-1 px-4 py-2 bg-slate-100 dark:bg-neutral-700 text-slate-700 dark:text-neutral-300 rounded-lg hover:bg-slate-200 dark:hover:bg-neutral-600 transition-colors text-sm font-medium"
           >
             Clear Cache & Reload
           </button>
@@ -225,21 +225,21 @@ const MissingConfig: React.FC = () => {
 };
 
 const InitError: React.FC<{ error: string }> = ({ error }) => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-    <div className="bg-white border border-red-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
-      <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4">
+  <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-900 p-6">
+    <div className="bg-white dark:bg-neutral-800 border border-red-200 dark:border-red-800 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+      <div className="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
         <WifiOff size={24} />
       </div>
-      <h1 className="text-2xl font-bold text-slate-900">Connection Error</h1>
-      <p className="text-slate-600">
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Connection Error</h1>
+      <p className="text-slate-600 dark:text-neutral-400">
         We couldn't connect to the server. This might be a network issue or a configuration problem.
       </p>
-      <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm font-mono text-left overflow-auto max-h-32">
+      <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-lg text-sm font-mono text-left overflow-auto max-h-32">
         {error}
       </div>
       <button
         onClick={() => window.location.reload()}
-        className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+        className="px-4 py-2 bg-slate-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:bg-slate-800 dark:hover:bg-neutral-200 transition-colors"
       >
         Retry Connection
       </button>
@@ -248,30 +248,31 @@ const InitError: React.FC<{ error: string }> = ({ error }) => (
 );
 
 const AccountNotProvisioned: React.FC<{ email?: string; userId: string }> = ({ email, userId }) => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
-      <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-4">
+  <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-900 p-6">
+    <div className="bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-2xl shadow-sm p-8 max-w-lg w-full text-center space-y-4">
+      <div className="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4">
         <Eye size={24} />
       </div>
-      <h1 className="text-2xl font-bold text-slate-900">Account Setup Required</h1>
-      <p className="text-slate-600">
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Account Setup Required</h1>
+      <p className="text-slate-600 dark:text-neutral-400">
         You are signed in, but your account hasn't been linked to an institution yet.
       </p>
-      <div className="bg-slate-50 p-4 rounded-lg text-sm text-left space-y-2 border border-slate-200">
+      <div className="bg-slate-50 dark:bg-neutral-900 p-4 rounded-lg text-sm text-left space-y-2 border border-slate-200 dark:border-neutral-700">
         <p>
-          <span className="font-semibold text-slate-500">Email:</span> {email}
+          <span className="font-semibold text-slate-500 dark:text-neutral-400">Email:</span>{' '}
+          <span className="dark:text-neutral-300">{email}</span>
         </p>
         <p>
-          <span className="font-semibold text-slate-500">User ID:</span>{' '}
-          <span className="font-mono text-xs">{userId}</span>
+          <span className="font-semibold text-slate-500 dark:text-neutral-400">User ID:</span>{' '}
+          <span className="font-mono text-xs dark:text-neutral-300">{userId}</span>
         </p>
       </div>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-neutral-400">
         Please contact your administrator to create your staff profile and link it to an institution.
       </p>
       <button
         onClick={() => window.location.reload()}
-        className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+        className="text-blue-600 dark:text-primary-400 hover:text-blue-800 dark:hover:text-primary-300 text-sm font-medium hover:underline"
       >
         Check Again
       </button>

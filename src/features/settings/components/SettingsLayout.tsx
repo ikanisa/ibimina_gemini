@@ -31,11 +31,11 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
     <div className="h-full flex flex-col md:flex-row gap-6">
       {/* Sidebar - Desktop */}
       <div className="hidden md:block w-64 shrink-0">
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden sticky top-0">
-          <div className="p-4 border-b border-slate-100">
+        <div className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 overflow-hidden sticky top-0">
+          <div className="p-4 border-b border-slate-100 dark:border-neutral-700">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+              className="flex items-center gap-2 text-sm text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-100 transition-colors"
             >
               <ChevronLeft size={16} />
               Back to Dashboard
@@ -47,8 +47,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-700 hover:text-slate-900 dark:hover:text-neutral-100'
                   }`}
               >
                 <item.icon size={18} />
@@ -66,8 +66,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeTab === item.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-slate-200 text-slate-600'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-neutral-400'
               }`}
           >
             <item.icon size={16} />

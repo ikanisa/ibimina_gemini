@@ -108,21 +108,21 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div className="relative bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Shield className="text-blue-600" size={20} />
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <Shield className="text-blue-600 dark:text-blue-400" size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-900">Change Password</h2>
-                            <p className="text-sm text-slate-500">Update your account security</p>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-neutral-100">Change Password</h2>
+                            <p className="text-sm text-slate-500 dark:text-neutral-400">Update your account security</p>
                         </div>
                     </div>
                     <button
                         onClick={handleClose}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -130,54 +130,54 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
 
                 {success ? (
                     <div className="text-center py-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                            <CheckCircle className="text-green-600" size={32} />
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+                            <CheckCircle className="text-green-600 dark:text-green-400" size={32} />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Password Updated!</h3>
-                        <p className="text-slate-500">Your password has been changed successfully.</p>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-neutral-100 mb-2">Password Updated!</h3>
+                        <p className="text-slate-500 dark:text-neutral-400">Your password has been changed successfully.</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Current Password */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Current Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-1.5">Current Password</label>
                             <div className="relative">
                                 <input
                                     type={showCurrentPassword ? 'text' : 'password'}
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="w-full px-4 py-2.5 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-slate-900"
+                                    className="w-full px-4 py-2.5 pr-12 border border-slate-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-slate-900 dark:text-neutral-100"
                                     placeholder="Enter current password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 transition-colors"
                                 >
                                     {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
                         </div>
 
-                        <hr className="border-slate-200" />
+                        <hr className="border-slate-200 dark:border-neutral-700" />
 
                         {/* New Password */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-1.5">New Password</label>
                             <div className="relative">
                                 <input
                                     type={showNewPassword ? 'text' : 'password'}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full px-4 py-2.5 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-slate-900"
+                                    className="w-full px-4 py-2.5 pr-12 border border-slate-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-slate-900 dark:text-neutral-100"
                                     placeholder="Enter new password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowNewPassword(!showNewPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 transition-colors"
                                 >
                                     {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -187,15 +187,15 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
                         {/* Password strength indicators */}
                         {newPassword && (
                             <div className="space-y-1.5 text-xs">
-                                <div className={`flex items-center gap-2 ${hasMinLength ? 'text-green-600' : 'text-slate-400'}`}>
+                                <div className={`flex items-center gap-2 ${hasMinLength ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
                                     <CheckCircle size={12} className={hasMinLength ? 'opacity-100' : 'opacity-30'} />
                                     At least 8 characters
                                 </div>
-                                <div className={`flex items-center gap-2 ${hasUppercase && hasLowercase ? 'text-green-600' : 'text-slate-400'}`}>
+                                <div className={`flex items-center gap-2 ${hasUppercase && hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
                                     <CheckCircle size={12} className={hasUppercase && hasLowercase ? 'opacity-100' : 'opacity-30'} />
                                     Upper and lowercase letters
                                 </div>
-                                <div className={`flex items-center gap-2 ${hasNumber ? 'text-green-600' : 'text-slate-400'}`}>
+                                <div className={`flex items-center gap-2 ${hasNumber ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-500'}`}>
                                     <CheckCircle size={12} className={hasNumber ? 'opacity-100' : 'opacity-30'} />
                                     At least one number
                                 </div>
@@ -204,13 +204,13 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
 
                         {/* Confirm Password */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm New Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-1.5">Confirm New Password</label>
                             <div className="relative">
                                 <input
                                     type={showConfirmPassword ? 'text' : 'password'}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className={`w-full px-4 py-2.5 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm text-slate-900 ${confirmPassword && !passwordsMatch ? 'border-red-300' : 'border-slate-300'
+                                    className={`w-full px-4 py-2.5 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm text-slate-900 dark:text-neutral-100 bg-white dark:bg-neutral-900 ${confirmPassword && !passwordsMatch ? 'border-red-300 dark:border-red-700' : 'border-slate-300 dark:border-neutral-600'
                                         }`}
                                     placeholder="Confirm new password"
                                     required
@@ -218,18 +218,18 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 transition-colors"
                                 >
                                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
                             {confirmPassword && !passwordsMatch && (
-                                <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
+                                <p className="text-red-500 dark:text-red-400 text-xs mt-1">Passwords do not match</p>
                             )}
                         </div>
 
                         {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
                                 <AlertCircle size={16} />
                                 {error}
                             </div>
@@ -240,7 +240,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                                className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-neutral-600 text-slate-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors"
                             >
                                 Cancel
                             </button>

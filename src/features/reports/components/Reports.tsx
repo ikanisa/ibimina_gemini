@@ -362,9 +362,9 @@ const Reports: React.FC = () => {
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
-              <div className="h-3 bg-slate-200 rounded w-20 mb-2"></div>
-              <div className="h-6 bg-slate-200 rounded w-24"></div>
+            <div key={i} className="bg-white dark:bg-neutral-800 rounded-xl border border-slate-200 dark:border-neutral-700 p-4 animate-pulse">
+              <div className="h-3 bg-slate-200 dark:bg-neutral-700 rounded w-20 mb-2"></div>
+              <div className="h-6 bg-slate-200 dark:bg-neutral-700 rounded w-24"></div>
             </div>
           ))}
         </div>
