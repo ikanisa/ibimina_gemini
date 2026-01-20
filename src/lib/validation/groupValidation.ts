@@ -41,8 +41,8 @@ export function validateGroupData(data: {
   }
 
   // Validate frequency
-  if (data.frequency && !['Weekly', 'Monthly'].includes(data.frequency)) {
-    errors.frequency = 'Frequency must be either "Weekly" or "Monthly"';
+  if (data.frequency && !['Daily', 'Weekly', 'Monthly'].includes(data.frequency)) {
+    errors.frequency = 'Frequency must be "Daily", "Weekly", or "Monthly"';
   }
 
   // Validate contribution day (optional but if provided, should be valid)

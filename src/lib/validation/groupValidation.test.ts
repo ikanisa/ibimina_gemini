@@ -101,14 +101,23 @@ describe('validateGroupData', () => {
             expect(result.errors.frequency).toBeUndefined();
         });
 
-        it('should reject invalid frequency', () => {
+        it('should accept Daily frequency', () => {
             const result = validateGroupData({
                 group_name: 'Test',
                 expected_amount: 1000,
                 frequency: 'Daily'
             });
+            expect(result.errors.frequency).toBeUndefined();
+        });
+
+        it('should reject invalid frequency', () => {
+            const result = validateGroupData({
+                group_name: 'Test',
+                expected_amount: 1000,
+                frequency: 'Yearly'
+            });
             expect(result.isValid).toBe(false);
-            expect(result.errors.frequency).toBe('Frequency must be either "Weekly" or "Monthly"');
+            expect(result.errors.frequency).toBe('Frequency must be "Daily", "Weekly", or "Monthly"');
         });
     });
 
