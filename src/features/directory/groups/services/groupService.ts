@@ -74,10 +74,10 @@ export const groupService = {
             }
 
             if (filters.searchTerm?.trim()) {
-                query = query.ilike('name', `%${filters.searchTerm.trim()}%`);
+                query = query.ilike('group_name', `%${filters.searchTerm.trim()}%`);
             }
 
-            query = query.order('name', { ascending: true });
+            query = query.order('group_name', { ascending: true });
 
             if (filters.limit) {
                 query = query.limit(filters.limit);
@@ -152,11 +152,11 @@ export const groupService = {
                 .from('groups')
                 .insert({
                     institution_id: input.institutionId,
-                    name: input.name.trim(),
-                    description: input.description?.trim(),
+                    group_name: input.name.trim(),
+                    cycle_label: input.description?.trim(),
                     meeting_day: input.meetingDay,
-                    meeting_frequency: input.meetingFrequency,
-                    contribution_amount: input.contributionAmount,
+                    frequency: input.meetingFrequency || 'Weekly',
+                    expected_amount: input.contributionAmount || 0,
                     currency: input.currency || 'RWF',
                     status: 'ACTIVE',
                 })
@@ -187,12 +187,12 @@ export const groupService = {
             }
 
             const updates: Record<string, unknown> = {};
-            if (input.name !== undefined) updates.name = input.name.trim();
-            if (input.description !== undefined) updates.description = input.description?.trim();
+            if (input.name !== undefined) updates.group_name = input.name.trim();
+            if (input.description !== undefined) updates.cycle_label = input.description?.trim();
             if (input.status !== undefined) updates.status = input.status;
             if (input.meetingDay !== undefined) updates.meeting_day = input.meetingDay;
-            if (input.meetingFrequency !== undefined) updates.meeting_frequency = input.meetingFrequency;
-            if (input.contributionAmount !== undefined) updates.contribution_amount = input.contributionAmount;
+            if (input.meetingFrequency !== undefined) updates.frequency = input.meetingFrequency;
+            if (input.contributionAmount !== undefined) updates.expected_amount = input.contributionAmount;
 
             if (Object.keys(updates).length === 0) {
                 throw new ValidationError('No fields to update');
