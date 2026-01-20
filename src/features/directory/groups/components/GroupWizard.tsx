@@ -15,7 +15,7 @@ interface GroupData {
   name: string;
   group_code: string;
   meeting_day: string;
-  frequency: 'Weekly' | 'Monthly';
+  frequency: 'Daily' | 'Weekly' | 'Monthly';
   expected_amount: number;
 }
 
@@ -24,7 +24,7 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<GroupData>({
     name: '',
     group_code: '',
@@ -167,9 +167,10 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
               <FormField label="Frequency">
                 <select
                   value={formData.frequency}
-                  onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as 'Weekly' | 'Monthly' }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as 'Daily' | 'Weekly' | 'Monthly' }))}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
+                  <option value="Daily">Daily</option>
                   <option value="Weekly">Weekly</option>
                   <option value="Monthly">Monthly</option>
                 </select>

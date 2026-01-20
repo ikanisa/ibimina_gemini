@@ -31,7 +31,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     group_name: '',
     meeting_day: 'Monday',
     expected_amount: 5000,
-    frequency: 'Weekly' as 'Weekly' | 'Monthly',
+    frequency: 'Weekly' as 'Daily' | 'Weekly' | 'Monthly',
     cycle_label: '',
   });
 
@@ -142,10 +142,11 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             onChange={(e) =>
               setNewGroupData({
                 ...newGroupData,
-                frequency: e.target.value as 'Weekly' | 'Monthly',
+                frequency: e.target.value as 'Daily' | 'Weekly' | 'Monthly',
               })
             }
             options={[
+              { value: 'Daily', label: 'Daily' },
               { value: 'Weekly', label: 'Weekly' },
               { value: 'Monthly', label: 'Monthly' },
             ]}

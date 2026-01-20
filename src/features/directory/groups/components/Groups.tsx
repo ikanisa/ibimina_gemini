@@ -48,7 +48,7 @@ interface GroupsProps {
 }
 
 type FilterStatus = 'all' | 'Active' | 'Suspended' | 'Completed';
-type FrequencyFilter = 'all' | 'Weekly' | 'Monthly';
+type FrequencyFilter = 'all' | 'Daily' | 'Weekly' | 'Monthly';
 type SmartFilter =
   | 'all'
   | 'high-savings'
@@ -597,7 +597,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
               </Button>
               {showFrequencyMenu && (
                 <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
-                  {(['all', 'Weekly', 'Monthly'] as FrequencyFilter[]).map((frequency) => (
+                  {(['all', 'Daily', 'Weekly', 'Monthly'] as FrequencyFilter[]).map((frequency) => (
                     <button
                       key={frequency}
                       onClick={() => {
