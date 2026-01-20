@@ -31,13 +31,13 @@ export function validateGroupData(data: {
     errors.group_name = 'Group name must be less than 100 characters';
   }
 
-  // Validate expected amount
-  if (data.expected_amount === undefined || data.expected_amount === null) {
-    errors.expected_amount = 'Expected contribution amount is required';
-  } else if (data.expected_amount < 0) {
-    errors.expected_amount = 'Expected amount cannot be negative';
-  } else if (data.expected_amount > 100000000) {
-    errors.expected_amount = 'Expected amount is too large';
+  // Validate expected amount (optional - only validate if provided)
+  if (data.expected_amount !== undefined && data.expected_amount !== null) {
+    if (data.expected_amount < 0) {
+      errors.expected_amount = 'Expected amount cannot be negative';
+    } else if (data.expected_amount > 100000000) {
+      errors.expected_amount = 'Expected amount is too large';
+    }
   }
 
   // Validate frequency

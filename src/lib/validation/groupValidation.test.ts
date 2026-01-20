@@ -41,10 +41,10 @@ describe('validateGroupData', () => {
     });
 
     describe('expected_amount validation', () => {
-        it('should require expected amount', () => {
+        it('should allow missing expected amount (optional)', () => {
             const result = validateGroupData({ group_name: 'Test Group' });
-            expect(result.isValid).toBe(false);
-            expect(result.errors.expected_amount).toBe('Expected contribution amount is required');
+            expect(result.isValid).toBe(true);
+            expect(result.errors.expected_amount).toBeUndefined();
         });
 
         it('should reject negative amounts', () => {

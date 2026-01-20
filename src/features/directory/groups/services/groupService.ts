@@ -148,18 +148,23 @@ export const groupService = {
                 throw new ValidationError('Group name is required', { name: 'Required' });
             }
 
+            // Build insert object with only provided fields
+            const insertData: Record<string, unknown> = {
+                institution_id: input.institutionId,
+                group_name: input.name.trim(),
+                frequency: input.meetingFrequency || 'Weekly',
+            };
+
+            // Add optional fields only if provided
+            if (input.description?.trim()) insertData.cycle_label = input.description.trim();
+            if (input.meetingDay) insertData.meeting_day = input.meetingDay;
+            if (input.contributionAmount !== undefined && input.contributionAmount > 0) {
+                insertData.expected_amount = input.contributionAmount;
+            }
+
             const { data, error } = await supabase
                 .from('groups')
-                .insert({
-                    institution_id: input.institutionId,
-                    group_name: input.name.trim(),
-                    cycle_label: input.description?.trim(),
-                    meeting_day: input.meetingDay,
-                    frequency: input.meetingFrequency || 'Weekly',
-                    expected_amount: input.contributionAmount || 0,
-                    currency: input.currency || 'RWF',
-                    status: 'ACTIVE',
-                })
+                .insert(insertData)
                 .select()
                 .single();
 
