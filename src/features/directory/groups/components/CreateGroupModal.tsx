@@ -29,7 +29,6 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [newGroupData, setNewGroupData] = useState({
     group_name: '',
-    meeting_day: 'Monday',
     expected_amount: 5000,
     frequency: 'Weekly' as 'Daily' | 'Weekly' | 'Monthly',
     cycle_label: '',
@@ -54,20 +53,16 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     setFormErrors({});
 
     try {
-      // Map form data to service input format (camelCase)
       await createGroup({
         institutionId,
         name: newGroupData.group_name.trim(),
-        meetingDay: newGroupData.meeting_day,
         contributionAmount: newGroupData.expected_amount,
         meetingFrequency: newGroupData.frequency,
         description: newGroupData.cycle_label || `Cycle ${new Date().getFullYear()}`,
       });
 
-      // Reset form and close modal
       setNewGroupData({
         group_name: '',
-        meeting_day: 'Monday',
         expected_amount: 5000,
         frequency: 'Weekly',
         cycle_label: '',
@@ -86,7 +81,6 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     setFormErrors({});
     setNewGroupData({
       group_name: '',
-      meeting_day: 'Monday',
       expected_amount: 5000,
       frequency: 'Weekly',
       cycle_label: '',
@@ -117,41 +111,22 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
           placeholder="e.g., Ibimina y'Urubyiruko"
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <SimpleSelect
-            label="Contribution Day"
-            error={formErrors.meeting_day}
-            value={newGroupData.meeting_day}
-            onChange={(e) =>
-              setNewGroupData({ ...newGroupData, meeting_day: e.target.value })
-            }
-            options={[
-              'Monday',
-              'Tuesday',
-              'Wednesday',
-              'Thursday',
-              'Friday',
-              'Saturday',
-              'Sunday',
-            ].map((day) => ({ value: day, label: day }))}
-          />
-          <SimpleSelect
-            label="Frequency"
-            error={formErrors.frequency}
-            value={newGroupData.frequency}
-            onChange={(e) =>
-              setNewGroupData({
-                ...newGroupData,
-                frequency: e.target.value as 'Daily' | 'Weekly' | 'Monthly',
-              })
-            }
-            options={[
-              { value: 'Daily', label: 'Daily' },
-              { value: 'Weekly', label: 'Weekly' },
-              { value: 'Monthly', label: 'Monthly' },
-            ]}
-          />
-        </div>
+        <SimpleSelect
+          label="Frequency"
+          error={formErrors.frequency}
+          value={newGroupData.frequency}
+          onChange={(e) =>
+            setNewGroupData({
+              ...newGroupData,
+              frequency: e.target.value as 'Daily' | 'Weekly' | 'Monthly',
+            })
+          }
+          options={[
+            { value: 'Daily', label: 'Daily' },
+            { value: 'Weekly', label: 'Weekly' },
+            { value: 'Monthly', label: 'Monthly' },
+          ]}
+        />
 
         <SimpleInput
           label="Contribution Amount (RWF)"

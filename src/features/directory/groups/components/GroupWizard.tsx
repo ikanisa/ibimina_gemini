@@ -14,7 +14,6 @@ interface GroupWizardProps {
 interface GroupData {
   name: string;
   group_code: string;
-  meeting_day: string;
   frequency: 'Daily' | 'Weekly' | 'Monthly';
   expected_amount: number;
 }
@@ -28,7 +27,6 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
   const [formData, setFormData] = useState<GroupData>({
     name: '',
     group_code: '',
-    meeting_day: 'Monday',
     frequency: 'Weekly',
     expected_amount: 5000,
   });
@@ -83,7 +81,6 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
         p_institution_id: institutionId,
         p_name: formData.name.trim(),
         p_group_code: formData.group_code.trim() || null,
-        p_meeting_day: formData.meeting_day,
         p_frequency: formData.frequency,
         p_expected_amount: formData.expected_amount,
       });
@@ -104,7 +101,6 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
     setFormData({
       name: '',
       group_code: '',
-      meeting_day: 'Monday',
       frequency: 'Weekly',
       expected_amount: 5000,
     });
@@ -151,31 +147,17 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField label="Contribution Day">
-                <select
-                  value={formData.meeting_day}
-                  onChange={(e) => setFormData(prev => ({ ...prev, meeting_day: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </select>
-              </FormField>
-
-              <FormField label="Frequency">
-                <select
-                  value={formData.frequency}
-                  onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as 'Daily' | 'Weekly' | 'Monthly' }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="Daily">Daily</option>
-                  <option value="Weekly">Weekly</option>
-                  <option value="Monthly">Monthly</option>
-                </select>
-              </FormField>
-            </div>
+            <FormField label="Frequency">
+              <select
+                value={formData.frequency}
+                onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as 'Daily' | 'Weekly' | 'Monthly' }))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+              </select>
+            </FormField>
 
             <FormField label="Contribution Amount (RWF)">
               <input
@@ -205,14 +187,10 @@ const GroupWizard: React.FC<GroupWizardProps> = ({ isOpen, onClose, onSuccess })
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-500">Contribution Day:</span>
-                  <span className="ml-2 font-medium text-slate-900">{formData.meeting_day}</span>
-                </div>
-                <div>
                   <span className="text-slate-500">Frequency:</span>
                   <span className="ml-2 font-medium text-slate-900">{formData.frequency}</span>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <span className="text-slate-500">Contribution:</span>
                   <span className="ml-2 font-medium text-slate-900">{formData.expected_amount.toLocaleString()} RWF</span>
                 </div>
