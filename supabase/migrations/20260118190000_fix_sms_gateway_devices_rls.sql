@@ -22,6 +22,11 @@ DROP POLICY IF EXISTS "sms_gateway_devices_manage_own_institution" ON public.sms
 -- Drop old write policy (we'll recreate with better logic)
 DROP POLICY IF EXISTS "write_devices_authenticated" ON public.sms_gateway_devices;
 
+-- Drop existing policies to make this migration idempotent
+DROP POLICY IF EXISTS "sms_gateway_devices_insert" ON public.sms_gateway_devices;
+DROP POLICY IF EXISTS "sms_gateway_devices_update" ON public.sms_gateway_devices;
+DROP POLICY IF EXISTS "sms_gateway_devices_delete" ON public.sms_gateway_devices;
+
 -- Create new INSERT policy
 -- Admins can insert for any institution, staff only for their institution
 CREATE POLICY "sms_gateway_devices_insert"

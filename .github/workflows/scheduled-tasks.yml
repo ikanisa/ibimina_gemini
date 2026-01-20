@@ -1,0 +1,124 @@
+# Scheduled Tasks Workflow
+# Alternative to pg_cron for Supabase scheduled jobs
+#
+# Schedules:
+# - Rate limit cleanup: Every hour
+# - Weekly reminders: Sunday 9 AM UTC
+# - Monthly reports: 1st of month 6 AM UTC
+
+name: Scheduled Tasks
+
+on:
+  schedule:
+    # Run every hour for rate limit cleanup
+    - cron: '0 * * * *'
+    # Run weekly for contribution reminders (Sunday 9 AM UTC)
+    - cron: '0 9 * * 0'
+    # Run monthly for reports (1st of month 6 AM UTC)
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Task to run'
+        required: true
+        type: choice
+        options:
+          - cleanup-rate-limits
+          - weekly-reminders
+          - monthly-reports
+          - all
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  rate-limit-cleanup:
+    name: Rate Limit Cleanup
+    runs-on: ubuntu-latest
+    # Only run on hourly schedule or manual dispatch with 'cleanup-rate-limits' or 'all'
+    if: >
+      github.event.schedule == '0 * * * *' ||
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.task == 'cleanup-rate-limits' || github.event.inputs.task == 'all'))
+    steps:
+      - name: Call Rate Limit Cleanup
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/rest/v1/rpc/cleanup_rate_limits" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n -1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 400 ]; then
+            echo "❌ Rate limit cleanup failed"
+            exit 1
+          fi
+          
+          echo "✅ Rate limit cleanup completed"
+
+  weekly-reminders:
+    name: Weekly Contribution Reminders
+    runs-on: ubuntu-latest
+    # Only run on Sunday 9 AM schedule or manual dispatch
+    if: >
+      github.event.schedule == '0 9 * * 0' ||
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.task == 'weekly-reminders' || github.event.inputs.task == 'all'))
+    steps:
+      - name: Send Contribution Reminders
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/send-scheduled-notifications" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"type": "CONTRIBUTION_REMINDER"}')
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n -1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 400 ]; then
+            echo "❌ Weekly reminders failed"
+            exit 1
+          fi
+          
+          echo "✅ Weekly reminders sent"
+
+  monthly-reports:
+    name: Monthly Group Reports
+    runs-on: ubuntu-latest
+    # Only run on 1st of month schedule or manual dispatch
+    if: >
+      github.event.schedule == '0 6 1 * *' ||
+      (github.event_name == 'workflow_dispatch' && 
+       (github.event.inputs.task == 'monthly-reports' || github.event.inputs.task == 'all'))
+    steps:
+      - name: Generate Monthly Reports
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/send-scheduled-notifications" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"type": "GROUP_REPORT", "reportType": "MONTHLY"}')
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n -1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 400 ]; then
+            echo "❌ Monthly reports failed"
+            exit 1
+          fi
+          
+          echo "✅ Monthly reports generated"
