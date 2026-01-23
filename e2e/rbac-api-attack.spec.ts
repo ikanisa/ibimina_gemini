@@ -14,17 +14,18 @@ const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3000';
 
 // Test users - set via environment variables
 const STAFF_USER = {
-    email: process.env.E2E_STAFF_EMAIL || 'staff@test.com',
+    email: process.env.E2E_STAFF_EMAIL || 'staff.a@test.com',
     password: process.env.E2E_STAFF_PASSWORD || 'test123456'
 };
 
-// Admin-only routes that Staff should NOT access
-const ADMIN_ONLY_ROUTES = [
+// Admin-only routes that Staff should NOT access (kept for documentation)
+const _ADMIN_ONLY_ROUTES = [
     '/institutions',
     '/settings',
     '/staff',
     '/sms-gateway'
 ];
+void _ADMIN_ONLY_ROUTES; // Prevent unused variable warning
 
 // ============================================================================
 // Helper Functions  
@@ -45,15 +46,17 @@ async function loginAsStaff(page: Page): Promise<boolean> {
     }
 }
 
-async function captureConsoleErrors(page: Page): Promise<string[]> {
+// Helper function for capturing console errors (available for future tests)
+function _captureConsoleErrors(page: Page): Promise<string[]> {
     const errors: string[] = [];
     page.on('console', msg => {
         if (msg.type() === 'error') {
             errors.push(msg.text());
         }
     });
-    return errors;
+    return Promise.resolve(errors);
 }
+void _captureConsoleErrors; // Prevent unused variable warning
 
 // ============================================================================
 // RBAC: Direct URL Navigation Tests

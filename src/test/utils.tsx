@@ -10,9 +10,8 @@ import { AuthProvider } from '../contexts/AuthContext';
 
 
 // Custom render that wraps components with providers
-interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
-    // Add any custom options here
-}
+// Using type alias to avoid empty interface lint error
+type CustomRenderOptions = Omit<RenderOptions, 'wrapper'>;
 
 function customRender(
     ui: ReactElement,

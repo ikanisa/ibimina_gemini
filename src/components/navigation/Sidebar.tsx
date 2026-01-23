@@ -28,6 +28,9 @@ interface SidebarPropsWithRoleSwitch extends SidebarProps {
   onRoleReset?: () => void;
 }
 
+// RoleSwitcher removed - was only for mock data
+const RoleSwitcher = () => null;
+
 export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
   currentUser,
   currentView,
@@ -44,14 +47,12 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
 }) => {
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
 
-  // RoleSwitcher removed - was only for mock data
-  const RoleSwitcher = () => null;
+
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col shadow-xl md:shadow-none ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}
+      className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col shadow-xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
     >
       <div className="p-6 flex items-center gap-3">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white">

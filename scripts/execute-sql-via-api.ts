@@ -7,8 +7,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const SUPABASE_URL = 'https://wadhydemushqqtcrrlwm.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTc0MTU1NCwiZXhwIjoyMDgxMzE3NTU0fQ.mQg8USbqggCTUinPPhsvdqFl1j8baX71ulUvVdGYL7s';
+
 
 async function executeSQL(sqlContent: string, description: string) {
   console.log(`\n📋 ${description}\n`);

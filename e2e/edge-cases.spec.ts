@@ -20,7 +20,7 @@ async function login(page: Page) {
   await page.getByLabel(/email/i).fill(TEST_USER.email);
   await page.getByLabel(/password/i).fill(TEST_USER.password);
   await page.getByRole('button', { name: /sign in|login/i }).click();
-  await page.waitForURL(/dashboard|home/i, { timeout: 10000 }).catch(() => {});
+  await page.waitForURL(/dashboard|home/i, { timeout: 10000 }).catch(() => { });
 }
 
 test.describe('Edge Cases: Large Data Sets', () => {
@@ -58,7 +58,7 @@ test.describe('Edge Cases: Large Data Sets', () => {
     // Try searching for non-existent reference
     const searchInput = page.locator('input[placeholder*="Search"]')
       .or(page.locator('input[type="search"]'));
-    
+
     if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await searchInput.fill('NONEXISTENT_REFERENCE_12345');
       await page.waitForTimeout(500);
@@ -99,7 +99,7 @@ test.describe('Edge Cases: Concurrent Actions', () => {
 
     const newGroupBtn = page.locator('button >> text=New Group')
       .or(page.locator('button >> text=Add Group'));
-    
+
     if (await newGroupBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await newGroupBtn.click();
       await page.waitForTimeout(500);
@@ -137,7 +137,8 @@ test.describe('Edge Cases: Network Conditions', () => {
       .or(page.locator('text=Loading'))
       .or(page.locator('[class*="skeleton"]'));
 
-    const hasLoading = await loadingIndicator.isVisible({ timeout: 2000 }).catch(() => false);
+    // Check if loading indicator is visible (optional, don't fail if not)
+    await loadingIndicator.isVisible({ timeout: 2000 }).catch(() => false);
     // Loading state is optional, but page should eventually load
     await page.waitForLoadState('networkidle', { timeout: 30000 });
     await expect(page.locator('body')).toBeVisible();

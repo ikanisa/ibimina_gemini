@@ -22,12 +22,6 @@ export const InstitutionSwitcher: React.FC<InstitutionSwitcherProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isPlatformAdmin) {
-      loadInstitutions();
-    }
-  }, [isPlatformAdmin]);
-
   const loadInstitutions = async () => {
     const { data } = await supabase
       .from('institutions')
@@ -40,6 +34,12 @@ export const InstitutionSwitcher: React.FC<InstitutionSwitcherProps> = ({
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (isPlatformAdmin) {
+      loadInstitutions();
+    }
+  }, [isPlatformAdmin]);
 
   if (!isPlatformAdmin) return null;
 

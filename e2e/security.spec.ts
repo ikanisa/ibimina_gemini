@@ -63,7 +63,7 @@ async function isElementVisible(page: Page, selector: string, timeout = 3000): P
 test.describe('Security: Authentication', () => {
   test('should redirect unauthenticated users to login', async ({ page }) => {
     await page.goto(BASE_URL);
-    
+
     // Should see login page
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[type="password"]')).toBeVisible();
@@ -72,12 +72,12 @@ test.describe('Security: Authentication', () => {
 
   test('should show error for invalid credentials', async ({ page }) => {
     await page.goto(BASE_URL);
-    
+
     // Fill invalid credentials
     await page.fill('input[type="email"]', 'invalid@test.com');
     await page.fill('input[type="password"]', 'wrongpassword');
     await page.click('button[type="submit"]');
-    
+
     // Should show error message
     await expect(
       page.locator('text=Invalid').or(page.locator('text=error')).or(page.locator('[class*="error"]'))
@@ -87,10 +87,10 @@ test.describe('Security: Authentication', () => {
   test('should prevent access to protected routes without login', async ({ page }) => {
     // Try to access protected routes directly
     const protectedRoutes = ['/dashboard', '/transactions', '/groups', '/members', '/settings'];
-    
+
     for (const route of protectedRoutes) {
       await page.goto(`${BASE_URL}${route}`);
-      
+
       // Should be redirected to login or show login form
       const hasLoginForm = await isElementVisible(page, 'input[type="email"]', 5000);
       expect(hasLoginForm).toBe(true);
@@ -99,7 +99,7 @@ test.describe('Security: Authentication', () => {
 
   test('should successfully login with valid credentials', async ({ page }) => {
     const success = await login(page, TEST_USERS.staff.email, TEST_USERS.staff.password);
-    
+
     if (success) {
       // Should see dashboard content
       await expect(page.locator('text=Dashboard').first()).toBeVisible({ timeout: 10000 });
@@ -115,14 +115,14 @@ test.describe('Security: Authentication', () => {
 // ============================================================================
 
 test.describe('Security: Role-Based Access Control', () => {
-  
+
   test('platform admin can see Institutions navigation', async ({ page }) => {
     const loggedIn = await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
     if (!loggedIn) {
       test.skip();
       return;
     }
-    
+
     // Platform admin should see Institutions in nav
     const institutionsNav = page.locator('nav >> text=Institutions').or(page.locator('a >> text=Institutions'));
     await expect(institutionsNav.first()).toBeVisible({ timeout: 5000 });
@@ -134,16 +134,16 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to institutions
     await page.goto(`${BASE_URL}/institutions`);
-    
+
     // Should see institutions management
     await expect(
       page.locator('text=Institutions').first()
         .or(page.locator('[data-testid="institutions-list"]'))
     ).toBeVisible({ timeout: 10000 });
-    
+
     // Should NOT see forbidden message
     const hasForbidden = await isElementVisible(page, 'text=Forbidden', 1000);
     expect(hasForbidden).toBe(false);
@@ -155,7 +155,7 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Staff should NOT see Institutions in nav
     const institutionsNav = page.locator('nav >> text=Institutions');
     const isVisible = await institutionsNav.isVisible({ timeout: 2000 }).catch(() => false);
@@ -168,11 +168,11 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Try direct navigation
     await page.goto(`${BASE_URL}/institutions`);
     await page.waitForLoadState('networkidle');
-    
+
     // Should be redirected or see forbidden
     const hasInstitutionsList = await isElementVisible(page, 'text=Institutions Management', 2000);
     expect(hasInstitutionsList).toBe(false);
@@ -184,19 +184,19 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to transactions
     await page.click('text=Transactions');
     await page.waitForLoadState('networkidle');
-    
+
     // Auditor should NOT see allocate or edit buttons
     const hasAllocate = await isElementVisible(page, 'button >> text=Allocate', 2000);
     expect(hasAllocate).toBe(false);
-    
+
     // Navigate to groups
     await page.click('text=Groups');
     await page.waitForLoadState('networkidle');
-    
+
     // Should NOT see New Group button
     const hasNewGroup = await isElementVisible(page, 'button >> text=New Group', 2000);
     expect(hasNewGroup).toBe(false);
@@ -208,18 +208,18 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to groups
     await page.click('text=Groups');
     await page.waitForLoadState('networkidle');
-    
+
     // Staff SHOULD see New Group button (or Add Group, etc.)
     const hasNewGroup = await isElementVisible(
-      page, 
-      'button >> text=New Group', 
+      page,
+      'button >> text=New Group',
       3000
     ) || await isElementVisible(page, 'button >> text=Add Group', 2000);
-    
+
     expect(hasNewGroup).toBe(true);
   });
 
@@ -229,14 +229,14 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to settings
     await page.click('text=Settings');
     await page.waitForLoadState('networkidle');
-    
+
     // Should see settings page
     await expect(page.locator('text=Settings').first()).toBeVisible();
-    
+
     // Should see institution settings tile
     const hasInstitutionSettings = await isElementVisible(page, 'text=Institution', 3000);
     expect(hasInstitutionSettings).toBe(true);
@@ -248,19 +248,19 @@ test.describe('Security: Role-Based Access Control', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to settings
     await page.click('text=Settings');
     await page.waitForLoadState('networkidle');
-    
+
     // Click on Staff tile
     const staffTile = page.locator('text=Staff').or(page.locator('[data-testid="staff-settings"]'));
     if (await staffTile.isVisible({ timeout: 3000 }).catch(() => false)) {
       await staffTile.click();
       await page.waitForLoadState('networkidle');
-      
+
       // Should see staff management UI
-      const hasStaffManagement = await isElementVisible(page, 'text=Invite', 3000) 
+      const hasStaffManagement = await isElementVisible(page, 'text=Invite', 3000)
         || await isElementVisible(page, 'text=Add Staff', 2000);
       expect(hasStaffManagement).toBe(true);
     }
@@ -278,10 +278,10 @@ test.describe('Security: Institution Data Scoping', () => {
       test.skip();
       return;
     }
-    
+
     // Dashboard should show institution-scoped data
     await expect(page.locator('text=Dashboard').first()).toBeVisible();
-    
+
     // The institution name or context should be visible somewhere
     // (This depends on UI implementation)
     const hasInstitutionContext = await page.locator('[data-testid="institution-context"]')
@@ -289,7 +289,7 @@ test.describe('Security: Institution Data Scoping', () => {
       .or(page.locator('[class*="institution"]'))
       .isVisible({ timeout: 3000 })
       .catch(() => true); // Accept if we can't verify - RLS protects the data
-    
+
     expect(hasInstitutionContext).toBe(true);
   });
 
@@ -299,18 +299,18 @@ test.describe('Security: Institution Data Scoping', () => {
       test.skip();
       return;
     }
-    
+
     // Look for institution switcher
     const institutionSwitcher = page.locator('[data-testid="institution-switcher"]')
       .or(page.locator('[role="combobox"] >> text=Institution'))
       .or(page.locator('select >> text=All'));
-    
+
     const hasSwitcher = await institutionSwitcher.isVisible({ timeout: 5000 }).catch(() => false);
-    
+
     if (hasSwitcher) {
       // Click to see options
       await institutionSwitcher.click();
-      
+
       // Should see multiple institution options
       const options = page.locator('[role="option"]').or(page.locator('option'));
       const count = await options.count();
@@ -332,17 +332,17 @@ test.describe('Security: Audit Log Access', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to settings
     await page.click('text=Settings');
     await page.waitForLoadState('networkidle');
-    
+
     // Click on Audit Log
     const auditLogLink = page.locator('text=Audit Log').or(page.locator('[data-testid="audit-log-link"]'));
     if (await auditLogLink.isVisible({ timeout: 3000 }).catch(() => false)) {
       await auditLogLink.click();
       await page.waitForLoadState('networkidle');
-      
+
       // Should see audit log content
       await expect(page.locator('text=Audit Log').first()).toBeVisible();
     }
@@ -354,19 +354,19 @@ test.describe('Security: Audit Log Access', () => {
       test.skip();
       return;
     }
-    
+
     // Navigate to settings
     const settingsNav = page.locator('text=Settings');
     if (await settingsNav.isVisible({ timeout: 3000 }).catch(() => false)) {
       await settingsNav.click();
       await page.waitForLoadState('networkidle');
-      
+
       // Click on Audit Log
       const auditLogLink = page.locator('text=Audit Log');
       if (await auditLogLink.isVisible({ timeout: 3000 }).catch(() => false)) {
         await auditLogLink.click();
         await page.waitForLoadState('networkidle');
-        
+
         // Should see audit log content
         await expect(page.locator('text=Audit').first()).toBeVisible();
       }
@@ -385,15 +385,15 @@ test.describe('Security: Session Management', () => {
       test.skip();
       return;
     }
-    
+
     // Find and click logout
     const logoutBtn = page.locator('button >> text=Logout')
       .or(page.locator('button >> text=Sign out'))
       .or(page.locator('[data-testid="logout-button"]'));
-    
+
     if (await logoutBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await logoutBtn.click();
-      
+
       // Should be redirected to login
       await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 5000 });
     } else {
@@ -401,11 +401,11 @@ test.describe('Security: Session Management', () => {
       const profileBtn = page.locator('[data-testid="profile-button"]')
         .or(page.locator('button >> text=Profile'))
         .or(page.locator('[class*="avatar"]'));
-      
+
       if (await profileBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
         await profileBtn.click();
         await page.waitForTimeout(500);
-        
+
         const logoutInDropdown = page.locator('text=Logout').or(page.locator('text=Sign out'));
         if (await logoutInDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
           await logoutInDropdown.click();
@@ -421,22 +421,19 @@ test.describe('Security: Session Management', () => {
       test.skip();
       return;
     }
-    
-    // Get session/cookie
-    const cookies = await page.context().cookies();
-    
-    // Clear all cookies
+
+    // Clear all cookies (session cleanup)
     await page.context().clearCookies();
-    
+
     // Also clear localStorage
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
     });
-    
+
     // Try to access protected route
     await page.goto(`${BASE_URL}/dashboard`);
-    
+
     // Should be redirected to login
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
   });

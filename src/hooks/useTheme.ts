@@ -29,13 +29,8 @@ export function useTheme(): UseThemeReturn {
     getEffectiveTheme(theme)
   );
 
-  // Initialize theme on mount
-  useEffect(() => {
-    const initialTheme = getStoredTheme();
-    setThemeState(initialTheme);
-    setEffectiveTheme(getEffectiveTheme(initialTheme));
-    applyTheme(initialTheme);
-  }, []);
+  // Initialize theme on mount - handled by lazy state and update effect
+  // useEffect(() => { ... }, []) removed to avoid synchronous setState warning
 
   // Watch for system theme changes when theme is 'system'
   useEffect(() => {

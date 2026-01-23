@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Script to set WhatsApp secrets in Supabase
  * Run this once to configure WhatsApp integration
@@ -42,7 +43,7 @@ async function setWhatsAppSecrets() {
   } else {
     // Update settings for each institution
     for (const institution of institutions) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('settings')
         .upsert({
           institution_id: institution.id,

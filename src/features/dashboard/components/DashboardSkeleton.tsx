@@ -36,7 +36,7 @@ export const DashboardSkeleton: React.FC = () => {
                                 key={i}
                                 variant="rectangular"
                                 width="12%"
-                                height={`${Math.random() * 60 + 40}%`}
+                                height={`${((i % 3) + 2) * 20}%`}
                             />
                         ))}
                     </div>

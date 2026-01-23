@@ -52,7 +52,7 @@ export const ReportsSkeleton: React.FC = () => {
                                 key={i}
                                 variant="rectangular"
                                 width="12%"
-                                height={`${Math.random() * 60 + 40}%`}
+                                height={`${((i + 2) * 43) % 60 + 40}%`}
                             />
                         ))}
                     </div>

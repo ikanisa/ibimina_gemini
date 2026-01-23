@@ -24,39 +24,35 @@ export const SystemSettings: React.FC = () => {
     dbConnectionStatus: 'unknown'
   });
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
   const loadStats = async () => {
     setLoading(true);
-    
+
     try {
       // Test database connection
       const { error: connectionError } = await supabase.from('institutions').select('id').limit(1);
-      
+
       // Get institution count
       const { count: instCount } = await supabase
         .from('institutions')
         .select('*', { count: 'exact', head: true });
-      
+
       // Get user count
       const { count: userCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('is_active', true);
-      
+
       // Get transaction count
       const { count: txCount } = await supabase
         .from('transactions')
         .select('*', { count: 'exact', head: true });
-      
+
       // Get pending (unallocated) transaction count
       const { count: pendingCount } = await supabase
         .from('transactions')
         .select('*', { count: 'exact', head: true })
         .eq('allocation_status', 'unallocated');
-      
+
       setStats({
         totalInstitutions: instCount || 0,
         totalUsers: userCount || 0,
@@ -68,9 +64,13 @@ export const SystemSettings: React.FC = () => {
       console.error('Error loading system stats:', err);
       setStats(prev => ({ ...prev, dbConnectionStatus: 'error' }));
     }
-    
+
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -220,10 +220,10 @@ export const SystemSettings: React.FC = () => {
         <div className="p-4 bg-red-50 border border-red-100 rounded-lg">
           <p className="text-sm text-red-800 font-medium mb-2">Database Maintenance</p>
           <p className="text-xs text-red-700 mb-4">
-            Contact system administrators for database maintenance operations like clearing test data, 
+            Contact system administrators for database maintenance operations like clearing test data,
             resetting demo accounts, or performing migrations.
           </p>
-          <button 
+          <button
             disabled
             className="text-xs text-red-600 font-medium opacity-50 cursor-not-allowed"
           >

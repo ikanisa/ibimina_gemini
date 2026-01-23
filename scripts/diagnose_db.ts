@@ -16,7 +16,9 @@ function loadEnv(filePath: string) {
                 }
             });
         }
-    } catch (e) { }
+    } catch {
+        // Silently ignore errors when loading env files
+    }
 }
 
 const rootDir = process.cwd();

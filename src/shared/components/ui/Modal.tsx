@@ -41,7 +41,9 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<Element | null>(null);
-  const modalId = id || `modal-${Math.random().toString(36).slice(2, 9)}`;
+  // const modalId = id || `modal-${Math.random().toString(36).slice(2, 9)}`;
+  const internalId = React.useId();
+  const modalId = id || `modal-${internalId}`;
   const titleId = `${modalId}-title`;
 
   // Track previously focused element and restore on close

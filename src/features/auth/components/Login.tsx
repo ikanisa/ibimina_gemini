@@ -20,6 +20,22 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!email) {
+      setError('Email is required');
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
     setLoading(true);
     const { error: signInError } = await signIn(email, password);
     if (signInError) {
@@ -53,10 +69,11 @@ const Login: React.FC = () => {
           <p className="text-slate-500 mt-2">Multi-tenant Group Savings Platform</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -70,7 +87,7 @@ const Login: React.FC = () => {
 
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-sm font-medium text-slate-700">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
@@ -81,6 +98,7 @@ const Login: React.FC = () => {
             </div>
             <div className="relative">
               <input
+                id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

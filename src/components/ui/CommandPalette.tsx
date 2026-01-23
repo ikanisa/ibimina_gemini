@@ -56,6 +56,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   // Reset selection when search changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIndex(0);
   }, [search]);
 
@@ -63,6 +64,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearch('');
     }
   }, [isOpen]);

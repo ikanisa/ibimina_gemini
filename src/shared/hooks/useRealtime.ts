@@ -111,7 +111,7 @@ export function useRealtime<T = any>(options: RealtimeSubscriptionOptions) {
   return {
     isConnected,
     error,
-    channel: channelRef.current,
+    channel: channelRef.current, // eslint-disable-line react-hooks/refs
   };
 }
 

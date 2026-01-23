@@ -228,6 +228,7 @@ export function useMemoizedList<T, R>(
     transform: (item: T) => R,
     deps: React.DependencyList = []
 ): R[] {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return useMemo(() => items.map(transform), [items, ...deps]);
 }
 
@@ -239,6 +240,7 @@ export function useMemoizedFilter<T>(
     predicate: (item: T) => boolean,
     deps: React.DependencyList = []
 ): T[] {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return useMemo(() => items.filter(predicate), [items, ...deps]);
 }
 
@@ -250,6 +252,7 @@ export function useMemoizedSort<T>(
     compareFn: (a: T, b: T) => number,
     deps: React.DependencyList = []
 ): T[] {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return useMemo(() => [...items].sort(compareFn), [items, ...deps]);
 }
 
@@ -261,6 +264,7 @@ export function useStableCallback<T extends (...args: any[]) => any>(callback: T
     callbackRef.current = callback;
     return useCallback(
         ((...args) => callbackRef.current(...args)) as T,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
 }

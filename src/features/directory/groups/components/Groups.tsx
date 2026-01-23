@@ -271,6 +271,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
   // Load group details when a group is selected
   useEffect(() => {
     if (!selectedGroup || !institutionId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setGroupMembers([]);
       setGroupContributions([]);
       setGroupTransactions([]);

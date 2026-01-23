@@ -34,10 +34,10 @@ async function executeConfigureGroups() {
 
     try {
       console.log(`Executing statement ${i + 1}/${statements.length}...`);
-      
+
       // Use RPC to execute SQL (if we have an execute_sql function)
       // Otherwise, we'll need to use the SQL Editor API
-      const { data, error } = await supabase.rpc('exec_sql', {
+      const { error } = await supabase.rpc('exec_sql', {
         sql_query: statement + ';'
       });
 
@@ -47,8 +47,9 @@ async function executeConfigureGroups() {
       } else {
         console.log(`✅ Statement ${i + 1} executed successfully`);
       }
-    } catch (err: any) {
-      console.error(`Error executing statement ${i + 1}:`, err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Error executing statement ${i + 1}:`, message);
     }
   }
 

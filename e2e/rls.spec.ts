@@ -148,44 +148,44 @@ test.describe('RLS: Cross-Institution Read Protection', () => {
   test('staff A cannot see staff B institution groups via API', async ({ page }) => {
     // Login as staff A
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     // Try to query all groups
     const result = await querySupabaseTable(page, 'groups', 'select=*');
-    
+
     if (result.status === 200 && Array.isArray(result.data)) {
       // All returned groups should belong to staff A's institution
       const wrongInstitutionGroups = result.data.filter(
-        (g: any) => g.institution_id && g.institution_id !== TEST_USERS.staffA.institutionId
+        (g: { institution_id?: string }) => g.institution_id && g.institution_id !== TEST_USERS.staffA.institutionId
       );
-      
+
       expect(wrongInstitutionGroups.length).toBe(0);
     }
   });
 
   test('staff A cannot see staff B institution members via API', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     const result = await querySupabaseTable(page, 'members', 'select=*');
-    
+
     if (result.status === 200 && Array.isArray(result.data)) {
       const wrongInstitutionMembers = result.data.filter(
-        (m: any) => m.institution_id && m.institution_id !== TEST_USERS.staffA.institutionId
+        (m: { institution_id?: string }) => m.institution_id && m.institution_id !== TEST_USERS.staffA.institutionId
       );
-      
+
       expect(wrongInstitutionMembers.length).toBe(0);
     }
   });
 
   test('staff A cannot see staff B institution transactions via API', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     const result = await querySupabaseTable(page, 'transactions', 'select=*');
-    
+
     if (result.status === 200 && Array.isArray(result.data)) {
       const wrongInstitutionTx = result.data.filter(
-        (t: any) => t.institution_id && t.institution_id !== TEST_USERS.staffA.institutionId
+        (t: { institution_id?: string }) => t.institution_id && t.institution_id !== TEST_USERS.staffA.institutionId
       );
-      
+
       expect(wrongInstitutionTx.length).toBe(0);
     }
   });
@@ -200,28 +200,28 @@ test.describe('RLS: Cross-Institution Write Protection', () => {
 
   test('staff A cannot insert group in institution B', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     // Try to insert a group in institution B
     const result = await insertSupabaseRow(page, 'groups', {
       institution_id: TEST_USERS.staffB.institutionId,
       name: 'Illegal Group',
       group_code: 'ILLEGAL001'
     });
-    
+
     // Should be rejected by RLS
     expect([403, 401, 400]).toContain(result.status);
   });
 
   test('staff A cannot insert member in institution B', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     const result = await insertSupabaseRow(page, 'members', {
       institution_id: TEST_USERS.staffB.institutionId,
       group_id: '00000000-0000-0000-0000-000000000000', // Fake ID
       full_name: 'Illegal Member',
       phone_primary: '+250788000000'
     });
-    
+
     expect([403, 401, 400]).toContain(result.status);
   });
 });
@@ -235,40 +235,40 @@ test.describe('RLS: Institution Admin Boundaries', () => {
 
   test('institution A admin cannot create staff invite for institution B', async ({ page }) => {
     await login(page, TEST_USERS.adminA.email, TEST_USERS.adminA.password);
-    
+
     const result = await insertSupabaseRow(page, 'staff_invites', {
       institution_id: TEST_USERS.staffB.institutionId,
       email: 'newstaff@test.com',
       role: 'INSTITUTION_STAFF'
     });
-    
+
     // Should be rejected
     expect([403, 401, 400]).toContain(result.status);
   });
 
   test('institution A admin cannot update institution B settings', async ({ page }) => {
     await login(page, TEST_USERS.adminA.email, TEST_USERS.adminA.password);
-    
+
     // Try to call update_institution_settings for wrong institution
     const result = await callSupabaseRpc(page, 'update_institution_settings', {
       p_institution_id: TEST_USERS.staffB.institutionId,
       p_settings: { parser_mode: 'deterministic' }
     });
-    
+
     // Should fail
     expect(result.status).not.toBe(200);
   });
 
   test('institution A admin can manage their own institution', async ({ page }) => {
     await login(page, TEST_USERS.adminA.email, TEST_USERS.adminA.password);
-    
+
     // Query their own institution settings
     const result = await querySupabaseTable(
-      page, 
-      'institution_settings', 
+      page,
+      'institution_settings',
       `institution_id=eq.${TEST_USERS.adminA.institutionId}`
     );
-    
+
     // Should succeed
     expect(result.status).toBe(200);
   });
@@ -283,56 +283,56 @@ test.describe('RLS: Auditor Read-Only Enforcement', () => {
 
   test('auditor can read transactions', async ({ page }) => {
     await login(page, TEST_USERS.auditorA.email, TEST_USERS.auditorA.password);
-    
+
     const result = await querySupabaseTable(page, 'transactions', 'select=*&limit=5');
-    
+
     expect(result.status).toBe(200);
   });
 
   test('auditor can read audit log', async ({ page }) => {
     await login(page, TEST_USERS.auditorA.email, TEST_USERS.auditorA.password);
-    
+
     const result = await querySupabaseTable(page, 'audit_log', 'select=*&limit=5');
-    
+
     expect(result.status).toBe(200);
   });
 
   test('auditor cannot insert transactions', async ({ page }) => {
     await login(page, TEST_USERS.auditorA.email, TEST_USERS.auditorA.password);
-    
+
     const result = await insertSupabaseRow(page, 'transactions', {
       institution_id: TEST_USERS.auditorA.institutionId,
       amount: 10000,
       currency: 'RWF',
       allocation_status: 'unallocated'
     });
-    
+
     // Auditor cannot write - should fail
     expect([403, 401, 400]).toContain(result.status);
   });
 
   test('auditor cannot allocate transaction via RPC', async ({ page }) => {
     await login(page, TEST_USERS.auditorA.email, TEST_USERS.auditorA.password);
-    
+
     const result = await callSupabaseRpc(page, 'allocate_transaction', {
       p_transaction_id: '00000000-0000-0000-0000-000000000000',
       p_member_id: '00000000-0000-0000-0000-000000000000'
     });
-    
+
     // Should fail due to read-only role
     expect(result.status).not.toBe(200);
   });
 
   test('auditor cannot insert members', async ({ page }) => {
     await login(page, TEST_USERS.auditorA.email, TEST_USERS.auditorA.password);
-    
+
     const result = await insertSupabaseRow(page, 'members', {
       institution_id: TEST_USERS.auditorA.institutionId,
       group_id: '00000000-0000-0000-0000-000000000000',
       full_name: 'Auditor Test',
       phone_primary: '+250788999999'
     });
-    
+
     expect([403, 401, 400]).toContain(result.status);
   });
 });
@@ -346,14 +346,14 @@ test.describe('RLS: Platform Admin Full Access', () => {
 
   test('platform admin can read all institutions groups', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     const result = await querySupabaseTable(page, 'groups', 'select=*');
-    
+
     expect(result.status).toBe(200);
-    
+
     // Should see groups from multiple institutions
     if (Array.isArray(result.data)) {
-      const institutionIds = new Set(result.data.map((g: any) => g.institution_id));
+      const institutionIds = new Set(result.data.map((g: { institution_id: string }) => g.institution_id));
       // Platform admin should see at least data from the 2 test institutions
       // (if properly seeded)
       console.log(`Platform admin sees ${institutionIds.size} distinct institutions`);
@@ -362,36 +362,36 @@ test.describe('RLS: Platform Admin Full Access', () => {
 
   test('platform admin can read all transactions', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     const result = await querySupabaseTable(page, 'transactions', 'select=*&limit=50');
-    
+
     expect(result.status).toBe(200);
   });
 
   test('platform admin can create institution via RPC', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     // Try to create a new institution
     const result = await callSupabaseRpc(page, 'create_institution', {
       p_name: `E2E Test Institution ${Date.now()}`,
       p_short_name: `E2E${Date.now()}`,
       p_type: 'sacco'
     });
-    
+
     // Should succeed for platform admin
     expect([200, 201]).toContain(result.status);
-    
+
     // Clean up: could add delete logic here if needed
   });
 
   test('platform admin can access system health for any institution', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     // Call system health RPC for institution A
     const result = await callSupabaseRpc(page, 'get_system_health', {
       p_institution_id: TEST_USERS.staffA.institutionId
     });
-    
+
     expect(result.status).toBe(200);
   });
 });
@@ -403,7 +403,7 @@ test.describe('RLS: Platform Admin Full Access', () => {
 test.describe('UI: Role-Based Feature Visibility', () => {
   test('staff cannot see institutions nav item', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     // Institutions should not be in navigation
     const institutionsNav = page.locator('nav >> text=Institutions');
     await expect(institutionsNav).not.toBeVisible({ timeout: 3000 }).catch(() => {
@@ -414,34 +414,34 @@ test.describe('UI: Role-Based Feature Visibility', () => {
 
   test('staff cannot navigate directly to /institutions', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     // Try direct navigation
     await page.goto(`${BASE_URL}/institutions`);
-    
+
     // Should be redirected or shown forbidden
     await expect(
       page.locator('text=Forbidden')
         .or(page.locator('text=Access Denied'))
         .or(page.locator('text=Dashboard')) // Redirected to dashboard
     ).toBeVisible({ timeout: 5000 });
-    
+
     // Should not see institution management UI
     await expect(page.locator('text=Institutions Management')).not.toBeVisible();
   });
 
   test('auditor cannot see allocate button on transactions', async ({ page }) => {
     await login(page, TEST_USERS.auditorA.email, TEST_USERS.auditorA.password);
-    
+
     // Navigate to transactions
     await page.click('text=Transactions');
     await page.waitForLoadState('networkidle');
-    
+
     // Open a transaction if available
     const transactionRow = page.locator('tr').or(page.locator('[data-testid="transaction-row"]')).first();
     if (await transactionRow.isVisible({ timeout: 3000 }).catch(() => false)) {
       await transactionRow.click();
       await page.waitForTimeout(500);
-      
+
       // Allocate button should NOT be visible for auditor
       const allocateBtn = page.locator('button >> text=Allocate');
       await expect(allocateBtn).not.toBeVisible();
@@ -450,7 +450,7 @@ test.describe('UI: Role-Based Feature Visibility', () => {
 
   test('platform admin can see institutions nav item', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     // Institutions should be visible
     const institutionsNav = page.locator('nav >> text=Institutions').or(page.locator('text=Institutions'));
     await expect(institutionsNav.first()).toBeVisible({ timeout: 5000 });
@@ -458,10 +458,10 @@ test.describe('UI: Role-Based Feature Visibility', () => {
 
   test('platform admin can access /institutions page', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     // Direct navigation
     await page.goto(`${BASE_URL}/institutions`);
-    
+
     // Should see institutions management
     await expect(
       page.locator('text=Institutions')
@@ -477,15 +477,15 @@ test.describe('UI: Role-Based Feature Visibility', () => {
 test.describe('Data Isolation: Dashboard Scoping', () => {
   test('staff A dashboard shows only their institution data', async ({ page }) => {
     await login(page, TEST_USERS.staffA.email, TEST_USERS.staffA.password);
-    
+
     // Dashboard should load with institution-scoped data
     await page.waitForLoadState('networkidle');
-    
+
     // Call dashboard summary RPC and verify institution_id
     const result = await callSupabaseRpc(page, 'get_dashboard_summary', {
       p_days: 7
     });
-    
+
     if (result.status === 200 && result.data) {
       // All data should be scoped to staff A's institution
       // The RPC should enforce this automatically via RLS/security invoker
@@ -495,20 +495,20 @@ test.describe('Data Isolation: Dashboard Scoping', () => {
 
   test('platform admin can switch institution context', async ({ page }) => {
     await login(page, TEST_USERS.platformAdmin.email, TEST_USERS.platformAdmin.password);
-    
+
     // Look for institution switcher
     const institutionSwitcher = page.locator('[data-testid="institution-switcher"]')
       .or(page.locator('select >> text=Institution'))
       .or(page.locator('[role="combobox"]'));
-    
+
     if (await institutionSwitcher.isVisible({ timeout: 3000 }).catch(() => false)) {
       // Click to open
       await institutionSwitcher.click();
-      
+
       // Should see multiple institutions
       const options = page.locator('[role="option"]').or(page.locator('option'));
       const count = await options.count();
-      
+
       expect(count).toBeGreaterThanOrEqual(2);
     }
   });

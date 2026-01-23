@@ -24,36 +24,35 @@ export interface UseThemeReturn {
  * Hook for managing theme state
  */
 export function useTheme(): UseThemeReturn {
-  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>(() =>
-    getEffectiveTheme(theme)
-  );
+  // Use lazy initializers to compute initial values synchronously
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const storedTheme = getStoredTheme();
+    // Apply theme on initial render (side effect in initializer is OK for synchronization)
+    if (typeof document !== 'undefined') {
+      applyTheme(storedTheme);
+    }
+    return storedTheme;
+  });
 
-  // Initialize theme on mount
-  useEffect(() => {
-    const initialTheme = getStoredTheme();
-    setThemeState(initialTheme);
-    setEffectiveTheme(getEffectiveTheme(initialTheme));
-    applyTheme(initialTheme);
-  }, []);
+  // Compute effective theme synchronously (no need for separate state with effect)
+  const effectiveTheme = getEffectiveTheme(theme);
 
   // Watch for system theme changes when theme is 'system'
+  // Also handles theme application when theme changes
   useEffect(() => {
+    // Apply theme when it changes
+    applyTheme(theme);
+
+    // Only watch system theme when in 'system' mode
     if (theme !== 'system') return;
 
-    const cleanup = watchSystemTheme((systemTheme) => {
-      setEffectiveTheme(systemTheme);
+    const cleanup = watchSystemTheme(() => {
+      // Force re-render to recompute effectiveTheme
+      setThemeState((current) => current);
       applyTheme('system');
     });
 
     return cleanup;
-  }, [theme]);
-
-  // Update effective theme when theme changes
-  useEffect(() => {
-    const effective = getEffectiveTheme(theme);
-    setEffectiveTheme(effective);
-    applyTheme(theme);
   }, [theme]);
 
   // Set theme and persist

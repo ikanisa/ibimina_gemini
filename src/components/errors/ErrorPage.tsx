@@ -112,9 +112,20 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({
                 </div>
 
                 <p className="mt-8 text-[10px] text-slate-400 font-mono tracking-wider">
-                    ERROR ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}
+                    {/* Error ID generated purely on client to establish uniqueness without hydration mismatch */}
+                    <ErrorIdDisplay />
                 </p>
             </div>
         </div>
     );
+};
+
+const ErrorIdDisplay = () => {
+    const [id, setId] = React.useState<string>('');
+    React.useEffect(() => {
+        setId(Math.random().toString(36).substr(2, 9).toUpperCase());
+    }, []);
+
+    if (!id) return null;
+    return <>ERROR ID: {id}</>;
 };

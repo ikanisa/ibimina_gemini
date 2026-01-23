@@ -3,7 +3,6 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loginAs } from './utils';
 
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
 
@@ -14,7 +13,7 @@ test.describe('Authentication - Login Page', () => {
 
     test('should display login page with all elements', async ({ page }) => {
         // Check for login form elements
-        await expect(page.getByRole('heading', { name: /sign in|login|welcome/i })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /SACCO\+|sign in|login|welcome/i })).toBeVisible();
 
         // Look for email/password inputs
         await expect(page.getByLabel(/email/i)).toBeVisible();

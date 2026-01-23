@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Plus, 
+import {
+  Search,
+  Plus,
   ChevronRight,
   Briefcase
 } from 'lucide-react';
@@ -24,31 +24,37 @@ const GroupsList: React.FC<GroupsListProps> = ({ onSelectGroup }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    loadGroups();
-  }, [institutionId]);
-
   const loadGroups = async () => {
     if (!institutionId) {
       setLoading(false);
       return;
     }
-    
-    const { data, error } = await supabase
-      .from('groups')
-      .select('*')
-      .eq('institution_id', institutionId)
-      .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error loading groups:', error);
-    } else {
-      setGroups((data as SupabaseGroup[]) || []);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('institution_id', institutionId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading groups:', error);
+      } else {
+        setGroups((data as SupabaseGroup[]) || []);
+      }
+    } catch (err) {
+      console.error('Error loading groups:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const filteredGroups = groups.filter(g => 
+  useEffect(() => {
+    loadGroups();
+  }, [institutionId]);
+
+  const filteredGroups = groups.filter(g =>
     g.group_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -95,8 +101,8 @@ const GroupsList: React.FC<GroupsListProps> = ({ onSelectGroup }) => {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredGroups.map(group => (
-              <tr 
-                key={group.id} 
+              <tr
+                key={group.id}
                 onClick={() => onSelectGroup(group)}
                 className="hover:bg-slate-50 cursor-pointer transition-colors"
               >
@@ -109,11 +115,10 @@ const GroupsList: React.FC<GroupsListProps> = ({ onSelectGroup }) => {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    group.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                    group.status === 'PAUSED' ? 'bg-amber-100 text-amber-800' :
-                    'bg-slate-100 text-slate-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${group.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                      group.status === 'PAUSED' ? 'bg-amber-100 text-amber-800' :
+                        'bg-slate-100 text-slate-800'
+                    }`}>
                     {group.status}
                   </span>
                 </td>

@@ -28,9 +28,9 @@ export const StaffSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showDrawer, setShowDrawer] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const isPlatformAdmin = currentUserRole === 'Admin' || currentUserRole?.toUpperCase() === 'ADMIN';
-  
+
   // Form state
   const [newStaff, setNewStaff] = useState({
     email: '',
@@ -40,30 +40,26 @@ export const StaffSettings: React.FC = () => {
     institution_id: institutionId || ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [institutionId]);
-
   const loadData = async () => {
     setLoading(true);
-    
+
     // Load staff
     let query = supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     // Filter by institution unless platform admin
     if (!isPlatformAdmin && institutionId) {
       query = query.eq('institution_id', institutionId);
     }
-    
+
     const { data: staffData } = await query;
-    
+
     if (staffData) {
       setStaff(staffData);
     }
-    
+
     // Load institutions for platform admin
     if (isPlatformAdmin) {
       const { data: instData } = await supabase
@@ -71,28 +67,32 @@ export const StaffSettings: React.FC = () => {
         .select('id, name')
         .eq('status', 'active')
         .order('name');
-      
+
       if (instData) {
         setInstitutions(instData);
       }
     }
-    
+
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+  }, [institutionId]);
 
   const handleInviteStaff = async () => {
     if (!newStaff.email.trim() || !newStaff.role) {
       alert('Email and role are required');
       return;
     }
-    
+
     if (!newStaff.institution_id && newStaff.role !== 'admin') {
       alert('Institution is required for non-admin roles');
       return;
     }
-    
+
     setIsSaving(true);
-    
+
     // Call the staff invite edge function
     const { data, error } = await supabase.functions.invoke('staff-invite', {
       body: {
@@ -103,7 +103,7 @@ export const StaffSettings: React.FC = () => {
         institution_id: newStaff.institution_id || null
       }
     });
-    
+
     if (error) {
       console.error('Error inviting staff:', error);
       alert('Failed to invite staff member. Please try again.');
@@ -118,18 +118,18 @@ export const StaffSettings: React.FC = () => {
       });
       setShowDrawer(false);
     }
-    
+
     setIsSaving(false);
   };
 
   const handleDeactivate = async (staffId: string) => {
     if (!confirm('Are you sure you want to deactivate this staff member?')) return;
-    
+
     const { error } = await supabase
       .from('profiles')
       .update({ is_active: false })
       .eq('id', staffId);
-    
+
     if (error) {
       console.error('Error deactivating staff:', error);
       alert('Failed to deactivate staff member. Please try again.');
@@ -213,7 +213,7 @@ export const StaffSettings: React.FC = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${getRoleBadgeColor(member.role)}`}>
                     {member.role}
@@ -228,7 +228,7 @@ export const StaffSettings: React.FC = () => {
               </div>
             </div>
           ))}
-          
+
           {activeStaff.length === 0 && (
             <div className="text-center py-12">
               <UserCheck size={48} className="mx-auto mb-4 text-slate-300" />
@@ -287,7 +287,7 @@ export const StaffSettings: React.FC = () => {
               placeholder="staff@example.com"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Full Name
@@ -300,7 +300,7 @@ export const StaffSettings: React.FC = () => {
               placeholder="John Doe"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Phone
@@ -313,7 +313,7 @@ export const StaffSettings: React.FC = () => {
               placeholder="+250 7XX XXX XXX"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Role <span className="text-red-500">*</span>
@@ -328,7 +328,7 @@ export const StaffSettings: React.FC = () => {
               {isPlatformAdmin && <option value="admin">Admin</option>}
             </select>
           </div>
-          
+
           {isPlatformAdmin && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
