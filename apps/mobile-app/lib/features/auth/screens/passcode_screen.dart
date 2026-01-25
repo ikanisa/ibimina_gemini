@@ -21,6 +21,24 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
   // For setup flow confirms
   String? _firstEntry;
 
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isSetup) {
+      _checkBiometrics();
+    }
+  }
+
+  Future<void> _checkBiometrics() async {
+    // Small delay to let screen build
+    await Future.delayed(const Duration(milliseconds: 300));
+    final canAuth = await ref.read(passcodeServiceProvider).authenticateWithBiometrics();
+    if (canAuth) {
+      ref.read(isSessionUnlockedProvider.notifier).setUnlocked(true);
+      if (mounted) context.go('/home');
+    }
+  }
+
   Future<void> _submit() async {
     final code = _controller.text;
     if (code.length != 4) {
@@ -48,6 +66,10 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
         }
         // Success setup
         await ref.read(passcodeServiceProvider).createPasscode(code);
+        
+        // Mark session as unlocked
+        ref.read(isSessionUnlockedProvider.notifier).setUnlocked(true);
+        
         // Navigate Home
         if (mounted) context.go('/home'); 
       }
@@ -55,6 +77,9 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
       // Verify mode
       bool valid = await ref.read(passcodeServiceProvider).verifyPasscode(code);
       if (valid) {
+        // Mark session as unlocked
+        ref.read(isSessionUnlockedProvider.notifier).setUnlocked(true);
+        
         if (mounted) context.go('/home');
       } else {
         setState(() => _error = 'Incorrect passcode');

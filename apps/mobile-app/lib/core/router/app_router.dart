@@ -2,7 +2,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/core/router/router_notifier.dart';
 import 'package:ibimina_mobile/core/widgets/splash_screen.dart';
-import 'package:ibimina_mobile/features/auth/providers/auth_provider.dart';
+import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
+import 'package:ibimina_mobile/features/auth/providers/passcode_providers.dart';
 
 // Auth Screens - UPDATED
 import 'package:ibimina_mobile/features/auth/screens/phone_login_screen.dart';
@@ -21,13 +22,52 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: notifier, // Listens to auth state changes
     debugLogDiagnostics: true,
-    redirect: (context, state) {
-      // Basic Auth Guard
-      // real logic relies on notifier.authState which should come from Supabase/AuthService
-      // For now, let's keep it simple: initial launch -> splash -> checks auth -> redirects.
+    redirect: (context, state) async {
+      // 1. Check if authenticated (Simulated for now, would use authState)
+      final isAuthenticated = ref.read(isAuthenticatedProvider);
       
-      // If unauth and trying to access protected -> /auth/login
-      // This logic likely resides in RouterNotifier, but we can augment here if needed.
+      // 2. Check if passcode exists (Security Layer)
+      // We use `read` here carefully. Ideally this is sync or cached.
+      // For async, we rely on the notifier to trigger refresh.
+      // But inside redirect, async is allowed.
+      final hasPasscode = await ref.read(passcodeServiceProvider).hasPasscode();
+
+      final isAuthRoute = state.uri.path.startsWith('/auth');
+      final isSplash = state.uri.path == '/';
+
+      if (!isAuthenticated) {
+        // Allow access to auth routes
+        if (isAuthRoute || isSplash) return null;
+        // Redirect to login if accessing protected route
+        return '/auth/login';
+      }
+
+      // 3. Enforce Passcode if Authenticated
+      if (isAuthenticated && hasPasscode) {
+         // If coming from background or fresh start, we might need to lock.
+         // For now, let's just ensure if they are ON /home or similar, we verify.
+         // Real app lock uses AppLifecycleState. 
+         // Simplified: If authenticated and no passcode verified recently? 
+         // We'll trust the User session for now, but strict requirement says "App Passcode".
+         // Let's check if we are already in passcode screen to avoid loop.
+         if (state.uri.path == '/auth/passcode') return null;
+         
+         // IMPORTANT: This is a simplified "Lock on Start" 
+         // A robust impl needs a "Session Timeout" or "Last Active" check provided by PasscodeService.
+         // As per rules, we just need "App lock on start".
+         // On Hot Restart/Fresh Launch, this runs.
+         // We need a way to know if "unlocked" in this session.
+         // We'll add `isSessionUnlockedProvider` to `passcode_providers.dart` next.
+         final isUnlocked = ref.read(isSessionUnlockedProvider);
+         if (!isUnlocked) {
+            return '/auth/passcode';
+         }
+      }
+
+      // 4. Membership Check (Simulated)
+      // If auth & unlocked, but on auth pages? go home.
+      if (isAuthRoute) return '/home';
+
       return null; 
     },
     routes: [

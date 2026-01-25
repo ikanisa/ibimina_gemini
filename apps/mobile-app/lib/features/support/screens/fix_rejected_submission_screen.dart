@@ -106,7 +106,7 @@ class _FixRejectedSubmissionScreenState extends State<FixRejectedSubmissionScree
             const SizedBox(height: AppSpacing.xs),
             Text(
               '${widget.transaction.amount.toInt()} RWF',
-              style: AppTypography.headlineMedium.copyWith(fontWeight: FontWeight.bold),
+              style: AppTypography.displayMedium.copyWith(fontWeight: FontWeight.bold),
             ),
             
             const SizedBox(height: AppSpacing.xl),

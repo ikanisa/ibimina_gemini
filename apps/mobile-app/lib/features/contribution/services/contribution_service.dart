@@ -10,9 +10,17 @@ import 'package:ibimina_mobile/features/ledger/services/ledger_service.dart';
 import 'package:path/path.dart' as path;
 
 class ContributionService {
-  final _momoService = MoMoService();
-  final _ledgerService = LedgerService();
-  final _imagePicker = ImagePicker();
+  final MoMoService _momoService;
+  final LedgerService _ledgerService;
+  final ImagePicker _imagePicker;
+
+  ContributionService({
+    MoMoService? momoService,
+    LedgerService? ledgerService,
+    ImagePicker? imagePicker,
+  })  : _momoService = momoService ?? MoMoService(),
+        _ledgerService = ledgerService ?? LedgerService(),
+        _imagePicker = imagePicker ?? ImagePicker();
 
   /// Maximum contribution amount in RWF.
   static const int maxAmount = 4000;

@@ -1,10 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ibimina_mobile/features/contribution/services/contribution_service.dart';
 import 'package:ibimina_mobile/features/ledger/models/transaction_model.dart';
+import 'package:ibimina_mobile/features/momo/services/momo_service.dart';
+import 'package:ibimina_mobile/features/ledger/services/ledger_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockMoMoService extends Mock implements MoMoService {}
+class MockLedgerService extends Mock implements LedgerService {}
+class MockImagePicker extends Mock implements ImagePicker {} // Just in case
 
 void main() {
   group('ContributionService Logic', () {
-    final service = ContributionService();
+    late ContributionService service;
+
+    setUp(() {
+       service = ContributionService(
+         momoService: MockMoMoService(),
+         ledgerService: MockLedgerService(),
+         // ImagePicker might not need mocking if we don't call it, but good practice
+       );
+    });
 
     test('validateAmount returns error if amount > 4000', () {
       expect(service.validateAmount(4001), 'Maximum contribution is 4,000 RWF');

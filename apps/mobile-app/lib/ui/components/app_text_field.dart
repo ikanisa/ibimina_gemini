@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../tokens/spacing.dart';
 
+import 'package:flutter/services.dart';
+
 /// Standard text input field with consistent styling.
 /// 
 /// Usage:
@@ -26,6 +28,7 @@ class AppTextField extends StatelessWidget {
     this.maxLines = 1,
     this.enabled = true,
     this.errorText,
+    this.inputFormatters,
   });
 
   final String label;
@@ -39,6 +42,7 @@ class AppTextField extends StatelessWidget {
   final int maxLines;
   final bool enabled;
   final String? errorText;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +65,7 @@ class AppTextField extends StatelessWidget {
           maxLines: maxLines,
           enabled: enabled,
           style: Theme.of(context).textTheme.bodyLarge,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             hintText: hint,
             suffixIcon: suffixIcon,

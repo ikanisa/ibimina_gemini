@@ -116,7 +116,7 @@ class WalletScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 currencyFormat.format(confirmed),
-                style: AppTypography.displaySmall.copyWith(
+                style: AppTypography.displayMedium.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
@@ -181,7 +181,7 @@ class WalletScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.lightBorder.withValues(alpha: 0.5)),
           ),
           child: Column(
             children: [

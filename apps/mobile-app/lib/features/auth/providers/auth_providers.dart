@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ibimina_mobile/features/auth/services/auth_service.dart';
@@ -19,14 +20,16 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return authService.isAuthenticated;
 });
 
-final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
-  return AuthController(ref.watch(authServiceProvider));
-});
+final authControllerProvider = AsyncNotifierProvider<AuthController, void>(AuthController.new);
 
-class AuthController extends StateNotifier<AsyncValue<void>> {
-  final AuthService _authService;
+class AuthController extends AsyncNotifier<void> {
+  late final AuthService _authService;
 
-  AuthController(this._authService) : super(const AsyncValue.data(null));
+  @override
+  FutureOr<void> build() {
+    _authService = ref.watch(authServiceProvider);
+    return null;
+  }
 
   Future<void> sendOtp(String phone) async {
     state = const AsyncValue.loading();

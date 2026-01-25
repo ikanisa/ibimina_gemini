@@ -152,7 +152,7 @@ class _ProofUploadScreenState extends ConsumerState<ProofUploadScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.outline, style: BorderStyle.solid),
+                  border: Border.all(color: AppColors.lightBorder, style: BorderStyle.solid),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

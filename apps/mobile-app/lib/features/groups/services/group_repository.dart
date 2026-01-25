@@ -41,6 +41,7 @@ class GroupRepository {
   }
 
   /// Creates a new group.
+  /// Creates a new group.
   Future<Group> createGroup({
     required String name,
     required String institutionId,
@@ -49,58 +50,28 @@ class GroupRepository {
     int contributionAmount = 0,
     String frequency = 'MONTHLY',
   }) async {
-    // 1. Check if user already has an active membership anywhere
-    final currentInstitutionId = await getMyInstitutionId();
-    if (currentInstitutionId != null) {
-      try {
-        final existingMembership = await getMyMembership(currentInstitutionId);
-         if (existingMembership.isActive) {
-            throw Exception('You are already a member of a group (${existingMembership.group?.name ?? 'Unknown'}). You cannot create another.');
-         }
-      } catch (_) {
-        // No active membership found for current institution, proceed.
-      }
-    }
-
-    // 2. Determine status
-    final status = type == GroupType.public ? 'PENDING_APPROVAL' : 'ACTIVE';
-    final inviteCode = _generateInviteCode();
-
-    final response = await _supabase.from('groups').insert({
-      'group_name': name,
-      'institution_id': institutionId,
-      'description': description,
-      'type': type.name.toUpperCase(),
-      'invite_code': inviteCode,
-      'status': status,
-      'contribution_amount': contributionAmount,
-      'frequency': frequency,
-    }).select().single();
-
-    final group = Group.fromJson(response);
-    
-    var memberId = await _getMyMemberId(institutionId);
-    if (memberId == null) {
-       final user = _supabase.auth.currentUser!;
-       final memberRes = await _supabase.from('members').insert({
-          'institution_id': institutionId,
-          'user_id': user.id,
-          'full_name': user.userMetadata?['full_name'] ?? user.email ?? 'User',
-          'phone': user.phone ?? '',
-          'status': 'ACTIVE',
-       }).select().single();
-       memberId = memberRes['id'] as String;
-    }
-
-    await _supabase.from('group_members').insert({
-      'institution_id': institutionId,
-      'group_id': group.id,
-      'member_id': memberId,
-      'role': 'CHAIR',
-      'status': 'GOOD_STANDING',
+    // 1. Call Atomic RPC (handles One-Group check internally)
+    final response = await _supabase.rpc('create_group_atomic', params: {
+      'p_name': name,
+      'p_institution_id': institutionId,
+      'p_description': description,
+      'p_type': type.name.toUpperCase(),
+      'p_contribution_amount': contributionAmount,
+      'p_frequency': frequency,
     });
 
-    return group;
+    final data = response as Map<String, dynamic>;
+    
+    if (data['status'] == 'error') {
+      throw Exception(data['message'] ?? 'Failed to create group');
+    }
+
+    // 2. Fetch the full group object to return
+    // (Optimization: modify RPC to return full object, but for now fetch is fine)
+    final groupId = data['group_id'] as String;
+    
+    final groupRes = await _supabase.from('groups').select().eq('id', groupId).single();
+    return Group.fromJson(groupRes);
   }
 
   /// Join a group via invite code.

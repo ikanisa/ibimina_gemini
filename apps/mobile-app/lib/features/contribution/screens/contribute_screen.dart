@@ -104,7 +104,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SectionHeader(title: 'Complete Payment', centered: true),
+              const Center(child: SectionHeader(title: 'Complete Payment')),
               const SizedBox(height: AppSpacing.lg),
               
               InfoCard(
@@ -132,13 +132,13 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.outline),
+                  border: Border.all(color: AppColors.lightBorder),
                 ),
                 child: Column(
                   children: [
                     Text(
                       '*182*1*1*$amount#',
-                      style: AppTypography.headlineMedium.copyWith(
+                      style: AppTypography.displayMedium.copyWith(
                             color: AppColors.primary,
                             letterSpacing: 2,
                       ),
