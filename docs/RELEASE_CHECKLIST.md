@@ -1,106 +1,36 @@
-# Release Checklist
+# Release Checklist (Production)
 
-> **Mission**: Make deployment boring (boring is good).
+**Version:** ________________
+**Date:** ________________
 
-## Pre-Deployment
+## 1. Pre-Build Gates
+- [ ] **Git:** Branch merged to `main`. Tag created (e.g., `v1.0.0`).
+- [ ] **Tests:** `flutter test` passed (100%).
+- [ ] **Lint:** `flutter analyze` passed (0 errors).
+- [ ] **Version:** `pubspec.yaml` version bumped.
 
-### Code Quality
-- [ ] `npm run typecheck` passes
-- [ ] `npm run lint` passes (no warnings)
-- [ ] `npm run test` passes
+## 2. Configuration & Secrets
+- [ ] **Env:** Production `.env` or secrets injected in CI.
+- [ ] **Keys:** Release keystore (`.jks`) verified and available.
+- [ ] **Sentry:** DSN set for production.
+- [ ] **Supabase:** Pointing to PROD project (not local/staging).
 
-### Build Verification
-```bash
-rm -rf dist node_modules
-npm ci
-npm run build
-npm run preview  # Test locally at http://localhost:4173
-```
+## 3. Build
+- [ ] Command: `flutter build apk --flavor prod --release`
+- [ ] Command: `flutter build appbundle --flavor prod --release` (for Play Store)
 
-- [ ] Build completes without errors
-- [ ] Preview app loads correctly
-- [ ] Test deep link: Navigate to `/dashboard`, refresh → works (no 404)
+## 4. Verification (The "Don't Get Fired" Checks)
+- [ ] **Install:** Install the *actual* release APK on a physical device.
+- [ ] **Smoke Test:** Run `docs/QA_SMOKE_TEST.md`.
+- [ ] **Upgrade:** Install OVER the previous version. Does it keep data (if valid)?
+- [ ] **Crash:** Trigger a safe exception (if enabled) -> Check Sentry dashboard.
 
-### Environment Check
-- [ ] Verify `VITE_SUPABASE_URL` is set in Cloudflare Dashboard
-- [ ] Verify `VITE_SUPABASE_ANON_KEY` is set in Cloudflare Dashboard
-- [ ] Verify `NODE_VERSION=20` is set in Cloudflare Dashboard
+## 5. Store Assets
+- [ ] **Screenshots:** high-res, up-to-date, no debug banners.
+- [ ] **Text:** "What's New" updated.
+- [ ] **Privacy:** URL is active.
 
----
-
-## Deployment
-
-### Push to Production
-```bash
-git checkout main
-git pull origin main
-git push origin main
-```
-
-Cloudflare Pages will automatically build and deploy.
-
-### Monitor Build
-1. Go to **Cloudflare Dashboard → Pages → sacco → Deployments**
-2. Watch the build log for errors
-3. Wait for "Success" status
-
----
-
-## Post-Deployment Verification
-
-### Functionality
-- [ ] Visit production URL → App loads (no white screen)
-- [ ] Login works
-- [ ] Navigate to key pages (Dashboard, Members, Groups)
-- [ ] Logout works
-
-### PWA
-- [ ] Open DevTools → Application → Service Worker → Registered
-- [ ] Check "Update on reload" and refresh → New SW activates
-
-### Performance
-- [ ] Run Lighthouse audit → Score > 90
-- [ ] Check Network tab → Assets have correct cache headers
-
-### Security Headers
-```bash
-curl -I https://your-app.pages.dev | grep -E "(X-Frame|X-Content|Content-Security)"
-```
-- [ ] X-Frame-Options: DENY
-- [ ] X-Content-Type-Options: nosniff
-- [ ] Content-Security-Policy: present
-
----
-
-## Rollback Procedure
-
-### When to Rollback
-- White screen / app won't load
-- Critical feature broken
-- Security vulnerability discovered
-
-### How to Rollback (< 1 minute)
-
-1. **Cloudflare Dashboard** → Pages → sacco → Deployments
-2. Find the **last known good deployment**
-3. Click **"..."** → **"Rollback to this deployment"**
-4. Confirm rollback
-5. Verify app loads correctly
-
-### If Rollback Doesn't Fix It
-
-| Check | Action |
-|-------|--------|
-| Database | Review recent RLS/schema changes in Supabase |
-| Edge Functions | Check Supabase Edge Function logs |
-| Environment | Verify all env vars are set in Cloudflare Dashboard |
-
----
-
-## Emergency Contacts
-
-| Role | Contact |
-|------|---------|
-| DevOps | [Add contact] |
-| Backend | [Add contact] |
-| Product | [Add contact] |
+## 6. Rollout
+- [ ] Upload to Play Console (Closed Testing / Internal Track first).
+- [ ] Promote to Production (Staged Rollout: 20%).
+- [ ] Monitor Sentry for 24h.
