@@ -34,7 +34,7 @@ class AppConfig {
 
   static AppConfig get instance {
     if (_instance == null) {
-      throw Exception("AppConfig not initialized. Call AppConfig.init() first.");
+      throw Exception('AppConfig not initialized. Call AppConfig.init() first.');
     }
     return _instance!;
   }

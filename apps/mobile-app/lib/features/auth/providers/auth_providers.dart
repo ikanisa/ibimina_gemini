@@ -18,3 +18,23 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   final authService = ref.watch(authServiceProvider);
   return authService.isAuthenticated;
 });
+
+final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
+  return AuthController(ref.watch(authServiceProvider));
+});
+
+class AuthController extends StateNotifier<AsyncValue<void>> {
+  final AuthService _authService;
+
+  AuthController(this._authService) : super(const AsyncValue.data(null));
+
+  Future<void> sendOtp(String phone) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _authService.sendOtp(phone));
+  }
+
+  Future<void> verifyOtp({required String phone, required String otp}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _authService.verifyOtp(phone, otp));
+  }
+}

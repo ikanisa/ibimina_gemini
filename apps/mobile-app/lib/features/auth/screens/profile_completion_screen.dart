@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
 import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
 import 'package:ibimina_mobile/features/auth/providers/profile_providers.dart';
-import 'package:ibimina_mobile/features/auth/screens/membership_check_screen.dart';
 
 /// Profile completion screen - collect full name, MoMo number, WhatsApp number.
 class ProfileCompletionScreen extends ConsumerStatefulWidget {

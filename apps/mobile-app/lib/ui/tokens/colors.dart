@@ -78,24 +78,24 @@ abstract class AppColors {
   // LEGACY ALIASES (Deprecated)
   // ============================================
   
-  @deprecated
+  @Deprecated('Use darkBackground instead')
   static const Color background = darkBackground;
   
-  @deprecated
+  @Deprecated('Use darkSurface instead')
   static const Color surface = darkSurface;
   
-  @deprecated
+  @Deprecated('Use darkSurfaceVariant instead')
   static const Color surfaceLight = darkSurfaceVariant;
   
-  @deprecated
+  @Deprecated('Use darkTextPrimary instead')
   static const Color textPrimary = darkTextPrimary;
   
-  @deprecated
+  @Deprecated('Use darkTextSecondary instead')
   static const Color textSecondary = darkTextSecondary;
 
-  @deprecated
+  @Deprecated('Use darkBorder instead')
   static const Color border = darkBorder;
 
-  @deprecated
+  @Deprecated('Use darkSurfaceVariant instead')
   static const Color surfaceVariant = darkSurfaceVariant;
 }

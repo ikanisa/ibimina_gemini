@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
 import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
-import 'package:ibimina_mobile/features/auth/screens/email_auth_screen.dart';
-import 'package:ibimina_mobile/features/auth/screens/login_screen.dart';
-import 'package:ibimina_mobile/features/auth/screens/create_passcode_screen.dart';
 
 /// Auth method chooser screen - Phone / Email / Google.
 class AuthMethodScreen extends ConsumerStatefulWidget {

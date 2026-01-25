@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
 import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
-import 'package:ibimina_mobile/features/dashboard/screens/dashboard_screen.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String phone;

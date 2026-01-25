@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
-import 'package:ibimina_mobile/features/auth/screens/auth_method_screen.dart';
 
 /// Welcome screen - entry point of the app.
 class WelcomeScreen extends StatelessWidget {

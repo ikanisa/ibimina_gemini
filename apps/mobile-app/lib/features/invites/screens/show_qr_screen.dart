@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:ibimina_mobile/core/theme/app_theme.dart'; // Check where AppColors is
+// Check where AppColors is
 import 'package:ibimina_mobile/ui/tokens/colors.dart'; // Assuming this is where it is based on scan
 import 'package:ibimina_mobile/features/invites/services/qr_code_service.dart';
 

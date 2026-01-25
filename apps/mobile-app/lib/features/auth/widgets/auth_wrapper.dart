@@ -13,7 +13,6 @@ import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
 import 'package:ibimina_mobile/features/invites/providers/invite_providers.dart';
 import 'package:ibimina_mobile/features/groups/screens/join_group_screen.dart';
 import 'package:ibimina_mobile/features/groups/screens/pending_approval_screen.dart';
-import 'package:ibimina_mobile/features/groups/models/membership.dart';
 
 /// Auth wrapper that handles the complete onboarding flow:
 /// 1. Not authenticated → WelcomeScreen

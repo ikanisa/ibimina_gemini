@@ -37,6 +37,7 @@ class ProfileService {
     required String whatsappNumber,
     String? district,
     String? sector,
+    String? institutionId,
   }) async {
     final response = await supabase
         .from(_tableName)
@@ -47,6 +48,7 @@ class ProfileService {
           'whatsapp_number': whatsappNumber,
           'district': district,
           'sector': sector,
+          'institution_id': institutionId,
         })
         .select()
         .single();

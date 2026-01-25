@@ -41,7 +41,7 @@ class BalanceHeader extends StatelessWidget {
             letterSpacing: 1.2,
           ),
         ),
-        const SizedBox(height: Spacing.xs),
+        const SizedBox(height: AppSpacing.xs),
         RichText(
           text: TextSpan(
             style: theme.textTheme.displayLarge?.copyWith(
@@ -61,7 +61,7 @@ class BalanceHeader extends StatelessWidget {
           ),
         ),
         if (subtitle != null) ...[
-          const SizedBox(height: Spacing.xs),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             subtitle!,
             style: theme.textTheme.bodyMedium?.copyWith(

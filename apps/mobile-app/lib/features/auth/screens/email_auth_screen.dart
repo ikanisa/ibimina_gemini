@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
 import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
-import 'package:ibimina_mobile/features/auth/screens/create_passcode_screen.dart';
 
 /// Email authentication screen - signup/login with email and password.
 class EmailAuthScreen extends ConsumerStatefulWidget {

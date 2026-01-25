@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:ibimina_mobile/features/groups/models/group_model.dart';
 import 'package:ibimina_mobile/features/groups/services/group_repository.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Provider for GroupRepository (assuming one exists or defined here for simplicity of this screen)
 final groupRepositoryProvider = Provider((ref) => GroupRepository());

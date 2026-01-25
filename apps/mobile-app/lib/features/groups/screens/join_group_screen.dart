@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 
 class JoinGroupScreen extends ConsumerStatefulWidget {
   final String? initialCode;
@@ -14,12 +15,16 @@ class JoinGroupScreen extends ConsumerStatefulWidget {
 class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
   late final TextEditingController _inviteCodeController;
   final _searchController = TextEditingController();
+  
+  // Debounce logic can be handled via simple state or robust utils
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _inviteCodeController = TextEditingController(text: widget.initialCode);
+    
+    // Check membership on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final membership = ref.read(myMembershipProvider).asData?.value;
       if (membership != null && membership.isActive) {
@@ -38,9 +43,9 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
     super.dispose();
   }
 
-  Future<void> _joinWithCode() async {
-    final code = _inviteCodeController.text.trim();
-    if (code.isEmpty) {
+  Future<void> _joinWithCode(String code) async {
+    final cleanCode = code.trim();
+    if (cleanCode.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter an invite code')),
       );
@@ -48,7 +53,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
     }
 
     try {
-      await ref.read(groupControllerProvider.notifier).joinGroup(code);
+      await ref.read(groupControllerProvider.notifier).joinGroup(cleanCode);
       if (mounted) context.go('/group/view');
     } catch (e) {
       if (mounted) {
@@ -63,99 +68,88 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(searchGroupsProvider(_searchQuery));
     final controllerState = ref.watch(groupControllerProvider);
+    final isLoading = controllerState.isLoading;
 
-    return Scaffold(
+    return AppScaffold(
       appBar: AppBar(title: const Text('Join a Group')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Have an invite code?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            TextField(
+            const SectionHeader(title: 'Have an invite code?'),
+            const SizedBox(height: AppSpacing.md),
+            
+            AppTextField(
               controller: _inviteCodeController,
-              decoration: InputDecoration(
-                labelText: 'Enter Invite Code',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.arrow_forward),
-                  onPressed: controllerState.isLoading ? null : _joinWithCode,
-                ),
-              ),
+              label: 'Invite Code',
+              hint: 'e.g., A7X29B',
+              enabled: !isLoading,
+              suffixIcon: isLoading 
+                  ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) 
+                  : IconButton(
+                    icon: const Icon(Icons.arrow_forward_rounded, color: AppColors.primary),
+                    onPressed: () => _joinWithCode(_inviteCodeController.text),
+                  ),
             ),
-            if (controllerState.isLoading)
-              const Padding(
-                padding: EdgeInsets.only(top: 8.0),
-                child: LinearProgressIndicator(),
-              ),
-            const Divider(height: 40),
-            const Text(
-              'Or search for a public group',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            TextField(
+            
+            const SizedBox(height: AppSpacing.xl),
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.xl),
+            
+            const SectionHeader(title: 'Find a public group'),
+            const SizedBox(height: AppSpacing.md),
+            
+            AppTextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Search Groups',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
+              label: 'Search Public Groups',
+              hint: 'Search by name...',
+              suffixIcon: const Icon(Icons.search_rounded),
               onChanged: (val) {
-                // Debounce could be added here
                 setState(() => _searchQuery = val);
               },
             ),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: AppSpacing.lg),
+
             searchResults.when(
               data: (groups) {
                 if (groups.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Center(child: Text('No groups found.')),
+                  return EmptyState(
+                      title: 'No Groups Found',
+                      message: _searchQuery.isEmpty 
+                          ? 'Start typing to search groups.' 
+                          : 'No public groups found matching "$_searchQuery".',
+                      icon: Icons.search_off_rounded,
                   );
                 }
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: groups.length,
-                  itemBuilder: (context, index) {
-                    final group = groups[index];
-                    return ListTile(
-                      title: Text(group.name),
-                      subtitle: Text('${group.description ?? "No description"}\nMembers: ?'),
-                      isThreeLine: true,
-                      trailing: ElevatedButton(
-                        child: const Text('Join'),
-                        onPressed: () async {
-                           // For public groups, we might auto-join or request. 
-                           // Repository joinGroup currently uses inviteCode.
-                           // Need to check if we can join by ID or if public groups imply we can just "Join".
-                           // For now, assuming maybe invite code is hidden but required or we need another method.
-                           // Actually repo only has joinGroup(inviteCode).
-                           // If public group has an invite code, we use that.
-                           if (group.inviteCode != null) {
-                             try {
-                               await ref.read(groupControllerProvider.notifier).joinGroup(group.inviteCode!);
-                               if (mounted) context.go('/group/view');
-                             } catch (e) {
-                               if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-                             }
-                           } else {
-                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot join this group (No code).')));
-                           }
-                        },
+                
+                return Column(
+                  children: groups.map((group) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: InfoCard(
+                        title: group.name,
+                        subtitle: '${group.description ?? "Regular savings group"}\n'
+                               'Members: ? • Min: ${group.contributionAmount} RWF', 
+                        leading: const Icon(Icons.groups_2_outlined),
+                        trailing: TextButton(
+                             onPressed: isLoading ? null : () async {
+                               if (group.inviteCode != null) {
+                                  await _joinWithCode(group.inviteCode!);
+                               } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No invite code available for this group.')));
+                               }
+                             },
+                             child: const Text('JOIN'),
+                           ),
                       ),
                     );
-                  },
+                  }).toList(),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Text('Error: $e'),
+              error: (e, s) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.error))),
             ),
           ],
         ),

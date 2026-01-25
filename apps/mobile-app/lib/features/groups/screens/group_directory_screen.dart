@@ -5,7 +5,6 @@ import 'package:ibimina_mobile/features/groups/models/group_model.dart';
 import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
 import 'package:ibimina_mobile/ui/components/app_scaffold.dart';
 import 'package:ibimina_mobile/ui/components/app_text_field.dart';
-import 'package:ibimina_mobile/ui/components/buttons.dart';
 import 'package:ibimina_mobile/ui/components/info_card.dart';
 
 class GroupDirectoryScreen extends ConsumerStatefulWidget {

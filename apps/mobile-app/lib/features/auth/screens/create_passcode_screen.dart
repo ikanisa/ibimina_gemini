@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
 import 'package:ibimina_mobile/features/auth/providers/passcode_providers.dart';
-import 'package:ibimina_mobile/features/auth/screens/biometric_check_screen.dart';
 
 class CreatePasscodeScreen extends ConsumerStatefulWidget {
   const CreatePasscodeScreen({super.key});
@@ -148,7 +147,7 @@ class _CreatePasscodeScreenState extends ConsumerState<CreatePasscodeScreen> {
                 child: SwitchListTile(
                   title: const Text('Enable Biometrics'),
                   value: _biometricsEnabled,
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   onChanged: (value) => setState(() => _biometricsEnabled = value),
                 ),
               ),

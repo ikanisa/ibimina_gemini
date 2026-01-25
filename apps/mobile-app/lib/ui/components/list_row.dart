@@ -44,8 +44,8 @@ class ListRow extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: padding ?? const EdgeInsets.symmetric(
-          vertical: Spacing.ms,
-          horizontal: Spacing.md,
+          vertical: AppSpacing.ms,
+          horizontal: AppSpacing.md,
         ),
         child: Row(
           children: [
@@ -63,7 +63,7 @@ class ListRow extends StatelessWidget {
                   color: iconColor ?? colorScheme.primary,
                 ),
               ),
-              const SizedBox(width: Spacing.ms),
+              const SizedBox(width: AppSpacing.ms),
             ],
             Expanded(
               child: Column(
@@ -86,7 +86,7 @@ class ListRow extends StatelessWidget {
               ),
             ),
             if (trailing != null) ...[
-              const SizedBox(width: Spacing.sm),
+              const SizedBox(width: AppSpacing.sm),
               trailing!,
             ],
           ],

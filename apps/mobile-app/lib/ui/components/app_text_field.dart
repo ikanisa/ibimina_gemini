@@ -25,6 +25,7 @@ class AppTextField extends StatelessWidget {
     this.suffixIcon,
     this.maxLines = 1,
     this.enabled = true,
+    this.errorText,
   });
 
   final String label;
@@ -37,6 +38,7 @@ class AppTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final int maxLines;
   final bool enabled;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,7 @@ class AppTextField extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: Spacing.sm),
+        const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
@@ -62,6 +64,7 @@ class AppTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             suffixIcon: suffixIcon,
+            errorText: errorText,
           ),
           onTapOutside: (event) {
             FocusManager.instance.primaryFocus?.unfocus();

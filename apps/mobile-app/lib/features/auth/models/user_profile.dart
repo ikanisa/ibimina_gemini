@@ -9,6 +9,7 @@ class UserProfile {
   final String whatsappNumber;
   final String? district;
   final String? sector;
+  final String? institutionId;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -20,6 +21,7 @@ class UserProfile {
     required this.whatsappNumber,
     this.district,
     this.sector,
+    this.institutionId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -40,6 +42,7 @@ class UserProfile {
       whatsappNumber: json['whatsapp_number'] as String? ?? '',
       district: json['district'] as String?,
       sector: json['sector'] as String?,
+      institutionId: json['institution_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
@@ -57,6 +60,7 @@ class UserProfile {
       'whatsapp_number': whatsappNumber,
       'district': district,
       'sector': sector,
+      'institution_id': institutionId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -71,6 +75,7 @@ class UserProfile {
     String? whatsappNumber,
     String? district,
     String? sector,
+    String? institutionId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -82,6 +87,7 @@ class UserProfile {
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       district: district ?? this.district,
       sector: sector ?? this.sector,
+      institutionId: institutionId ?? this.institutionId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

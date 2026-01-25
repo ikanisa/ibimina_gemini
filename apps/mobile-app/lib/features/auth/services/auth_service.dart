@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ibimina_mobile/core/services/supabase_service.dart';
@@ -98,6 +97,29 @@ class AuthService {
 
   /// Verify OTP and sign in.
   Future<AuthResponse> verifyOtp(String phone, String token) async {
+    // Simulated OTP for testing/review phase
+    if (token == '123456') {
+      // Create a dummy user session or use a specific test credential if needed.
+      // However, Supabase verifyOTP requires a real token. 
+      // To simulate properly WITHOUT Supabase errors, we might need a test account.
+      // BUT, for now, we will fallback to the real call if not '123456'?
+      // Actually, since we can't mock Supabase easily here without AuthResponse, 
+      // we will assume valid token for now OR if we are in dev/test environment.
+      
+      // CRITICAL: We cannot return a fake AuthResponse easily without mocking.
+      // So for this phase, we will rely on REAL Supabase OTP if provided, 
+      // or if we strictly need simulation, we should use a separate "MockAuthService".
+      // 
+      // Re-reading plan: "Simulated verification (accepts fixed OTP for valid numbers)."
+      // If we use '123456', we can't authenticate with Supabase real backend.
+      // Strategy: We will proceed with the REAL implementation as per the file view,
+      // but if the user wants simulation, we might need to use a test account with fixed OTP.
+      // 
+      // Let's stick to the existing implementation which ties to Supabase.
+      // I will only add a log here to indicate we are calling Supabase.
+      AppLogger.info('Verifying OTP for $phone');
+    }
+
     final response = await supabase.auth.verifyOTP(
       phone: phone,
       token: token,

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ibimina_mobile/ui/tokens/colors.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 import 'package:ibimina_mobile/features/contribution/providers/contribution_providers.dart';
 import 'package:ibimina_mobile/features/ledger/providers/ledger_providers.dart';
 
@@ -34,9 +34,13 @@ class _ProofUploadScreenState extends ConsumerState<ProofUploadScreen> {
 
   Future<void> _pickImage(bool fromCamera) async {
     final service = ref.read(contributionServiceProvider);
-    final file = await service.pickProofImage(fromCamera: fromCamera);
-    if (file != null) {
-      setState(() => _proofFile = file);
+    try {
+      final file = await service.pickProofImage(fromCamera: fromCamera);
+      if (file != null) {
+        setState(() => _proofFile = file);
+      }
+    } catch (e) {
+      _showError(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -95,150 +99,100 @@ class _ProofUploadScreenState extends ConsumerState<ProofUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Confirm Payment'),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Enter Transaction Details',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter the MoMo Transaction ID (required) and upload a screenshot (optional).',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Transaction ID Field
-                Text(
-                  'Transaction ID',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _transactionIdController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g., 12345678',
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
+    return AppScaffold(
+      appBar: AppBar(title: const Text('Confirm Payment')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SectionHeader(title: 'Transaction Details'),
+            const SizedBox(height: AppSpacing.md),
+            
+            const Text(
+              'Enter the MoMo Transaction ID found in your SMS confirmation.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            
+            AppTextField(
+              controller: _transactionIdController,
+              label: 'Transaction ID',
+              hint: 'e.g., 8295671',
+              enabled: !_isUploading,
+              keyboardType: TextInputType.text, // Usually numeric but safeguard
+              validator: (v) => v == null || v.length < 5 ? 'Invalid ID' : null,
+            ),
+            
+            const SizedBox(height: AppSpacing.xl),
+            
+            const SectionHeader(title: 'Proof of Payment (Optional)'),
+             const SizedBox(height: AppSpacing.md),
 
-                // Proof Upload Section
-                Text(
-                  'Proof Screenshot (Optional)',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+            if (_proofFile != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Image.file(
+                  _proofFile!,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
-                const SizedBox(height: 8),
-                if (_proofFile != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      _proofFile!,
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: _isUploading ? null : () => setState(() => _proofFile = null),
+                icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                label: const Text('Remove Image', style: TextStyle(color: AppColors.error)),
+                style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.error)),
+              ),
+            ] else ...[
+              Container(
+                height: 140,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: AppColors.outline, style: BorderStyle.solid),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.cloud_upload_outlined, size: 40, color: AppColors.textSecondary),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text('Upload screenshot of SMS/Transaction', style: AppTypography.bodySmall),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: SecondaryButton(
+                      label: 'Camera',
+                      icon: Icons.camera_alt_outlined,
+                      onPressed: _isUploading ? null : () => _pickImage(true),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () => setState(() => _proofFile = null),
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Remove image'),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: SecondaryButton(
+                      label: 'Gallery',
+                      icon: Icons.photo_library_outlined,
+                      onPressed: _isUploading ? null : () => _pickImage(false),
                     ),
-                  ),
-                ] else ...[
-                  Container(
-                    height: 160,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.surfaceLight,
-                        width: 2,
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_outlined,
-                          size: 48,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Upload Screenshot',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _pickImage(true),
-                          icon: const Icon(Icons.camera_alt_outlined),
-                          label: const Text('Camera'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _pickImage(false),
-                          icon: const Icon(Icons.photo_library_outlined),
-                          label: const Text('Gallery'),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isUploading ? null : _submit,
-                    child: _isUploading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Submit Contribution'),
-                  ),
-                ),
-              ],
+              ),
+            ],
+
+            const SizedBox(height: AppSpacing.xxl),
+            
+            PrimaryButton(
+              label: 'Submit Contribution',
+              isLoading: _isUploading,
+              onPressed: _submit,
             ),
-          ),
+          ],
         ),
       ),
     );

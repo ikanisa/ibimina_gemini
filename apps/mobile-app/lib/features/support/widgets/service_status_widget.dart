@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../../ui/tokens/colors.dart';
 
 class ServiceStatusWidget extends StatelessWidget {
-  const ServiceStatusWidget({super.key});
+  final bool isOperational;
+
+  const ServiceStatusWidget({super.key, this.isOperational = true});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Connect to remote config for real status
-    final isOperational = true;
+    // TODO: Connect to remote config for remote status
+    // final isOperational = true;
     const errorMessage = 'Some systems are experiencing delays.';
 
     final isDark = Theme.of(context).brightness == Brightness.dark;

@@ -1,8 +1,12 @@
 // Tokens
+export 'tokens/colors.dart';
 export 'tokens/typography.dart';
 export 'tokens/spacing.dart';
 export 'tokens/radius.dart';
 export 'tokens/motion.dart';
+
+// Theme
+export 'theme/app_theme.dart';
 
 // Components
 export 'components/app_scaffold.dart';

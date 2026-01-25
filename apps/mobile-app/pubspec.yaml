@@ -57,6 +57,7 @@ dependencies:
   path: ^1.9.0   # For file path handling
 
 dev_dependencies:
+  build_runner:
   flutter_test:
     sdk: flutter
 

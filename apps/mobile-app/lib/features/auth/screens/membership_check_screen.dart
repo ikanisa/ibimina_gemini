@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/ui/tokens/colors.dart';
 import 'package:ibimina_mobile/features/auth/providers/profile_providers.dart';
 import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
-import 'package:ibimina_mobile/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ibimina_mobile/features/groups/models/membership.dart';
 import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
 import 'package:ibimina_mobile/features/groups/screens/group_setup_screen.dart';

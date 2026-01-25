@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ibimina_mobile/ui/tokens/colors.dart';
+import 'package:flutter/services.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 import 'package:ibimina_mobile/features/ledger/models/transaction_model.dart';
 import 'package:ibimina_mobile/features/ledger/services/ledger_service.dart';
 
@@ -42,7 +43,6 @@ class _FixRejectedSubmissionScreenState extends State<FixRejectedSubmissionScree
     setState(() => _isSubmitting = true);
 
     try {
-      // Create a service instance (in a full Riverpod app we'd read the provider)
       final ledgerService = LedgerService(); 
       
       await ledgerService.updateTransaction(
@@ -68,80 +68,71 @@ class _FixRejectedSubmissionScreenState extends State<FixRejectedSubmissionScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fix Submission'),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+    return AppScaffold(
+      appBar: AppBar(title: const Text('Fix Submission')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Rejection Notice
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                    const Icon(Icons.error_outline, color: AppColors.error),
-                   const SizedBox(width: 12),
+                   const SizedBox(width: AppSpacing.md),
                    Expanded(
                      child: Text(
                        'This submission was rejected. Please verify the details and try again.',
-                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                         color: AppColors.error,
-                       ),
+                       style: AppTypography.bodySmall.copyWith(color: AppColors.error),
                      ),
                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
 
-            // Amount (Read only)
-            Text(
+            // Amount Read-Only
+            const Text(
               'Amount',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: TextStyle(color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               '${widget.transaction.amount.toInt()} RWF',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTypography.headlineMedium.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
+            
+            const SizedBox(height: AppSpacing.xl),
 
             // TxID Field
-            Text(
-              'MoMo Transaction ID',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            TextField(
+            AppTextField(
               controller: _txIdController,
-              decoration: const InputDecoration(
-                hintText: 'e.g. 123456789',
-                border: OutlineInputBorder(),
-                helperText: 'Check the SMS from MTN MoMo',
-              ),
+              label: 'MoMo Transaction ID',
+              hint: 'e.g. 123456789',
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
-            const SizedBox(height: 32),
+            
+            const SizedBox(height: AppSpacing.md),
+            const Text(
+               'Check your SMS from MTN MoMo to find the correct ID.',
+               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+
+            const SizedBox(height: AppSpacing.xxl),
 
             // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: FilledButton(
-                onPressed: _isSubmitting ? null : _submitFix,
-                child: _isSubmitting 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Resubmit for Approval'),
-              ),
+            PrimaryButton(
+               label: 'Resubmit for Approval',
+               isLoading: _isSubmitting,
+               onPressed: _submitFix,
             ),
           ],
         ),

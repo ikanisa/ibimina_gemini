@@ -5,7 +5,6 @@ import 'package:ibimina_mobile/features/auth/providers/auth_providers.dart';
 import 'package:ibimina_mobile/features/auth/providers/passcode_providers.dart';
 import 'package:ibimina_mobile/features/auth/providers/profile_providers.dart';
 import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
-import 'package:ibimina_mobile/features/groups/models/membership.dart';
 
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -29,11 +28,11 @@ class RouterNotifier extends ChangeNotifier {
     if (authState.isLoading) return null; // Or splash?
 
     final isAuth = authState.asData?.value.session != null;
-    final isLoggingIn = state.uri.toString().startsWith('/auth') || state.uri.toString() == '/welcome';
+    final isLoggingIn = state.uri.toString().startsWith('/auth');
     
     // 1. Not authenticated
     if (!isAuth) {
-      return isLoggingIn ? null : '/welcome';
+      return isLoggingIn ? null : '/auth/login';
     }
 
     // 2. Authenticated - Check Passcode
@@ -65,6 +64,12 @@ class RouterNotifier extends ChangeNotifier {
     if (!hasMembership) { 
         if (state.uri.toString() == '/membership/check') return null;
         return '/membership/check'; 
+    }
+
+    // 4.1 Check Status (Pending)
+    if (membership.status == 'PENDING_APPROVAL') {
+       if (state.uri.toString() == '/membership/pending') return null;
+       return '/membership/pending';
     }
 
     // 5. Everything good -> Home

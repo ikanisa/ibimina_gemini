@@ -29,8 +29,8 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding ?? const EdgeInsets.symmetric(
-        horizontal: Spacing.screenPadding,
-        vertical: Spacing.sm,
+        horizontal: AppSpacing.screenPadding,
+        vertical: AppSpacing.sm,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

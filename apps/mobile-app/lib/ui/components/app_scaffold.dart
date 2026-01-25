@@ -36,7 +36,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget content = Padding(
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: Spacing.screenPadding),
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
       child: body,
     );
 

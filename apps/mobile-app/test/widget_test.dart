@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ibimina_mobile/core/theme/app_theme.dart';
+import 'package:ibimina_mobile/ui/theme/app_theme.dart';
 import 'package:ibimina_mobile/features/auth/screens/login_screen.dart';
 
 void main() {

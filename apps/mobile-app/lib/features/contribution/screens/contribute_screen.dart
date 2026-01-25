@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ibimina_mobile/ui/tokens/colors.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 import 'package:ibimina_mobile/features/contribution/providers/contribution_providers.dart';
 import 'package:ibimina_mobile/features/contribution/screens/proof_upload_screen.dart';
 
@@ -33,7 +33,6 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     );
   }
 
-
   @override
   void dispose() {
     _amountController.dispose();
@@ -52,113 +51,123 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     setState(() => _isLoading = true);
     final service = ref.read(contributionServiceProvider);
 
-    // 0. Check Group Membership
-    final isMember = await service.checkGroupMembership(widget.groupId);
-    if (!isMember) {
-      _showError('You must be a member of this group to contribute.');
+    try {
+      // 0. Check Group Membership
+      final isMember = await service.checkGroupMembership(widget.groupId);
+      if (!isMember) {
+        _showError('You must be a member of this group to contribute.');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 1. Validate Amount (Max 4k)
+      final amountError = service.validateAmount(amount);
+      if (amountError != null) {
+        _showError(amountError);
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 2. Validate Wallet Cap (Max 500k)
+      final walletError = await service.validateWalletCap(widget.groupId, amount);
+      if (walletError != null) {
+        _showError(walletError);
+        setState(() => _isLoading = false);
+        return;
+      }
+
       setState(() => _isLoading = false);
-      return;
-    }
+      if (!mounted) return;
 
-    // 1. Validate Amount (Max 4k)
-    final amountError = service.validateAmount(amount);
-    if (amountError != null) {
-      _showError(amountError);
+      // 3. Show Instructions
+      _showUSSDInstructions(amount);
+
+    } catch (e) {
+      _showError('Unexpected error: $e');
       setState(() => _isLoading = false);
-      return;
     }
-
-    // 2. Validate Wallet Cap (Max 500k)
-    final walletError = await service.validateWalletCap(widget.groupId, amount);
-    if (walletError != null) {
-      _showError(walletError);
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    setState(() => _isLoading = false);
-    if (!mounted) return;
-
-    // 3. Show Instructions
-    _showUSSDInstructions(amount);
   }
 
   void _showUSSDInstructions(int amount) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent, // Let Container handle it
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
+        return Container(
+          decoration: BoxDecoration(
+             color: Theme.of(context).scaffoldBackgroundColor,
+             borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Complete Payment',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SectionHeader(title: 'Complete Payment', centered: true),
+              const SizedBox(height: AppSpacing.lg),
+              
+              InfoCard(
+                title: 'Step 1: Dial Code',
+                subtitle: 'Dial *182*...# to approve payment via MoMo.',
+                leading: const Icon(Icons.dialpad, color: AppColors.primary),
               ),
-              const SizedBox(height: 16),
-              Text(
-                '1. Dial the USSD code below\n2. Approve payment of $amount RWF\n3. Return here to upload proof',
-                style: Theme.of(context).textTheme.bodyLarge,
+              const SizedBox(height: AppSpacing.md),
+               InfoCard(
+                title: 'Step 2: Confirm',
+                subtitle: 'Approve the payment of $amount RWF.',
+                leading: const Icon(Icons.fingerprint, color: AppColors.primary),
               ),
-              const SizedBox(height: 24),
+               const SizedBox(height: AppSpacing.md),
+               InfoCard(
+                title: 'Step 3: Return',
+                subtitle: 'Come back here to upload proof.',
+                leading: const Icon(Icons.upload_file, color: AppColors.primary),
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+              
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: AppColors.outline),
                 ),
                 child: Column(
                   children: [
                     Text(
                       '*182*1*1*$amount#',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                      style: AppTypography.headlineMedium.copyWith(
                             color: AppColors.primary,
-                          ),
+                            letterSpacing: 2,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap to dial',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Tap below to open dialer', style: AppTypography.bodySmall),
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        final service = ref.read(contributionServiceProvider);
-                        await service.launchMoMoUssd(amount);
-                      },
-                      child: const Text('Open Dialer'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Close sheet
-                        _navigateToProof(amount);
-                      },
-                      child: const Text('I have Paid'),
-                    ),
-                  ),
-                ],
+              
+              const SizedBox(height: AppSpacing.xxl),
+              
+              PrimaryButton(
+                label: 'Open MoMo Dialer',
+                icon: Icons.phone_android,
+                onPressed: () async {
+                   final service = ref.read(contributionServiceProvider);
+                   await service.launchMoMoUssd(amount);
+                },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.md),
+               TextButton(
+                 onPressed: () {
+                    Navigator.pop(context); // Close sheet
+                    _navigateToProof(amount);
+                 },
+                 child: const Text('I have completed payment'),
+               ),
+              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         );
@@ -187,106 +196,67 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contribute'),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Contribute to ${widget.groupName}',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+    return AppScaffold(
+      appBar: AppBar(title: const Text('Contribute')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Contribute to ${widget.groupName}', style: AppTypography.titleLarge),
+            const SizedBox(height: AppSpacing.xs),
+            const Text(
+              'Max limit: 4,000 RWF / transaction',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            
+            const SizedBox(height: AppSpacing.xxl),
+            
+            AppTextField(
+              controller: _amountController,
+              label: 'Amount (RWF)',
+              hint: '0',
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              keyboardType: TextInputType.number,
+              suffixIcon: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('RWF', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Maximum contribution: 4,000 RWF per transaction',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Amount (RWF)',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                decoration: InputDecoration(
-                  hintText: '0',
-                  prefixText: 'RWF ',
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                children: [500, 1000, 2000, 4000].map((amount) {
-                  return ActionChip(
-                    label: Text('$amount'),
-                    onPressed: () {
-                      _amountController.text = amount.toString();
-                    },
-                  );
-                }).toList(),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: AppColors.warning),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'You will be redirected to MoMo USSD. After payment, return to upload proof.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.warning,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _handleContribution,
-                  icon: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.phone_android),
-                  label: const Text('Pay via MoMo USSD'),
-                ),
-              ),
-            ],
-          ),
+            ),
+            
+            const SizedBox(height: AppSpacing.md),
+            
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [500, 1000, 2000, 4000].map((amount) {
+                return ActionChip(
+                  label: Text('$amount'),
+                  backgroundColor: AppColors.surface,
+                  onPressed: () {
+                    _amountController.text = amount.toString();
+                  },
+                );
+              }).toList(),
+            ),
+            
+            const SizedBox(height: AppSpacing.xxl),
+            
+            const InfoCard(
+               title: 'Important',
+               subtitle: 'You will be redirected to your phone dialer. Payment happens via MoMo USSD, not inside the app.',
+               leading: Icon(Icons.info_outline_rounded, color: AppColors.warning),
+               backgroundColor:  Color(0xFFFFF8E1), // Light Warning
+               borderColor: Colors.transparent,
+            ),
+
+            const SizedBox(height: AppSpacing.xxl),
+            
+            PrimaryButton(
+               label: 'Proceed to Payment',
+               isLoading: _isLoading,
+               onPressed: _handleContribution,
+            ),
+          ],
         ),
       ),
     );

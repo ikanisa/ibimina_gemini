@@ -1,58 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ibimina_mobile/ui/tokens/colors.dart';
-import 'package:ibimina_mobile/ui/components/app_scaffold.dart';
+import 'package:go_router/go_router.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 
-class PendingApprovalScreen extends ConsumerWidget {
+class PendingApprovalScreen extends StatelessWidget {
   const PendingApprovalScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Approval Pending')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.hourglass_empty,
-                  size: 48,
-                  color: AppColors.warning,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Group Pending Approval',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Your new public group is waiting for staff approval. Once approved, it will be visible in the directory and you can start inviting members.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.darkTextSecondary,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
-              OutlinedButton(
-                onPressed: () {
-                  // TODO: Implement contact support or refresh check
-                },
-                child: const Text('Contact Support'),
-              ),
-            ],
-          ),
+      body: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const EmptyState(
+              icon: Icons.hourglass_top_rounded,
+              title: 'Pending Approval',
+              message: 'Your group is pending approval.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const Text(
+              'A staff member will review your group shortly. You will be notified once it is active.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            PrimaryButton(
+              label: 'Back to Status',
+              onPressed: () {
+                // Refresh or go back to main check
+                context.go('/group/view');
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextButton(
+              onPressed: () {
+                 // Maybe contact support?
+              },
+              child: const Text('Contact Support'),
+            )
+          ],
         ),
       ),
     );

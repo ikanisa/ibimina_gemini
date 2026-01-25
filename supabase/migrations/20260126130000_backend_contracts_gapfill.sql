@@ -12,7 +12,7 @@ WITH monthly_stats AS (
     t.group_id,
     SUM(t.amount) as confirmed_total
   FROM public.transactions t
-  WHERE t.status = 'confirmed' 
+  WHERE t.status = 'COMPLETED' 
     AND t.created_at >= date_trunc('month', now())
   GROUP BY t.group_id
 )
@@ -43,4 +43,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_members_user_id_active_unique
 -- If using group_members junction table:
 CREATE UNIQUE INDEX IF NOT EXISTS idx_group_members_member_id_active_unique
   ON public.group_members(member_id)
-  WHERE status IN ('GOOD_STANDING', 'MEMBER', 'ADMIN', 'OWNER');
+  WHERE status = 'GOOD_STANDING';

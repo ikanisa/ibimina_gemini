@@ -49,11 +49,11 @@ class RewardsScreen extends ConsumerWidget {
               ),
             ),
             GrowthActionCard(
-              title: "Share Your Progress",
-              description: "Show off your savings milestones to your network.",
+              title: 'Share Your Progress',
+              description: 'Show off your savings milestones to your network.',
               icon: Icons.share_outlined,
               iconColor: Colors.blue,
-              actionLabel: "Share",
+              actionLabel: 'Share',
               onTap: () {
                 // Simulating share via Clipboard for MVP without share_plus
                 // In real app, we'd use Share.share(...)
@@ -63,11 +63,11 @@ class RewardsScreen extends ConsumerWidget {
               },
             ),
             GrowthActionCard(
-              title: "Invite a Friend",
-              description: "Bring friends to join the savings movement.",
+              title: 'Invite a Friend',
+              description: 'Bring friends to join the savings movement.',
               icon: Icons.person_add_outlined,
               iconColor: Colors.green,
-              actionLabel: "Invite",
+              actionLabel: 'Invite',
               onTap: () async {
                 // This would normally share a deep link.
                 // We'll simulate by copying a dummy link.
@@ -80,21 +80,21 @@ class RewardsScreen extends ConsumerWidget {
               },
             ),
             GrowthActionCard(
-              title: "Join WhatsApp Channel",
-              description: "Get updates and tips directly on WhatsApp.",
+              title: 'Join WhatsApp Channel',
+              description: 'Get updates and tips directly on WhatsApp.',
               icon: Icons.chat_bubble_outline,
               iconColor: Colors.teal,
-              actionLabel: "Join",
+              actionLabel: 'Join',
               onTap: () {
                 GrowthService().launchWhatsAppChannel();
               },
             ),
              GrowthActionCard(
-              title: "Become a Sector Ambassador",
-              description: "Lead savings groups in your sector.",
+              title: 'Become a Sector Ambassador',
+              description: 'Lead savings groups in your sector.',
               icon: Icons.badge_outlined,
               iconColor: Colors.purple,
-              actionLabel: "Apply",
+              actionLabel: 'Apply',
               onTap: () {
                 GrowthService().launchAmbassadorForm();
               },

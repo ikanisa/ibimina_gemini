@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ibimina_mobile/features/contribution/services/contribution_service.dart';
 import 'package:ibimina_mobile/features/ledger/models/transaction_model.dart';
-import 'package:ibimina_mobile/features/ledger/services/ledger_service.dart';
 
 void main() {
   group('ContributionService Logic', () {

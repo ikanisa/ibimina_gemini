@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ibimina_mobile/ui/tokens/colors.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 import 'package:ibimina_mobile/features/ledger/models/transaction_model.dart';
 import 'package:intl/intl.dart';
 import 'package:ibimina_mobile/features/support/screens/fix_rejected_submission_screen.dart';
@@ -15,96 +15,93 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // In "Savings Wallet", everything is a "Contribution" (deposit).
+    // If we ever support withdrawals, we'd handle it, but per rules we don't show "Withdrawal" UI prominence.
     final isDeposit = transaction.type == 'deposit';
     final statusColor = _getStatusColor(transaction.status);
+    final currencySymbol = transaction.currency == 'RWF' ? 'RWF ' : '\$';
+    
     final formattedAmount = NumberFormat.currency(
-      symbol: transaction.currency == 'RWF' ? 'RWF ' : '\$',
+      symbol: currencySymbol,
       decimalDigits: 0,
     ).format(transaction.amount);
 
     return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+       // Subtle border for clean separation
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        side: BorderSide(color: AppColors.border.withValues(alpha: 0.3), width: 0.5),
+      ),
       child: InkWell(
         onTap: () => _handleTap(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             children: [
+              // Icon Container
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: (isDeposit ? AppColors.success : AppColors.warning).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: isDeposit 
+                      ? AppColors.primary.withValues(alpha: 0.1) 
+                      : AppColors.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Icon(
                   isDeposit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                  color: isDeposit ? AppColors.success : AppColors.warning,
+                  color: isDeposit ? AppColors.primary : AppColors.error,
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
+              
+              // Title & Date
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isDeposit ? 'Contribution' : 'Withdrawal',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
+                      isDeposit ? 'Contribution' : 'Transaction', // Generic fallback
+                      style: AppTypography.titleSmall,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            transaction.status.toUpperCase(),
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatDate(transaction.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.darkTextSecondary,
-                              ),
-                        ),
-                      ],
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDate(transaction.createdAt),
+                      style: AppTypography.bodySmall,
                     ),
                   ],
                 ),
               ),
+              
+              // Amount & Status
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     formattedAmount,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isDeposit ? AppColors.success : AppColors.darkTextPrimary,
-                        ),
+                    style: AppTypography.titleSmall.copyWith(
+                      color: isDeposit ? AppColors.success : AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   if (transaction.status == 'rejected')
                     Text(
-                      'Tap to fix',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                    ),
+                      'Tap to Fix',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  else
+                      StatusPill(
+                        label: transaction.status.toUpperCase(),
+                        color: statusColor,
+                      ),
                 ],
               ),
             ],
@@ -142,7 +139,7 @@ class TransactionTile extends StatelessWidget {
       case 'rejected':
         return AppColors.error;
       default:
-        return AppColors.darkTextSecondary;
+        return AppColors.textSecondary;
     }
   }
 

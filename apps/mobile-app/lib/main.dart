@@ -1,17 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ibimina_mobile/core/theme/app_theme.dart';
+import 'package:ibimina_mobile/ui/theme/app_theme.dart';
 import 'package:ibimina_mobile/core/services/supabase_service.dart';
 import 'package:ibimina_mobile/core/utils/logger.dart';
-import 'package:ibimina_mobile/features/auth/widgets/auth_wrapper.dart';
 import 'package:ibimina_mobile/core/router/app_router.dart';
 import 'package:ibimina_mobile/core/services/deep_link_service.dart';
 import 'package:ibimina_mobile/config/app_config.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 void main() async {
-  runZonedGuarded(() async {
+  await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     const flavor = String.fromEnvironment('FLAVOR', defaultValue: 'prod');
@@ -85,7 +84,9 @@ class _IbiminaAppState extends ConsumerState<IbiminaApp> {
     return MaterialApp.router(
       title: 'Ibimina',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       routerConfig: router,
     );
   }

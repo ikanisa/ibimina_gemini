@@ -152,7 +152,7 @@ class QrScannerOverlayShape extends ShapeBorder {
   final double borderLength;
   final double cutOutSize;
 
-  QrScannerOverlayShape({
+  const QrScannerOverlayShape({
     this.borderColor = Colors.red,
     this.borderWidth = 10.0,
     this.overlayColor = const Color.fromRGBO(0, 0, 0, 80),
@@ -189,12 +189,12 @@ class QrScannerOverlayShape extends ShapeBorder {
     final borderWidthSize = width / 2;
     final height = rect.height;
     final borderOffset = borderWidth / 2;
-    final _cutOutSize = cutOutSize;
-    final _cutOutRect = Rect.fromLTWH(
-      rect.left + width / 2 - _cutOutSize / 2 + borderOffset,
-      rect.top + height / 2 - _cutOutSize / 2 + borderOffset,
-      _cutOutSize - borderWidth,
-      _cutOutSize - borderWidth,
+    final cutOutSize = cutOutSize;
+    final cutOutRect = Rect.fromLTWH(
+      rect.left + width / 2 - cutOutSize / 2 + borderOffset,
+      rect.top + height / 2 - cutOutSize / 2 + borderOffset,
+      cutOutSize - borderWidth,
+      cutOutSize - borderWidth,
     );
 
     final backgroundPaint = Paint()
@@ -213,7 +213,7 @@ class QrScannerOverlayShape extends ShapeBorder {
     final cutOutPath = Path()
       ..addRRect(
         RRect.fromRectAndRadius(
-          _cutOutRect,
+          cutOutRect,
           Radius.circular(borderRadius),
         ),
       );
@@ -226,7 +226,7 @@ class QrScannerOverlayShape extends ShapeBorder {
     canvas.drawPath(backgroundPath, backgroundPaint);
     
     // Draw corners
-    final r = _cutOutRect;
+    final r = cutOutRect;
     final len = borderLength;
 
     // TL

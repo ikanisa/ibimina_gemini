@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:state_notifier/state_notifier.dart';
 import '../models/group_model.dart';
 import '../models/membership.dart';
 import '../services/group_repository.dart';

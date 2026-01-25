@@ -1,7 +1,7 @@
 /// Spacing tokens for consistent layout throughout the app.
 /// 
-/// Usage: `Spacing.md` for 16px spacing.
-abstract class Spacing {
+/// Usage: `AppSpacing.md` for 16px spacing.
+abstract class AppSpacing {
   /// 4px - Minimal spacing (borders, tight elements)
   static const double xs = 4;
 

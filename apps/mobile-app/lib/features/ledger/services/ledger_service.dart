@@ -163,4 +163,41 @@ class LedgerService {
       rethrow;
     }
   }
+
+  // OLD CODE ABOVE - NEW APPROVAL METHODS BELOW
+
+  /// Approve a pending transaction (Treasurer only).
+  Future<void> approveTransaction(String transactionId) async {
+    try {
+      await _client
+          .from('transactions')
+          .update({
+            'status': 'confirmed',
+            'updated_at': DateTime.now().toIso8601String(),
+            'approved_by': _client.auth.currentUser?.id,
+          })
+          .eq('id', transactionId)
+          .eq('status', 'pending'); // Ensure it was pending
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Reject a pending transaction (Treasurer only).
+  Future<void> rejectTransaction(String transactionId, {String reason = 'Invalid details'}) async {
+    try {
+      await _client
+          .from('transactions')
+          .update({
+            'status': 'rejected',
+            'updated_at': DateTime.now().toIso8601String(),
+            'rejection_reason': reason, // Assuming this column exists or will be added
+            // If not existing, we might need to store it in metadata or just rely on status
+          })
+          .eq('id', transactionId)
+          .eq('status', 'pending');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

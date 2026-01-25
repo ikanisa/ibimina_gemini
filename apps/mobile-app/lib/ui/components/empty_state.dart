@@ -37,7 +37,7 @@ class EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(Spacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -54,14 +54,14 @@ class EmptyState extends StatelessWidget {
                 color: colorScheme.onSurface.withValues(alpha:0.5),
               ),
             ),
-            const SizedBox(height: Spacing.lg),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               title,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
-              const SizedBox(height: Spacing.sm),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 message!,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -71,7 +71,7 @@ class EmptyState extends StatelessWidget {
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: Spacing.lg),
+              const SizedBox(height: AppSpacing.lg),
               PrimaryButton(
                 label: actionLabel!,
                 onPressed: onAction,

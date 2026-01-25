@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ibimina_mobile/features/groups/models/group_model.dart';
 import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
+import 'package:ibimina_mobile/ui/ui.dart';
 
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
@@ -18,7 +19,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _amountController = TextEditingController();
   
   GroupType _selectedType = GroupType.private;
-  String _frequency = 'MONTHLY';
+  String _frequency = 'MONTHLY'; // TODO: Make this an Enum/Constant
 
   @override
   void initState() {
@@ -46,22 +47,12 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Future<void> _createGroup() async {
     if (!_formKey.currentState!.validate()) return;
     
-    // We need institutionId. 
-    // Ideally controller handles retrieving it or passing it?
-    // The repo requires institutionId explicitly.
-    // Let's rely on the repository's internal helper or pass it.
-    // The controller calls repository.createGroup which takes institutionId.
-    // Wait, the controller provided earlier calls `repository.createGroup` but passes `institutionId` parameter.
-    // The view doesn't know institutionId easily without fetching it.
-    // We should probably update the Controller to fetch it if not provided or make repo fetch it.
-    // Let's fetch it here for now or update provider.
-    // Actually, `myMembershipProvider` fetches it. We could use `groupRepositoryProvider` to get it.
-    
+    // Retrieve Institution ID safely
     final repo = ref.read(groupRepositoryProvider);
     final institutionId = await repo.getMyInstitutionId();
 
     if (institutionId == null) {
-       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: No Institution ID found.')));
+       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: No Institution Context found.')));
        return;
     }
 
@@ -88,54 +79,80 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   @override
   Widget build(BuildContext context) {
     final controllerState = ref.watch(groupControllerProvider);
-    
-    return Scaffold(
+    final isLoading = controllerState.isLoading;
+
+    return AppScaffold(
+      // AppScaffold handles safe area and background
       appBar: AppBar(title: const Text('Create a Group')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
+              const SectionHeader(title: 'Group Details'),
+              const SizedBox(height: AppSpacing.md),
+              
+              AppTextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Group Name', border: OutlineInputBorder()),
+                label: 'Group Name',
+                hint: 'e.g., Family Savings',
                 validator: (v) => v == null || v.isEmpty ? 'Required' : null,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
+              const SizedBox(height: AppSpacing.md),
+              
+              AppTextField(
                 controller: _descController,
-                decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                label: 'Description (Optional)',
+                hint: 'What is this group for?',
                 maxLines: 3,
               ),
-              const SizedBox(height: 16),
+              
+              const SizedBox(height: AppSpacing.lg),
+              const SectionHeader(title: 'Settings'),
+              const SizedBox(height: AppSpacing.md),
+
+              // Group Type Dropdown
               DropdownButtonFormField<GroupType>(
                 value: _selectedType,
-                decoration: const InputDecoration(labelText: 'Group Type', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Visibility',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(AppRadius.md))),
+                  contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.ms),
+                ),
                 items: const [
                   DropdownMenuItem(value: GroupType.private, child: Text('Private (Invite Only)')),
                   DropdownMenuItem(value: GroupType.public, child: Text('Public (Searchable)')),
                 ],
                 onChanged: (v) => setState(() => _selectedType = v!),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
+              const SizedBox(height: AppSpacing.md),
+
+              // Contribution Amount
+              AppTextField(
                 controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Contribution Amount (RWF)', border: OutlineInputBorder()),
+                label: 'Contribution Amount (RWF)',
+                hint: '0',
                 keyboardType: TextInputType.number,
-                 validator: (v) {
+                validator: (v) {
                   if (v == null || v.isEmpty) return 'Required';
                   final n = int.tryParse(v);
                   if (n == null) return 'Must be a number';
-                  if (n > 4000) return 'Max 4,000 RWF';
+                  if (n > 4000) return 'Max 4,000 RWF via MoMo';
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
+
+              // Frequency
               DropdownButtonFormField<String>(
                 value: _frequency,
-                decoration: const InputDecoration(labelText: 'Contribution Frequency', border: OutlineInputBorder()),
+                 decoration: const InputDecoration(
+                  labelText: 'Contribution Frequency',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(AppRadius.md))),
+                  contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.ms),
+                ),
                 items: const [
                   DropdownMenuItem(value: 'WEEKLY', child: Text('Weekly')),
                   DropdownMenuItem(value: 'MONTHLY', child: Text('Monthly')),
@@ -143,12 +160,14 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                 ],
                  onChanged: (v) => setState(() => _frequency = v!),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: controllerState.isLoading ? null : _createGroup,
-                child: controllerState.isLoading 
-                    ? const CircularProgressIndicator() 
-                    : const Text('Create Group'),
+
+              const SizedBox(height: AppSpacing.xl),
+              
+              // Action Button
+              PrimaryButton(
+                label: 'Create Group',
+                isLoading: isLoading,
+                onPressed: _createGroup,
               ),
             ],
           ),

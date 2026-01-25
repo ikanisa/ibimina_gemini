@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ibimina_mobile/features/rewards/services/leaderboard_service.dart';
 import 'package:ibimina_mobile/features/rewards/models/leaderboard_entry.dart';
 
 class LeaderboardWidget extends StatelessWidget {
@@ -27,12 +26,12 @@ class LeaderboardWidget extends StatelessWidget {
             Icon(Icons.emoji_events_outlined, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 10),
             Text(
-              "No public groups ranked yet.",
+              'No public groups ranked yet.',
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 4),
             const Text(
-              "Be the first to contribute!",
+              'Be the first to contribute!',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -52,20 +51,20 @@ class LeaderboardWidget extends StatelessWidget {
           leading: CircleAvatar(
             backgroundColor: _getRankColor(rank),
             foregroundColor: Colors.white,
-            child: Text("$rank"),
+            child: Text('$rank'),
           ),
           title: Text(entry.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text("Rank #${entry.rank}"),
+          subtitle: Text('Rank #${entry.rank}'),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "RWF ${entry.score.toStringAsFixed(0)}",
+                'RWF ${entry.score.toStringAsFixed(0)}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const Text(
-                "total",
+                'total',
                 style: TextStyle(fontSize: 10, color: Colors.grey),
               ),
             ],

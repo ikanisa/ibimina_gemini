@@ -34,7 +34,7 @@ USING (
       JOIN public.members m ON gm.member_id = m.id
       WHERE m.user_id = auth.uid()
         AND gm.group_id = transactions.group_id
-        AND gm.status IN ('GOOD_STANDING', 'MEMBER', 'ADMIN', 'OWNER') -- Ensure active status
+        AND gm.status IN ('GOOD_STANDING') -- Ensure active status
     )
   )
 );
@@ -67,7 +67,7 @@ USING (
       JOIN public.group_members target_gm ON my_gm.group_id = target_gm.group_id
       WHERE my_m.user_id = auth.uid()
         AND target_gm.member_id = members.id
-        AND my_gm.status IN ('GOOD_STANDING', 'MEMBER', 'ADMIN', 'OWNER')
+        AND my_gm.status IN ('GOOD_STANDING')
     )
   )
   OR
@@ -140,8 +140,8 @@ CREATE TRIGGER trigger_enforce_transaction_limits
 -- ============================================================================
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_unique_external_id 
-  ON public.transactions(transaction_id) 
-  WHERE transaction_id IS NOT NULL;
+  ON public.transactions(reference) 
+  WHERE reference IS NOT NULL;
 
 DO $$ 
 BEGIN

@@ -47,7 +47,7 @@ class InfoCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
-          padding: padding ?? const EdgeInsets.all(Spacing.cardPadding),
+          padding: padding ?? const EdgeInsets.all(AppSpacing.cardPadding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
@@ -59,7 +59,7 @@ class InfoCard extends StatelessWidget {
             children: [
               if (leading != null) ...[
                 leading!,
-                const SizedBox(width: Spacing.ms),
+                const SizedBox(width: AppSpacing.ms),
               ],
               Expanded(
                 child: Column(
@@ -70,7 +70,7 @@ class InfoCard extends StatelessWidget {
                       style: theme.textTheme.titleSmall,
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: Spacing.xs),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         subtitle!,
                         style: theme.textTheme.bodySmall,
@@ -80,7 +80,7 @@ class InfoCard extends StatelessWidget {
                 ),
               ),
               if (trailing != null) ...[
-                const SizedBox(width: Spacing.sm),
+                const SizedBox(width: AppSpacing.sm),
                 trailing!,
               ],
             ],

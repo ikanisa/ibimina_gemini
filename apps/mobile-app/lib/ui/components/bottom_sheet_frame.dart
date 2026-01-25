@@ -47,10 +47,10 @@ class BottomSheetFrame extends StatelessWidget {
           if (title != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                Spacing.screenPadding,
-                Spacing.sm, // reduced top padding due to drag handle
-                Spacing.screenPadding,
-                Spacing.md,
+                AppSpacing.screenPadding,
+                AppSpacing.sm, // reduced top padding due to drag handle
+                AppSpacing.screenPadding,
+                AppSpacing.md,
               ),
               child: Row(
                 children: [
@@ -69,10 +69,10 @@ class BottomSheetFrame extends StatelessWidget {
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
-                Spacing.screenPadding,
+                AppSpacing.screenPadding,
                 0,
-                Spacing.screenPadding,
-                Spacing.xl,
+                AppSpacing.screenPadding,
+                AppSpacing.xl,
               ),
               child: child,
             ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ibimina_mobile/ui/ui.dart';
-import 'package:ibimina_mobile/core/theme/app_theme.dart';
 
 void main() {
   group('UI Components Smoke Test', () {

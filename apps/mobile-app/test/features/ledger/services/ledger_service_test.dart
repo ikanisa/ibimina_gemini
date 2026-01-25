@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ibimina_mobile/features/ledger/models/transaction_model.dart';
-import 'package:ibimina_mobile/features/ledger/services/ledger_service.dart';
+
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -51,15 +50,15 @@ void main() {
   // late MockGoTrueClient mockAuth;
   // late MockSupabaseQueryBuilder mockQueryBuilder;
 
-  LedgerService createService({
-      required MockSupabaseClient client, 
-      required MockGoTrueClient auth, 
-      required MockSupabaseQueryBuilder queryBuilder
-  }) {
-      when(() => client.auth).thenReturn(auth);
-      when(() => client.from(any())).thenReturn(queryBuilder);
-      return LedgerService(client);
-  }
+  // LedgerService createService({
+  //     required MockSupabaseClient client, 
+  //     required MockGoTrueClient auth, 
+  //     required MockSupabaseQueryBuilder queryBuilder
+  // }) {
+  //     when(() => client.auth).thenReturn(auth);
+  //     when(() => client.from(any())).thenReturn(queryBuilder);
+  //     return LedgerService(client);
+  // }
 
   group('LedgerService Tests', () {
   // ... tests ...

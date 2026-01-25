@@ -257,12 +257,13 @@ class GroupRepository {
         status: 'ACTIVE',
         frequency: 'MONTHLY', // Default/Unknown
         contributionAmount: 0, // Hidden
+        createdAt: DateTime.now(), // Fallback for preview
         // Map other fields as empty/default since they are private
       );
   }
 
   /// Join a group via invite token using the hardened Edge Function.
-  Future<void> joinGroup(String inviteToken) async {
+  Future<void> joinGroupSecure(String inviteToken) async {
     // 0. Pre-flight check: User must not be in a group already
     // (This is also checked by the Edge Function, but good for UX)
     final institutionId = await getMyInstitutionId();
@@ -288,3 +289,33 @@ class GroupRepository {
        throw Exception(data['error'] ?? 'Failed to join group');
     }
   }
+
+  // --- ADMIN METHODS (System Admin) ---
+
+  /// Get pending public groups for approval
+  Future<List<Group>> getPendingGroups() async {
+    final response = await _supabase
+        .from('groups')
+        .select()
+        .eq('status', 'PENDING_APPROVAL')
+        .eq('type', 'PUBLIC');
+    
+    return (response as List).map((e) => Group.fromJson(e)).toList();
+  }
+
+  /// Approve a pending group
+  Future<void> approveGroup(String groupId) async {
+    await _supabase
+        .from('groups')
+        .update({'status': 'APPROVED'})
+        .eq('id', groupId);
+  }
+
+  /// Reject a pending group
+  Future<void> rejectGroup(String groupId) async {
+     await _supabase
+        .from('groups')
+        .update({'status': 'REJECTED'})
+        .eq('id', groupId);
+  }
+}
