@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Smartphone, Plus, Copy, Check, AlertTriangle, Wifi, WifiOff, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/core/auth';
@@ -24,7 +24,7 @@ export const SmsSourcesSettings: React.FC = () => {
   const [showDrawer, setShowDrawer] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Form state
   const [newSource, setNewSource] = useState({
     name: '',
@@ -32,34 +32,34 @@ export const SmsSourcesSettings: React.FC = () => {
     device_identifier: ''
   });
 
-  useEffect(() => {
-    loadSources();
-  }, [institutionId]);
-
-  const loadSources = async () => {
+  const loadSources = useCallback(async () => {
     if (!institutionId) return;
-    
+
     setLoading(true);
-    
+
     const { data } = await supabase
       .from('sms_sources')
       .select('*')
       .eq('institution_id', institutionId)
       .order('created_at', { ascending: false });
-    
+
     if (data) {
       setSources(data);
     }
-    
+
     setLoading(false);
-  };
+  }, [institutionId]);
+
+  useEffect(() => {
+    loadSources();
+  }, [loadSources]);
 
   const handleAddSource = async () => {
     if (!institutionId || !newSource.name.trim()) return;
-    
+
     // Validate unique device identifier
     if (newSource.device_identifier) {
-      const existing = sources.find(s => 
+      const existing = sources.find(s =>
         s.device_identifier === newSource.device_identifier && s.is_active
       );
       if (existing) {
@@ -67,16 +67,16 @@ export const SmsSourcesSettings: React.FC = () => {
         return;
       }
     }
-    
+
     setIsSaving(true);
-    
+
     const { error } = await supabase.rpc('register_sms_source', {
       p_institution_id: institutionId,
       p_name: newSource.name.trim(),
       p_source_type: newSource.source_type,
       p_device_identifier: newSource.device_identifier.trim() || null
     });
-    
+
     if (error) {
       console.error('Error adding SMS source:', error);
       alert('Failed to add SMS source. Please try again.');
@@ -85,17 +85,17 @@ export const SmsSourcesSettings: React.FC = () => {
       setNewSource({ name: '', source_type: 'android_gateway', device_identifier: '' });
       setShowDrawer(false);
     }
-    
+
     setIsSaving(false);
   };
 
   const handleDeactivate = async (sourceId: string) => {
     if (!confirm('Are you sure you want to deactivate this SMS source?')) return;
-    
+
     const { error } = await supabase.rpc('deactivate_sms_source', {
       p_source_id: sourceId
     });
-    
+
     if (error) {
       console.error('Error deactivating source:', error);
       alert('Failed to deactivate source. Please try again.');
@@ -112,11 +112,11 @@ export const SmsSourcesSettings: React.FC = () => {
 
   const getLastSeenStatus = (lastSeen: string | null) => {
     if (!lastSeen) return { status: 'never', text: 'Never seen', color: 'text-slate-500' };
-    
+
     const lastSeenDate = new Date(lastSeen);
     const now = new Date();
     const hoursDiff = (now.getTime() - lastSeenDate.getTime()) / (1000 * 60 * 60);
-    
+
     if (hoursDiff < 1) {
       return { status: 'active', text: 'Active now', color: 'text-green-600' };
     } else if (hoursDiff < 24) {
@@ -195,7 +195,7 @@ export const SmsSourcesSettings: React.FC = () => {
         <div className="space-y-4">
           {activeSources.map(source => {
             const lastSeenInfo = getLastSeenStatus(source.last_seen_at);
-            
+
             return (
               <div
                 key={source.id}
@@ -203,11 +203,10 @@ export const SmsSourcesSettings: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      lastSeenInfo.status === 'active' ? 'bg-green-100 text-green-600' :
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${lastSeenInfo.status === 'active' ? 'bg-green-100 text-green-600' :
                       lastSeenInfo.status === 'stale' || lastSeenInfo.status === 'never' ? 'bg-amber-100 text-amber-600' :
-                      'bg-slate-100 text-slate-600'
-                    }`}>
+                        'bg-slate-100 text-slate-600'
+                      }`}>
                       {lastSeenInfo.status === 'active' ? <Wifi size={24} /> : <WifiOff size={24} />}
                     </div>
                     <div>
@@ -215,7 +214,7 @@ export const SmsSourcesSettings: React.FC = () => {
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
                           {source.source_type === 'android_gateway' ? 'Android Gateway' :
-                           source.source_type === 'webhook' ? 'Webhook' : 'Manual'}
+                            source.source_type === 'webhook' ? 'Webhook' : 'Manual'}
                         </span>
                         <span className={`text-xs ${lastSeenInfo.color}`}>
                           {lastSeenInfo.text}
@@ -228,7 +227,7 @@ export const SmsSourcesSettings: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     {source.webhook_secret && (
                       <button
@@ -302,7 +301,7 @@ export const SmsSourcesSettings: React.FC = () => {
               placeholder="e.g., Office Phone, Main Gateway"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Source Type
@@ -317,7 +316,7 @@ export const SmsSourcesSettings: React.FC = () => {
               <option value="manual">Manual Import</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Device Identifier
@@ -341,7 +340,7 @@ export const SmsSourcesSettings: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-blue-800">Webhook Setup</p>
                 <p className="text-xs text-blue-700 mt-1">
-                  After creating this source, you'll receive a webhook secret. Use this secret to authenticate 
+                  After creating this source, you'll receive a webhook secret. Use this secret to authenticate
                   incoming webhook requests to: <br />
                   <code className="text-xs bg-blue-100 px-1 py-0.5 rounded">
                     POST /functions/v1/ingest-sms

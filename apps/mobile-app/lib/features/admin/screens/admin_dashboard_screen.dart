@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/features/groups/models/group_model.dart';
-import 'package:ibimina_mobile/features/groups/services/group_repository.dart';
+import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
 import 'package:ibimina_mobile/ui/ui.dart';
 
 // Provider to fetch pending groups

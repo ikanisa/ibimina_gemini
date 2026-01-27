@@ -43,9 +43,6 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
 }) => {
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
 
-  // RoleSwitcher removed - was only for mock data
-  const RoleSwitcher = () => null;
-
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col shadow-xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
@@ -173,8 +170,6 @@ export const Sidebar: React.FC<SidebarPropsWithRoleSwitch> = ({
           canAccess={canAccess(ViewState.SETTINGS)}
         />
       </nav>
-
-      <RoleSwitcher />
 
       <div className="p-4 border-t border-slate-800">
         <button

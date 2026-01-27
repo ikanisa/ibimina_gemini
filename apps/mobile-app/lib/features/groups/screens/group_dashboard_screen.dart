@@ -162,11 +162,9 @@ class GroupDashboardScreen extends ConsumerWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: ListRow(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.surface,
-                  child: Text(member.role[0], style: const TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                title: member.fullName ?? 'Unknown User', // Use fullName from map if available
+                icon: Icons.person,
+                iconBackgroundColor: AppColors.darkSurface,
+                title: member.memberName ?? 'Member', // Use memberName from joined data
                 subtitle: member.role, // Or phone number masked
                 trailing: member.status == 'GOOD_STANDING' 
                     ? const Icon(Icons.check_circle, color: AppColors.success, size: 20)

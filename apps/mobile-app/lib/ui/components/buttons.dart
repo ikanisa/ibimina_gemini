@@ -79,6 +79,7 @@ class SecondaryButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.fullWidth = true,
+    this.color,
   });
 
   final String label;
@@ -86,13 +87,22 @@ class SecondaryButton extends StatelessWidget {
   final bool isLoading;
   final IconData? icon;
   final bool fullWidth;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
+    
     return SizedBox(
       width: fullWidth ? double.infinity : null,
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
+        style: color != null
+            ? OutlinedButton.styleFrom(
+                foregroundColor: color,
+                side: BorderSide(color: color!.withValues(alpha: 0.5)),
+              )
+            : null,
         child: AnimatedSwitcher(
           duration: Duration(milliseconds: AppMotion.fast),
           child: isLoading
@@ -101,9 +111,7 @@ class SecondaryButton extends StatelessWidget {
                   width: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Theme.of(context).colorScheme.primary,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
                   ),
                 )
               : Row(

@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Filter, AlertCircle } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageLayout, Section } from './layout';
@@ -259,7 +259,7 @@ const Reports: React.FC = () => {
       { key: 'group_name', header: 'Group' },
       { key: 'group_code', header: 'Group Code' },
     ]);
-  }, [scope, scopeId, institutionId, isPlatformAdmin, dateRange, statusFilter]);
+  }, [scope, scopeId, institutionId, isPlatformAdmin, dateRange, statusFilter, scopeName]);
 
   // Breakdown table click handler
   const handleBreakdownClick = (id: string) => {

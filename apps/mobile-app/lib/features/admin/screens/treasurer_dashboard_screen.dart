@@ -76,7 +76,9 @@ class _ApprovalCardState extends ConsumerState<_ApprovalCard> {
     try {
       final service = LedgerService();
       await service.approveTransaction(widget.transaction.id);
-      ref.invalidate(groupTransactionsProvider(widget.transaction.groupId));
+      if (widget.transaction.groupId != null) {
+        ref.invalidate(groupTransactionsProvider(widget.transaction.groupId!));
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Contribution Approved'), backgroundColor: AppColors.success),
@@ -96,7 +98,9 @@ class _ApprovalCardState extends ConsumerState<_ApprovalCard> {
     try {
       final service = LedgerService();
       await service.rejectTransaction(widget.transaction.id);
-      ref.invalidate(groupTransactionsProvider(widget.transaction.groupId));
+      if (widget.transaction.groupId != null) {
+        ref.invalidate(groupTransactionsProvider(widget.transaction.groupId!));
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Contribution Rejected'), backgroundColor: AppColors.error),
@@ -140,7 +144,7 @@ class _ApprovalCardState extends ConsumerState<_ApprovalCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Member ID: ...${widget.transaction.memberId.substring(0, 6)}', // Masked for brevity
+                      'Member ID: ...${(widget.transaction.memberId ?? 'Unknown').substring(0, 6)}', // Masked for brevity
                       style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 4),

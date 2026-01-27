@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   DollarSign,
   CheckCircle,
   AlertCircle,
-  Clock,
   TrendingUp,
   RefreshCw
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ViewState } from '../types';
 import { isSuperAdmin } from '../lib/utils/roleHelpers';
-import { useDashboardKPIs, DashboardData } from '../hooks/useDashboardKPIs';
+import { useDashboardKPIs } from '../hooks/useDashboardKPIs';
 import {
   KpiCard,
   AttentionItem,
@@ -196,32 +194,28 @@ const MinimalistDashboard: React.FC<MinimalistDashboardProps> = ({ onNavigate })
           title="Today's Collections"
           value={formatCurrency(data.kpis.today.received_total)}
           icon={DollarSign}
-          iconBg="bg-green-50"
-          iconColor="text-green-600"
+          iconColor="green"
           trend="up"
         />
         <KpiCard
           title="Today Allocated"
           value={data.kpis.today.allocated_count}
           icon={CheckCircle}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
+          iconColor="blue"
         />
         <KpiCard
           title="Today Unallocated"
           value={data.kpis.today.unallocated_count}
           icon={AlertCircle}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
+          iconColor="amber"
           alert={data.kpis.today.unallocated_count > 0}
         />
         <KpiCard
-          title={`${data.kpis.last_days.days}d Collections`}
+          title={`${data.kpis.last_days.days}-Day Collections`}
           value={formatCurrency(data.kpis.last_days.received_total)}
           subtext={`${data.kpis.last_days.allocated_count} allocated`}
           icon={TrendingUp}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
+          iconColor="purple"
         />
       </div>
 

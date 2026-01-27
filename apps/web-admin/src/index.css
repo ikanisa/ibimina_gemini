@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Skip Link - Hidden until focused (a11y best practice) */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background-color: #1e40af;
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: top 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.dark .skip-link {
+  background-color: #3b82f6;
+}
+
 /* Base styles */
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;

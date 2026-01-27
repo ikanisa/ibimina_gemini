@@ -41,6 +41,7 @@ import { GroupsList } from './GroupsList';
 import { GroupDetail } from './GroupDetail';
 import { CreateGroupModal } from './CreateGroupModal';
 import { GroupsSkeleton } from '@/shared/components/ui/PageSkeletons';
+import { FilterPopover, type FilterGroup } from '@/components/ui/FilterPopover';
 
 interface GroupsProps {
   onNavigate?: (view: ViewState) => void;
@@ -477,6 +478,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
   return (
     <PageLayout
       title="Groups (Ibimina)"
+      description="Manage savings groups, members, and contributions"
       actions={
         <>
           <Button
@@ -545,118 +547,56 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
         title="All Groups"
         headerActions={
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Filter Dropdown */}
-            <div className="relative">
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Filter size={14} />}
-                onClick={() => {
-                  setShowFilterMenu(!showFilterMenu);
-                  setShowFrequencyMenu(false);
-                  setShowSmartMenu(false);
-                  setShowSortMenu(false);
-                }}
-              >
-                {filterStatus === 'all' ? 'Status' : filterStatus}
-                <ChevronDown size={14} className="ml-1" />
-              </Button>
-              {showFilterMenu && (
-                <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
-                  {(['all', 'Active', 'Suspended', 'Completed'] as FilterStatus[]).map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => {
-                        setFilterStatus(status);
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${filterStatus === status ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
-                        }`}
-                    >
-                      {status === 'all' ? 'All Statuses' : status}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Frequency Dropdown */}
-            <div className="relative">
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Repeat size={14} />}
-                onClick={() => {
-                  setShowFrequencyMenu(!showFrequencyMenu);
-                  setShowFilterMenu(false);
-                  setShowSmartMenu(false);
-                  setShowSortMenu(false);
-                }}
-              >
-                {frequencyFilter === 'all' ? 'Frequency' : frequencyFilter}
-                <ChevronDown size={14} className="ml-1" />
-              </Button>
-              {showFrequencyMenu && (
-                <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
-                  {(['all', 'Daily', 'Weekly', 'Monthly'] as FrequencyFilter[]).map((frequency) => (
-                    <button
-                      key={frequency}
-                      onClick={() => {
-                        setFrequencyFilter(frequency);
-                        setShowFrequencyMenu(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${frequencyFilter === frequency ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
-                        }`}
-                    >
-                      {frequency === 'all' ? 'All Frequencies' : frequency}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Smart Filter Dropdown */}
-            <div className="relative">
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<SlidersHorizontal size={14} />}
-                onClick={() => {
-                  setShowSmartMenu(!showSmartMenu);
-                  setShowFilterMenu(false);
-                  setShowFrequencyMenu(false);
-                  setShowSortMenu(false);
-                }}
-              >
-                {smartFilterButtonLabels[smartFilter]}
-                <ChevronDown size={14} className="ml-1" />
-              </Button>
-              {showSmartMenu && (
-                <div className="absolute right-0 mt-1 w-64 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg shadow-lg z-10">
-                  {([
+            {/* Consolidated Filter Popover */}
+            <FilterPopover
+              defaultLabel="Filters"
+              filters={[
+                {
+                  id: 'status',
+                  label: 'Status',
+                  options: [
+                    { value: 'all', label: 'All' },
+                    { value: 'Active', label: 'Active' },
+                    { value: 'Suspended', label: 'Suspended' },
+                    { value: 'Completed', label: 'Completed' },
+                  ],
+                  value: filterStatus,
+                  onChange: (v) => setFilterStatus(v as FilterStatus),
+                },
+                {
+                  id: 'frequency',
+                  label: 'Frequency',
+                  options: [
+                    { value: 'all', label: 'All' },
+                    { value: 'Daily', label: 'Daily' },
+                    { value: 'Weekly', label: 'Weekly' },
+                    { value: 'Monthly', label: 'Monthly' },
+                  ],
+                  value: frequencyFilter,
+                  onChange: (v) => setFrequencyFilter(v as FrequencyFilter),
+                },
+                {
+                  id: 'smart',
+                  label: 'Smart Filter',
+                  options: [
                     { value: 'all', label: 'All Groups' },
-                    { value: 'high-savings', label: `High Savings (>= ${medianSavingsLabel})` },
-                    { value: 'low-savings', label: `Low Savings (< ${medianSavingsLabel})` },
-                    { value: 'large-groups', label: `Large Groups (>= ${medianMembersLabel} members)` },
-                    { value: 'small-groups', label: `Small Groups (< ${medianMembersLabel} members)` },
+                    { value: 'high-savings', label: 'High Savings' },
+                    { value: 'low-savings', label: 'Low Savings' },
+                    { value: 'large-groups', label: 'Large Groups' },
+                    { value: 'small-groups', label: 'Small Groups' },
                     { value: 'active-loans', label: 'Active Loans' },
-                    { value: 'no-loans', label: 'No Active Loans' },
-                  ] as { value: SmartFilter; label: string }[]).map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setSmartFilter(option.value);
-                        setShowSmartMenu(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg ${smartFilter === option.value ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-700 dark:text-neutral-300'
-                        }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    { value: 'no-loans', label: 'No Loans' },
+                  ],
+                  value: smartFilter,
+                  onChange: (v) => setSmartFilter(v as SmartFilter),
+                },
+              ]}
+              onClearAll={() => {
+                setFilterStatus('all');
+                setFrequencyFilter('all');
+                setSmartFilter('all');
+              }}
+            />
 
             {/* Sort Dropdown */}
             <div className="relative">

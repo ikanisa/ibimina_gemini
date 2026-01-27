@@ -3,7 +3,7 @@
  * React hook for theme management
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import {
   getStoredTheme,
   storeTheme,
@@ -24,13 +24,17 @@ export interface UseThemeReturn {
  * Hook for managing theme state
  */
 export function useTheme(): UseThemeReturn {
-  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
+  // Use lazy initialization to get stored theme and apply it synchronously
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const stored = getStoredTheme();
+    // Apply theme immediately during initialization to avoid flash
+    applyTheme(stored);
+    return stored;
+  });
+
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>(() =>
     getEffectiveTheme(theme)
   );
-
-  // Initialize theme on mount - handled by lazy state and update effect
-  // useEffect(() => { ... }, []) removed to avoid synchronous setState warning
 
   // Watch for system theme changes when theme is 'system'
   useEffect(() => {
@@ -44,11 +48,11 @@ export function useTheme(): UseThemeReturn {
     return cleanup;
   }, [theme]);
 
-  // Update effective theme when theme changes
-  useEffect(() => {
+  // Update effective theme when theme changes (derived state)
+  // Using useLayoutEffect to ensure synchronous update before paint
+  useLayoutEffect(() => {
     const effective = getEffectiveTheme(theme);
     setEffectiveTheme(effective);
-    applyTheme(theme);
   }, [theme]);
 
   // Set theme and persist

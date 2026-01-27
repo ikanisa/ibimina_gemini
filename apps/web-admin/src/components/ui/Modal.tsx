@@ -1,10 +1,4 @@
-/**
- * Reusable Modal Component
- * 
- * Accessible modal with proper ARIA attributes and focus management
- */
-
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { modalBackdrop, modalContent, transitions } from '../../lib/animations/framer-motion';
@@ -41,7 +35,8 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<Element | null>(null);
-  const modalId = id || `modal-${Math.random().toString(36).slice(2, 9)}`;
+  const generatedId = useId();
+  const modalId = id || `modal-${generatedId}`;
   const titleId = `${modalId}-title`;
 
   // Track previously focused element and restore on close

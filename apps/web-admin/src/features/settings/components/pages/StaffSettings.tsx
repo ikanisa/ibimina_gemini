@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Mail, Phone, Shield, Building, Trash2, UserCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/core/auth';
@@ -37,11 +37,7 @@ export const StaffSettings: React.FC = () => {
     institution_id: institutionId || ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [institutionId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     // Load staff
@@ -61,10 +57,12 @@ export const StaffSettings: React.FC = () => {
       setStaff(staffData);
     }
 
-
-
     setLoading(false);
-  };
+  }, [institutionId, isPlatformAdmin]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleInviteStaff = async () => {
     if (!newStaff.email.trim() || !newStaff.role) {

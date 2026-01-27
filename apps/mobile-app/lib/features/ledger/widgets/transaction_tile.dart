@@ -28,8 +28,7 @@ class TransactionTile extends StatelessWidget {
 
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-       // Subtle border for clean separation
+      // Subtle border for clean separation
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
         side: BorderSide(color: AppColors.border.withValues(alpha: 0.3), width: 0.5),

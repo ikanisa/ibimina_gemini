@@ -2,6 +2,8 @@
  * Centralized exports for UI components
  */
 
+export * from './AlertBanner';
+export * from './FilterPopover';
 export * from './Modal';
 export * from './LoadingSpinner';
 export * from './ErrorDisplay';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search,
   Plus,
@@ -24,7 +24,7 @@ const GroupsList: React.FC<GroupsListProps> = ({ onSelectGroup }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     if (!institutionId) {
       setLoading(false);
       return;
@@ -48,11 +48,11 @@ const GroupsList: React.FC<GroupsListProps> = ({ onSelectGroup }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [institutionId]);
 
   useEffect(() => {
     loadGroups();
-  }, [institutionId]);
+  }, [loadGroups]);
 
   const filteredGroups = groups.filter(g =>
     g.group_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -116,8 +116,8 @@ const GroupsList: React.FC<GroupsListProps> = ({ onSelectGroup }) => {
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${group.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                      group.status === 'PAUSED' ? 'bg-amber-100 text-amber-800' :
-                        'bg-slate-100 text-slate-800'
+                    group.status === 'PAUSED' ? 'bg-amber-100 text-amber-800' :
+                      'bg-slate-100 text-slate-800'
                     }`}>
                     {group.status}
                   </span>

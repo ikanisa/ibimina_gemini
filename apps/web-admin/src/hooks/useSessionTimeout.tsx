@@ -62,8 +62,24 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
     const absoluteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const warningRef = useRef<NodeJS.Timeout | null>(null);
     const countdownRef = useRef<NodeJS.Timeout | null>(null);
-    const lastActivityRef = useRef<number>(Date.now());
-    const sessionStartRef = useRef<number>(Date.now());
+    // Use lazy initialization to avoid Date.now() during render
+    const lastActivityRef = useRef<number | null>(null);
+    const sessionStartRef = useRef<number | null>(null);
+
+    // Initialize refs lazily in the first effect if not yet set
+    const getLastActivity = () => {
+        if (lastActivityRef.current === null) {
+            lastActivityRef.current = Date.now();
+        }
+        return lastActivityRef.current;
+    };
+
+    const getSessionStart = () => {
+        if (sessionStartRef.current === null) {
+            sessionStartRef.current = Date.now();
+        }
+        return sessionStartRef.current;
+    };
 
     const idleTimeoutMs = idleTimeoutMinutes * 60 * 1000;
     const absoluteTimeoutMs = absoluteTimeoutHours * 60 * 60 * 1000;
@@ -103,8 +119,8 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
         if (session?.user) {
             await AuditLogger.logAuth(session.user.id, 'auth.session_expired', {
                 timeoutType,
-                lastActivity: new Date(lastActivityRef.current).toISOString(),
-                sessionDuration: Date.now() - sessionStartRef.current,
+                lastActivity: new Date(getLastActivity()).toISOString(),
+                sessionDuration: Date.now() - getSessionStart(),
                 idleTimeoutMinutes,
                 absoluteTimeoutHours,
             });
@@ -156,7 +172,7 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
         if (!enabled) return;
 
         lastActivityRef.current = Date.now();
-        
+
         // Only clear idle timeout timers, keep absolute timeout
         if (idleTimeoutRef.current) {
             clearTimeout(idleTimeoutRef.current);
@@ -180,7 +196,7 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
         }));
 
         // Check which timeout will expire first
-        const timeSinceLogin = Date.now() - sessionStartRef.current;
+        const timeSinceLogin = Date.now() - getSessionStart();
         const timeUntilAbsoluteTimeout = absoluteTimeoutMs - timeSinceLogin;
         const timeUntilIdleTimeout = idleTimeoutMs;
 
@@ -341,7 +357,7 @@ export const SessionWarningModal: React.FC<SessionWarningModalProps> = ({
                 <h2 className="text-lg font-semibold text-slate-900 mb-2">
                     Session Expiring
                 </h2>
-                <p 
+                <p
                     className="text-slate-600 mb-4"
                     dangerouslySetInnerHTML={{ __html: message }}
                 />
@@ -361,7 +377,7 @@ export const SessionWarningModal: React.FC<SessionWarningModalProps> = ({
                     )}
                     <button
                         onClick={onLogout}
-                        className={timeoutType === 'idle' 
+                        className={timeoutType === 'idle'
                             ? "px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
                             : "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                         }

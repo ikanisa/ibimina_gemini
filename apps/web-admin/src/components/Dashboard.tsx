@@ -16,6 +16,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { KpiStats, SupabaseTransaction, ViewState } from '../types';
 import { useTransactions } from '../hooks/useTransactions';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { KpiCard } from './dashboard/KpiCard';
+import { AlertBanner } from './ui/AlertBanner';
 
 interface DashboardProps {
   stats?: KpiStats; // Optional now, hook handles it
@@ -23,20 +25,7 @@ interface DashboardProps {
   onNavigate: (view: ViewState) => void;
 }
 
-const StatCard = memo<{ title: string; value: string; subtext?: string; icon: React.ReactNode; trend?: 'up' | 'down' | 'neutral'; alert?: boolean }>(({ title, value, subtext, icon, trend, alert }) => (
-  <div className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md transition-shadow ${alert ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200'}`}>
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-2 rounded-lg ${alert ? 'bg-amber-100 text-amber-600' : 'bg-slate-50 text-slate-600'}`}>{icon}</div>
-      {trend === 'up' && <span className="text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">+2.4% <ArrowUpRight size={12} /></span>}
-      {trend === 'down' && <span className="text-red-600 bg-red-50 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">-0.8% <ArrowDownLeft size={12} /></span>}
-    </div>
-    <div>
-      <h3 className="text-slate-500 text-xs uppercase font-semibold tracking-wider mb-1">{title}</h3>
-      <p className={`text-2xl font-bold ${alert ? 'text-amber-900' : 'text-slate-900'}`}>{value}</p>
-      {subtext && <p className="text-slate-400 text-xs mt-1">{subtext}</p>}
-    </div>
-  </div>
-));
+
 
 const QuickAction = memo<{ icon: React.ReactNode; label: string; color: string; onClick: () => void }>(({ icon, label, color, onClick }) => (
   <button
@@ -138,32 +127,36 @@ const Dashboard: React.FC<DashboardProps> = memo(({ onNavigate }) => {
     >
       {/* KPI Strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <KpiCard
           title="Active Groups"
           value={stats.activeGroups.toString()}
           subtext={`${(stats.totalGroupFunds / 1000000).toFixed(1)}M RWF Funds`}
-          icon={<Briefcase size={20} />}
+          icon={Briefcase}
+          iconColor="blue"
           trend="up"
         />
-        <StatCard
+        <KpiCard
           title="Total Members"
           value={stats.totalMembers.toLocaleString()}
           subtext={`${stats.activeMembers} Active`}
-          icon={<Users size={20} />}
+          icon={Users}
+          iconColor="indigo"
           trend="up"
         />
-        <StatCard
+        <KpiCard
           title="Total Savings"
           value={`${(stats.totalSavings / 1000000).toFixed(1)}M RWF`}
           subtext="Individual + Group"
-          icon={<Wallet size={20} />}
+          icon={Wallet}
+          iconColor="green"
           trend="up"
         />
-        <StatCard
+        <KpiCard
           title="Reconciliation"
           value={stats.reconciliationStatus}
           subtext={stats.reconciliationStatus === 'Issues' ? 'Action Required' : 'All Clear'}
-          icon={<AlertCircle size={20} />}
+          icon={AlertCircle}
+          iconColor="amber"
           alert={stats.reconciliationStatus !== 'Balanced'}
         />
       </div>
@@ -259,21 +252,15 @@ const Dashboard: React.FC<DashboardProps> = memo(({ onNavigate }) => {
 
       {/* Alerts Row - Only show if there are issues */}
       {stats.reconciliationStatus !== 'Balanced' && (
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="text-amber-600" size={24} />
-            <div>
-              <h4 className="text-sm font-bold text-amber-900">Reconciliation Pending</h4>
-              <p className="text-xs text-amber-700">Unallocated transactions or parse errors detected.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate(ViewState.TRANSACTIONS)}
-            className="px-4 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors"
-          >
-            Review Issues
-          </button>
-        </div>
+        <AlertBanner
+          variant="warning"
+          message="Reconciliation Pending"
+          description="Unallocated transactions or parse errors detected."
+          action={{
+            label: 'Review Issues',
+            onClick: () => onNavigate(ViewState.TRANSACTIONS)
+          }}
+        />
       )}
     </motion.div>
   );

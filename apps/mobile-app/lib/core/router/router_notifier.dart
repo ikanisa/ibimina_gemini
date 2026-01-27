@@ -15,6 +15,8 @@ class RouterNotifier extends ChangeNotifier {
     _ref.listen(hasPasscodeProvider, (_, __) => notifyListeners());
     _ref.listen(isProfileCompleteProvider, (_, __) => notifyListeners());
     _ref.listen(myMembershipProvider, (_, __) => notifyListeners());
+    // DEV MODE: Also listen to the override to refresh router when auth override changes
+    _ref.listen(devModeAuthOverrideProvider, (_, __) => notifyListeners());
   }
 
   /// Redirect logic for GoRouter
@@ -27,7 +29,8 @@ class RouterNotifier extends ChangeNotifier {
     final authState = _ref.read(authStateProvider);
     if (authState.isLoading) return null; // Or splash?
 
-    final isAuth = authState.asData?.value.session != null;
+    // DEV MODE: Use the centralized isAuthenticatedProvider which respects dev mode override
+    final isAuth = _ref.read(isAuthenticatedProvider);
     final isLoggingIn = state.uri.toString().startsWith('/auth');
     
     // 1. Not authenticated

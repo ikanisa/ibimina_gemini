@@ -429,9 +429,9 @@ const Institutions: React.FC<InstitutionsProps> = ({ onNavigate }) => {
 
               {/* MoMo Code Warning */}
               {!institution.primary_momo_code && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                  <AlertCircle size={14} />
-                  <span>No primary MoMo code set</span>
+                <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-100 border border-amber-200 px-3 py-2 rounded-lg">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                  <span className="font-medium">No primary MoMo code set</span>
                 </div>
               )}
               {institution.primary_momo_code && (

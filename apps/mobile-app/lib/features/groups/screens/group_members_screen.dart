@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ibimina_mobile/features/groups/models/membership.dart';
-import 'package:ibimina_mobile/features/groups/services/group_repository.dart';
+import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
 import 'package:ibimina_mobile/ui/ui.dart';
-
-// Provider to fetch members
-final groupMembersProvider = FutureProvider.autoDispose.family<List<GroupMembership>, String>((ref, groupId) async {
-  final repo = ref.read(groupRepositoryProvider);
-  return repo.getGroupMembers(groupId);
-});
 
 class GroupMembersScreen extends ConsumerWidget {
   final String groupId;
@@ -91,9 +85,9 @@ class _MemberTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // We'd ideally show name here
-                Text('Member ${membership.memberId.substring(0,6)}...', style: AppTypography.titleSmall),
-                Text(membership.role.name.toUpperCase(), style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary)),
+                // Show name if available, otherwise truncated userId
+                Text(membership.memberName ?? 'Member ${membership.userId.substring(0,6)}...', style: AppTypography.titleSmall),
+                Text(membership.role.toUpperCase(), style: AppTypography.labelSmall.copyWith(color: AppColors.darkTextSecondary)),
               ],
             ),
           ),

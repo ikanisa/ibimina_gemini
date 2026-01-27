@@ -17,6 +17,7 @@ import { MemberDetail } from './MemberDetail';
 import { AddMemberModal } from './AddMemberModal';
 import BulkMemberUpload from './BulkMemberUpload';
 import { cn } from '@/lib/utils/cn';
+import { KpiCard } from '@/components/dashboard/KpiCard';
 
 interface MembersProps {
   members?: Member[];
@@ -113,29 +114,29 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
       <div className="relative h-[calc(100vh-100px)] flex flex-col gap-4">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-1">
-          <StatCard
-            label="Total Members"
+          <KpiCard
+            title="Total Members"
             value={stats.total.toLocaleString()}
             icon={Users}
-            color="blue"
+            iconColor="blue"
           />
-          <StatCard
-            label="Active"
+          <KpiCard
+            title="Active"
             value={stats.active.toLocaleString()}
             icon={TrendingUp}
-            color="green"
+            iconColor="green"
           />
-          <StatCard
-            label="Total Savings"
+          <KpiCard
+            title="Total Savings"
             value={`${(stats.totalSavings / 1000000).toFixed(1)}M RWF`}
             icon={DollarSign}
-            color="indigo"
+            iconColor="indigo"
           />
-          <StatCard
-            label="Total Loans"
+          <KpiCard
+            title="Total Loans"
             value={`${(stats.totalLoans / 1000000).toFixed(1)}M RWF`}
             icon={TrendingUp}
-            color="amber"
+            iconColor="amber"
           />
         </div>
 
@@ -249,41 +250,6 @@ const Members: React.FC<MembersProps> = ({ members: membersProp, onNavigate }) =
         />
       )}
     </>
-  );
-};
-
-// Stats Card Component
-interface StatCardProps {
-  label: string;
-  value: string;
-  icon: React.FC<{ size?: number; className?: string }>;
-  color: 'blue' | 'green' | 'indigo' | 'amber';
-}
-
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color }) => {
-  const colorClasses = {
-    blue: 'from-blue-500 to-blue-600 shadow-blue-500/30',
-    green: 'from-emerald-500 to-green-600 shadow-green-500/30',
-    indigo: 'from-indigo-500 to-purple-600 shadow-indigo-500/30',
-    amber: 'from-amber-500 to-orange-600 shadow-amber-500/30',
-  };
-
-  return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/80 p-4 shadow-lg shadow-slate-200/50 hover:shadow-xl transition-shadow duration-200">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-slate-500 font-medium">{label}</p>
-          <p className="text-xl font-bold text-slate-900 mt-1">{value}</p>
-        </div>
-        <div className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center',
-          'bg-gradient-to-br text-white shadow-lg',
-          colorClasses[color]
-        )}>
-          <Icon size={18} />
-        </div>
-      </div>
-    </div>
   );
 };
 

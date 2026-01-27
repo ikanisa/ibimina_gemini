@@ -115,7 +115,7 @@ const Loans: React.FC = () => {
     };
 
     return (
-        <PageLayout title="Loans">
+        <PageLayout title="Loans" description="Group-savings-backed loans with automatic repayment tracking">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-blue-600 text-white p-5 rounded-xl">

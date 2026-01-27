@@ -367,7 +367,7 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
           <div className="p-4 border-b border-slate-100 dark:border-neutral-700 flex justify-between items-center bg-slate-50 dark:bg-neutral-900">
             <div className="relative w-72">
               <SearchInput
-                placeholder="Search staff by name, email, or role..."
+                placeholder="Search staff by name, email, or role"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClear={() => setSearchTerm('')}
@@ -420,9 +420,10 @@ const Staff: React.FC<StaffProps> = ({ currentUser, onImpersonate }) => {
                       <button
                         onClick={() => onImpersonate(staff)}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs font-medium px-2 py-1 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded flex items-center gap-1"
-                        title={`View portal as ${staff.name}`}
+                        title={`Sign in as ${staff.name} to see their view of the portal`}
                       >
-                        <Eye size={14} /> View As
+                        <Eye size={14} />
+                        Impersonate
                       </button>
                     )}
                     <button className="text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-neutral-700">

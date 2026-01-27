@@ -31,8 +31,8 @@ export const DevicesList: React.FC<DevicesListProps> = React.memo(({
 }) => {
   const isMobile = useIsMobile();
   const formatLastSmsTime = (timestamp: string | null): string => {
-    if (!timestamp) return '—';
-    
+    if (!timestamp) return 'Never received';
+
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -44,7 +44,7 @@ export const DevicesList: React.FC<DevicesListProps> = React.memo(({
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -93,9 +93,8 @@ export const DevicesList: React.FC<DevicesListProps> = React.memo(({
             <div
               key={device.id}
               onClick={() => onSelectDevice(device)}
-              className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-50 hover:bg-blue-50/50 transition-all duration-150 min-h-[60px] cursor-pointer ${
-                selectedDeviceId === device.id ? 'bg-blue-50 ring-2 ring-blue-200' : ''
-              }`}
+              className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-50 hover:bg-blue-50/50 transition-all duration-150 min-h-[60px] cursor-pointer ${selectedDeviceId === device.id ? 'bg-blue-50 ring-2 ring-blue-200' : ''
+                }`}
             >
               <div className="col-span-3">
                 <p className="text-sm font-medium text-slate-900">{device.device_name}</p>
@@ -152,9 +151,8 @@ export const DevicesList: React.FC<DevicesListProps> = React.memo(({
             <div
               key={device.id}
               onClick={() => onSelectDevice(device)}
-              className={`bg-white rounded-lg border border-slate-200 p-4 space-y-3 cursor-pointer active:bg-slate-50 transition-all ${
-                selectedDeviceId === device.id ? 'ring-2 ring-blue-200 border-blue-300' : ''
-              }`}
+              className={`bg-white rounded-lg border border-slate-200 p-4 space-y-3 cursor-pointer active:bg-slate-50 transition-all ${selectedDeviceId === device.id ? 'ring-2 ring-blue-200 border-blue-300' : ''
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">

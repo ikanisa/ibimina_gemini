@@ -1,8 +1,11 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * Execute configuration SQL via Supabase Management API
+ * NOTE: This script is intended to run with Deno, not Node.js
  */
 
+// Make this a module for top-level await
+export { };
 
 const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZGh5ZGVtdXNocXF0Y3JybHdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTc0MTU1NCwiZXhwIjoyMDgxMzE3NTU0fQ.mQg8USbqggCTUinPPhsvdqFl1j8baX71ulUvVdGYL7s";
 const SUPABASE_URL = `https://wadhydemushqqtcrrlwm.supabase.co`;

@@ -61,6 +61,10 @@ abstract class AppColors {
   static const Color darkTextSecondary = AppPalette.slate400;
   static const Color darkTextHint = AppPalette.slate500;
   static const Color darkBorder = AppPalette.slate600;
+  static const Color darkOutline = AppPalette.slate500;  // For subtle borders
+  
+  /// Alias for outline (semantic)
+  static const Color outline = darkOutline;
 
   // ============================================
   // LIGHT THEME PALETTE

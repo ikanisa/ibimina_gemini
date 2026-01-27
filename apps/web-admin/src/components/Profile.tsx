@@ -1,11 +1,9 @@
 import React from 'react';
 import {
-  User,
   Mail,
   Building,
   Shield,
   Clock,
-  Calendar,
   KeyRound,
   CheckCircle2,
   Activity,

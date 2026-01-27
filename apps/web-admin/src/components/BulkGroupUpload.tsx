@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, Briefcase } from 'lucide-react';
+import { Upload, FileText, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal, Button, ErrorDisplay } from './ui';
@@ -194,76 +194,76 @@ const BulkGroupUpload: React.FC<BulkGroupUploadProps> = ({ onClose, onSuccess })
 
             {/* Content */}
             <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {error && (
-                        <ErrorDisplay error={error} variant="inline" className="mb-4" />
-                    )}
+                {error && (
+                    <ErrorDisplay error={error} variant="inline" className="mb-4" />
+                )}
 
-                    {successCount > 0 && (
-                        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top duration-300">
-                            <CheckCircle2 size={16} />
-                            Successfully imported {successCount} groups!
+                {successCount > 0 && (
+                    <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top duration-300">
+                        <CheckCircle2 size={16} />
+                        Successfully imported {successCount} groups!
+                    </div>
+                )}
+
+                {/* File Upload Area */}
+                {!isParsed && (
+                    <div
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 active:scale-[0.98]"
+                    >
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*,.pdf,.xlsx,.xls,.csv"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                        />
+                        <Upload className="mx-auto text-slate-400 mb-3" size={40} />
+                        <p className="text-slate-600 font-medium mb-1">
+                            {file ? file.name : 'Drop your file here or click to browse'}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                            Supports images, PDFs, Excel files with group lists
+                        </p>
+                    </div>
+                )}
+
+                {/* Parsed Groups Preview */}
+                {isParsed && parsedGroups.length > 0 && (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-slate-800">Extracted Groups ({parsedGroups.length})</h3>
+                            <button
+                                onClick={() => { setIsParsed(false); setParsedGroups([]); setFile(null); }}
+                                className="text-sm text-slate-500 hover:text-slate-700"
+                            >
+                                Upload Different File
+                            </button>
                         </div>
-                    )}
-
-                    {/* File Upload Area */}
-                    {!isParsed && (
-                        <div
-                            onDrop={handleDrop}
-                            onDragOver={handleDragOver}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 active:scale-[0.98]"
-                        >
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*,.pdf,.xlsx,.xls,.csv"
-                                onChange={handleFileSelect}
-                                className="hidden"
-                            />
-                            <Upload className="mx-auto text-slate-400 mb-3" size={40} />
-                            <p className="text-slate-600 font-medium mb-1">
-                                {file ? file.name : 'Drop your file here or click to browse'}
-                            </p>
-                            <p className="text-sm text-slate-400">
-                                Supports images, PDFs, Excel files with group lists
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Parsed Groups Preview */}
-                    {isParsed && parsedGroups.length > 0 && (
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold text-slate-800">Extracted Groups ({parsedGroups.length})</h3>
-                                <button
-                                    onClick={() => { setIsParsed(false); setParsedGroups([]); setFile(null); }}
-                                    className="text-sm text-slate-500 hover:text-slate-700"
+                        <div className="bg-slate-50 rounded-lg border border-slate-200 divide-y divide-slate-200 max-h-64 overflow-y-auto">
+                            {parsedGroups.map((group, idx) => (
+                                <div
+                                    key={idx}
+                                    className="p-3 flex items-center justify-between hover:bg-slate-100 transition-colors duration-150 animate-in fade-in slide-in-from-right"
+                                    style={{ animationDelay: `${idx * 30}ms` }}
                                 >
-                                    Upload Different File
-                                </button>
-                            </div>
-                            <div className="bg-slate-50 rounded-lg border border-slate-200 divide-y divide-slate-200 max-h-64 overflow-y-auto">
-                                {parsedGroups.map((group, idx) => (
-                                    <div 
-                                        key={idx} 
-                                        className="p-3 flex items-center justify-between hover:bg-slate-100 transition-colors duration-150 animate-in fade-in slide-in-from-right"
-                                        style={{ animationDelay: `${idx * 30}ms` }}
-                                    >
-                                        <div>
-                                            <p className="font-medium text-slate-900">{group.group_name}</p>
-                                            <p className="text-sm text-slate-500">
-                                                {group.meeting_day || 'No contribution day'} • {group.expected_amount?.toLocaleString() || 'No amount'} RWF
-                                            </p>
-                                        </div>
-                                        <span className={`text-xs px-2 py-1 rounded ${frequencyColors[group.frequency || 'Weekly'] || 'bg-slate-100 text-slate-700'}`}>
-                                            {group.frequency || 'Weekly'}
-                                        </span>
+                                    <div>
+                                        <p className="font-medium text-slate-900">{group.group_name}</p>
+                                        <p className="text-sm text-slate-500">
+                                            {group.meeting_day || 'No contribution day'} • {group.expected_amount?.toLocaleString() || 'No amount'} RWF
+                                        </p>
                                     </div>
-                                ))}
-                            </div>
+                                    <span className={`text-xs px-2 py-1 rounded ${frequencyColors[group.frequency || 'Weekly'] || 'bg-slate-100 text-slate-700'}`}>
+                                        {group.frequency || 'Weekly'}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
+            </div>
 
             {/* Footer */}
             <div className="p-6 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">

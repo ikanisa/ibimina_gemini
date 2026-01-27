@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ibimina_mobile/features/groups/providers/group_providers.dart';
+import 'package:ibimina_mobile/features/groups/providers/group_provider.dart';
 import 'package:ibimina_mobile/features/invites/providers/invite_providers.dart';
 import 'package:ibimina_mobile/features/invites/widgets/invite_qr_widget.dart';
 

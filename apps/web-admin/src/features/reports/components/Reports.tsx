@@ -401,7 +401,7 @@ const Reports: React.FC = () => {
           loadingMore={loadingMore}
           hasMore={ledger.length < ledgerTotal}
           onLoadMore={loadMoreLedger}
-          emptyMessage="No transactions found for the selected filters"
+          emptyMessage={error ? 'Unable to load transactions' : 'No transactions found for the selected filters'}
         />
       </Section>
     </PageLayout>

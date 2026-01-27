@@ -19,6 +19,14 @@ abstract class AppTypography {
     letterSpacing: -0.25,
   );
 
+  // Headline - For section/group headers
+  static const TextStyle headlineMedium = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: -0.15,
+  );
+
   // Title - For section headers and cards
   static const TextStyle titleLarge = TextStyle(
     fontSize: 22,

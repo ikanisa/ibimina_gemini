@@ -44,34 +44,31 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 
   if (variant === 'banner') {
     return (
-      <div className={`bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between ${className}`}>
-        <div className="flex items-center gap-2">
-          <AlertCircle size={16} />
-          <span>{message}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {onRetry && (
-            <button
-              onClick={onRetry}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-xs font-medium transition-colors"
-            >
-              <RefreshCw size={12} />
-              Retry
-            </button>
-          )}
-          {onDismiss && (
-            <button
-              onClick={onDismiss}
-              className="text-red-600 hover:text-red-800"
-              aria-label="Dismiss error"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
+      <div className={`bg-red-50 border-l-4 border-l-red-500 border-y border-r border-red-200 text-red-700 px-4 py-3 rounded-r-lg text-sm flex items-center gap-3 ${className}`}>
+        <AlertCircle size={18} className="text-red-500 shrink-0" />
+        <span className="flex-1">{message}</span>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors shrink-0"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        )}
+        {onDismiss && (
+          <button
+            onClick={onDismiss}
+            className="text-red-600 hover:text-red-800 shrink-0"
+            aria-label="Dismiss error"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
     );
   }
+
 
   if (variant === 'timeout') {
     return (

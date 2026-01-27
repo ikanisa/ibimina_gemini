@@ -280,7 +280,7 @@ const Groups: React.FC<GroupsProps> = ({ onNavigate, institutionId: institutionI
     };
 
     loadGroupDetails();
-  }, [institutionId, selectedGroup?.id]);
+  }, [institutionId, selectedGroup]);
 
   // If a group is selected, show detail view
   if (selectedGroup) {
